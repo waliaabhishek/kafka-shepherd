@@ -1,0 +1,94 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "abhishek.walia.test.1"
+          - "abhishek.walia.test.2"
+          # - "_confluent-license"
+        clients:
+          consumers:
+            - id: "User:1111"
+              group: "hello"
+          producers:
+            - id: "User:1112"
+              group: "hello"
+            - id: "User:1112"
+              group: "hello"
+            - id: "User:1111"
+              group: "hello"
+          connectors:
+            - id: "User:1113"
+              type: "source"
+            - id: "User:1112"
+              type: "sink"
+            - id: "User:1115"
+              type: "sink"
+        blueprintEnum: "platinum"
+        configOverrides:
+          # - min.insync.replicas: 5
+          # - test.property: "20"
+  scopeFlow:
+    # Team based topic name tokenization
+    # This tokenization is setup for team : Integration
+    # It does not include the team name in the topic name ue to the switch
+    # And the topic name tokens are combination of the custom enums and in-place lists
+    - scope:
+        shortName: team
+        values:
+          - "int"
+          - "bss"
+          - "oss"
+        addToTopicName: true
+        child:
+          customEnum: zones
+          addToTopicName: true
+          topics:
+            name:
+              - "test1"
+          clients:
+            consumers:
+              - id: "User:1"
+                group: "hello"
+            producers:
+              - id: "User:2"
+                group: "hello"
+          child:
+            customEnum: logicalEnv
+            addToTopicName: false
+            clients:
+              consumers:
+                - id: "User:3"
+                  group: "hello"
+              producers:
+                - id: "User:4"
+                  group: "hello"
+            topics:
+              name:
+                - logicalenvtopictest
+              filterScope:
+                - dev
+                - pprd
+            child:
+              customEnum: categories
+              addToTopicName: true
+              child:
+                shortName: domain
+                values:
+                  - product
+                  - orders
+                  - shipments
+                  - ~
+                addToTopicName: true
+                clients:
+                  consumers:
+                    - id: "User:5"
+                      group: "hello"
+                  producers:
+                    - id: "User:6"
+                      group: "hello"
+                topics:
+                  name:
+                    - test2
+                    - test3
+                    # - test4

@@ -1,0 +1,52 @@
+---
+blueprints:
+  topic:
+    topicConfigs:
+      - name: bronze
+        configOverrides:
+          - num.partitions: 4
+      - name: silver
+        configOverrides:
+          - num.partitions: 5
+          - replication.factor: 5
+      - name: gold
+        configOverrides:
+          - num.partitions: 10
+      - name: platinum
+        configOverrides:
+          - num.partitions: 15
+  policy:
+    topicPolicy:
+      defaults:
+        - replication.factor: 1
+        - min.insync.replicas: 1
+        - num.partitions: 5
+      overrides:
+        whitelist:
+          # - min.insync.replicas
+          # - partition.count
+        blacklist:
+          - replication.factor
+    aclPolicy:
+      setupACLs: false
+      aclType: '"zk" | "ccloud" | "confluentrbac"'
+      optimizeACLs: true
+  customEnums:
+    - name: zones
+      values:
+        - landing
+        - staging
+        - ready
+      mandatoryInTopicName: false
+    - name: categories
+      values:
+        - restr
+        - unrstr
+      mandatoryInTopicName: false
+    - name: logicalEnv
+      values:
+        - dev
+        - stg
+        - pprd
+        - prod
+      mandatoryInTopicName: false
