@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
-	kscore "kafkashepherd/core"
+	ksinternal "kafkashepherd/internal"
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
 )
 
-var topicsInCluster kscore.TopicNamesSet
-var topicsInConfig kscore.TopicNamesSet
+var topicsInCluster ksinternal.TopicNamesSet
+var topicsInConfig ksinternal.TopicNamesSet
 
 /* This is the function that Initializes User Topic mapping structure
 after parsing the configurations from input files. This also instantiates the configuration structure.
 */
 func initTopicLists() {
-	kscore.InitObjects()
+	ksinternal.InitObjects()
 	topicsInConfig = utm.getTopicListFromUTMList()
 }
 
