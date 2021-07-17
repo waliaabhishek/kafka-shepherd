@@ -1,4 +1,4 @@
-package kafkashepherd
+package internal
 
 type ClientType int
 
