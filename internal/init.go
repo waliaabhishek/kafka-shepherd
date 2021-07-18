@@ -1,7 +1,7 @@
 package internal
 
 import (
-	ksmisc "kafkashepherd/misc"
+	ksmisc "shepherd/misc"
 	"text/tabwriter"
 
 	"github.com/Shopify/sarama"

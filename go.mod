@@ -1,4 +1,4 @@
-module kafkashepherd
+module shepherd
 
 go 1.15
 

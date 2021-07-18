@@ -8,8 +8,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	ksinternal "kafkashepherd/internal"
-	ksmisc "kafkashepherd/misc"
+	ksinternal "shepherd/internal"
+	ksmisc "shepherd/misc"
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
@@ -33,7 +33,7 @@ func init() {
 	sca = ksinternal.GetAdminConnection()
 }
 
-func GetKafkaClusterConnection() (*sarama.ClusterAdmin) {
+func GetKafkaClusterConnection() *sarama.ClusterAdmin {
 	return sca
 }
 

@@ -6,8 +6,9 @@ import (
 	"os"
 	"strings"
 
+	ksmisc "shepherd/misc"
+
 	yaml "gopkg.in/yaml.v2"
-	ksmisc "kafkashepherd/misc"
 )
 
 func (def RootStruct) GenerateMappings() (*UserTopicMapping, *TopicConfigMapping) {
