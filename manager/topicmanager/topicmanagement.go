@@ -20,7 +20,7 @@ var topicsInConfig ksinternal.TopicNamesSet
 var utm *ksinternal.UserTopicMapping
 var tcm *ksinternal.TopicConfigMapping
 var tw *tabwriter.Writer = ksmisc.TW
-var SCA *sarama.ClusterAdmin
+var sca *sarama.ClusterAdmin
 
 // var rs *ksinternal.RootStruct
 
@@ -30,7 +30,11 @@ after parsing the configurations from input files. This also instantiates the co
 func init() {
 	_, utm, tcm = ksinternal.GetObjects()
 	topicsInConfig = getTopicListFromUTMList(utm)
-	SCA = ksinternal.GetAdminConnection()
+	sca = ksinternal.GetAdminConnection()
+}
+
+func GetKafkaClusterConnection() (*sarama.ClusterAdmin) {
+	return sca
 }
 
 func getTopicListFromUTMList(utm *ksinternal.UserTopicMapping) ksinternal.TopicNamesSet {
