@@ -1,9 +1,10 @@
 package internal
 
 import (
-	"github.com/Shopify/sarama"
 	ksmisc "kafkashepherd/misc"
 	"text/tabwriter"
+
+	"github.com/Shopify/sarama"
 )
 
 var bf, df string
@@ -16,7 +17,7 @@ var TW *tabwriter.Writer = ksmisc.TW
 
 func init() {
 	//TODO: Update these values to feed from Config Parser
-	bf, df = "./configs/001_blueprints.yaml", "./configs/102_dev_scoped.yaml"
+	bf, df = "./configs/blueprints.yaml", "./configs/definitions_dev.yaml"
 	rs = parseConfigurations(bf, df)
 	rs.GenerateMappings()
 	sca = GetAdminConnection()

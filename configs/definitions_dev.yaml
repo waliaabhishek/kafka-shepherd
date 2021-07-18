@@ -53,42 +53,42 @@ definitions:
             producers:
               - id: "User:2"
                 group: "hello"
-          child:
-            customEnum: logicalEnv
-            addToTopicName: false
-            clients:
-              consumers:
-                - id: "User:3"
-                  group: "hello"
-              producers:
-                - id: "User:4"
-                  group: "hello"
-            topics:
-              name:
-                - logicalenvtopictest
-              filterScope:
-                - dev
-                - pprd
-            child:
-              customEnum: categories
-              addToTopicName: true
-              child:
-                shortName: domain
-                values:
-                  - product
-                  - orders
-                  - shipments
-                  - ~
-                addToTopicName: true
-                clients:
-                  consumers:
-                    - id: "User:5"
-                      group: "hello"
-                  producers:
-                    - id: "User:6"
-                      group: "hello"
-                topics:
-                  name:
-                    - test2
-                    - test3
-                    # - test4
+  #         child:
+  #           customEnum: logicalEnv
+  #           addToTopicName: false
+  #           clients:
+  #             consumers:
+  #               - id: "User:3"
+  #                 group: "hello"
+  #             producers:
+  #               - id: "User:4"
+  #                 group: "hello"
+  #           topics:
+  #             name:
+  #               - logicalenvtopictest
+  #             filterScope:
+  #               - dev
+  #               - pprd
+  #           child:
+  #             customEnum: categories
+  #             addToTopicName: true
+  #             child:
+  #               shortName: domain
+  #               values:
+  #                 - product
+  #                 - orders
+  #                 - shipments
+  #                 - ~
+  #               addToTopicName: true
+  #               clients:
+  #                 consumers:
+  #                   - id: "User:5"
+  #                     group: "hello"
+  #                 producers:
+  #                   - id: "User:6"
+  #                     group: "hello"
+  #               topics:
+  #                 name:
+  #                   - test2
+  #                   - test3
+  #                   # - test4
