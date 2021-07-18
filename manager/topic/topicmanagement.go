@@ -1,13 +1,15 @@
-package internal
+package topicmanager
 
 import (
 	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	ksinternal "kafkashepherd/internal"
+	ksmisc "kafkashepherd/misc"
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
@@ -15,20 +17,27 @@ import (
 
 var topicsInCluster ksinternal.TopicNamesSet
 var topicsInConfig ksinternal.TopicNamesSet
+var utm *ksinternal.UserTopicMapping
+var tcm *ksinternal.TopicConfigMapping
+var tw *tabwriter.Writer = ksmisc.TW
+var SCA *sarama.ClusterAdmin
+
+// var rs *ksinternal.RootStruct
 
 /* This is the function that Initializes User Topic mapping structure
 after parsing the configurations from input files. This also instantiates the configuration structure.
 */
-func initTopicLists() {
-	ksinternal.InitObjects()
-	topicsInConfig = utm.getTopicListFromUTMList()
+func init() {
+	_, utm, tcm = ksinternal.GetObjects()
+	topicsInConfig = getTopicListFromUTMList(utm)
+	SCA = ksinternal.GetAdminConnection()
 }
 
-func (utm *userTopicMapping) getTopicListFromUTMList() TopicNamesSet {
+func getTopicListFromUTMList(utm *ksinternal.UserTopicMapping) ksinternal.TopicNamesSet {
 	t := mapset.NewSet()
 	for _, v := range *utm {
-		for _, topic := range v.topicList {
-			if isTopicName(topic, ".") {
+		for _, topic := range v.TopicList {
+			if ksmisc.IsTopicName(topic, ".") {
 				t.Add(topic)
 			}
 		}
@@ -38,7 +47,7 @@ func (utm *userTopicMapping) getTopicListFromUTMList() TopicNamesSet {
 
 /* This function returns the list of topics in Kafka Cluster.
  */
-func GetTopicListFromKafkaCluster(sca *sarama.ClusterAdmin) TopicNamesSet {
+func GetTopicListFromKafkaCluster(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
 	tSet := mapset.NewSet()
 	if topics, err := (*sca).ListTopics(); err != nil {
 		//TODO: Change Error Handling
@@ -56,33 +65,42 @@ func refreshTopicList(sca *sarama.ClusterAdmin, discardConnectionCache bool) {
 		topicsInCluster = GetTopicListFromKafkaCluster(sca)
 	}
 	if topicsInConfig == nil {
-		initTopicLists()
+		topicsInConfig = getTopicListFromUTMList(utm)
 	}
+}
+
+/* Create a Struct for Channel signature
+ */
+type TopicStatusDetails struct {
+	topicName  string
+	status     StatusType
+	errorStr   string
+	retryCount int
 }
 
 /*	This function compares the Configurations in the input files with the topics existing in the Kafka Cluster.
 Then it returns only the topics that do not exist on the Kafka Cluster.
 */
-func FindNonExistentTopicsInKafkaCluster(sca *sarama.ClusterAdmin) TopicNamesSet {
+func FindNonExistentTopicsInKafkaCluster(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
 	refreshTopicList(sca, false)
 	return topicsInConfig.Difference(topicsInCluster)
 }
 
 /* This function returns the topics that are present on the Kafka Cluster but are not present in the Configuration input.
  */
-func FindNonExistentTopicsInTopicsConfig(sca *sarama.ClusterAdmin) TopicNamesSet {
+func FindNonExistentTopicsInTopicsConfig(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
 	refreshTopicList(sca, false)
 	return topicsInCluster.Difference(topicsInConfig).Difference(topicsInConfig)
 }
 
 /* This function returns the topic list that is part of the config and already exists in the cluster.
  */
-func FindProvisionedTopics(sca *sarama.ClusterAdmin) TopicNamesSet {
+func FindProvisionedTopics(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
 	refreshTopicList(sca, false)
 	return topicsInConfig.Intersect(topicsInCluster)
 }
 
-/* This function takes the TopicManagementFunctionType constant and executes the CREATE, MODIFY or DELETE request.
+/* This function takes the ksinternal.TopicManagementFunctionType constant and executes the CREATE, MODIFY or DELETE request.
 This function takes care of all internals and does not need any other details as it fetches these details from
 configuration files and kafka cluster.
 */
@@ -90,8 +108,8 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 	refreshTopicList(sca, true)
 	c := make(chan TopicStatusDetails, threadCount)
 	rand.Seed(time.Now().UnixNano())
-	var ts TopicNamesSet
-	var ps TopicNamesSet
+	var ts ksinternal.TopicNamesSet
+	var ps ksinternal.TopicNamesSet
 	counter := 0
 
 	switch requestType {
@@ -99,15 +117,15 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 		ts = FindNonExistentTopicsInKafkaCluster(sca)
 	case MODIFY_TOPIC:
 		ts, ps = FindMismatchedConfigTopics(sca)
-		DottedLineOutput("Topics in Modify List", "=", 100)
-		DottedLineOutput("Topics in Partition List", "=", 100)
+		ksmisc.DottedLineOutput("Topics in Modify List", "=", 100)
+		ksmisc.DottedLineOutput("Topics in Partition List", "=", 100)
 	case DELETE_TOPIC:
 		ts = FindProvisionedTopics(sca)
 	}
 
 	for item := range ts.Iterator().C {
 		tName := item.(string)
-		dur := generateRandomDuration(generateRandomNumber(3, 10), "s")
+		dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
 		go executeTopicRequest(sca, tName, getTopicConfigProperties(tName), dur, 0, requestType, c)
 		counter += 1
 	}
@@ -115,7 +133,7 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 	if requestType == MODIFY_TOPIC && ps.Cardinality() != 0 {
 		for item := range ps.Iterator().C {
 			tName := item.(string)
-			dur := generateRandomDuration(generateRandomNumber(3, 10), "s")
+			dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
 			go executeTopicRequest(sca, tName, getTopicConfigProperties(tName), dur, 0, ALTER_PARTITION_REQUEST, c)
 			counter += 1
 		}
@@ -128,7 +146,7 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 			tsd.prettyPrint()
 		case NOT_CREATED, NOT_DELETED, NOT_MODIFIED, PARTITION_NOT_ALTERED:
 			if tsd.retryCount <= 5 {
-				dur := generateRandomDuration(generateRandomNumber(3, 10), "s")
+				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
 				tsd.prettyPrint()
 				go executeTopicRequest(sca, tsd.topicName, getTopicConfigProperties(tsd.topicName), dur, tsd.retryCount, requestType, c)
 				i -= 1
@@ -205,7 +223,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to create: ")
-					PrettyPrintMapSet(FindNonExistentTopicsInKafkaCluster(sca))
+					ksmisc.PrettyPrintMapSet(FindNonExistentTopicsInKafkaCluster(sca))
 				}
 				break
 			}
@@ -222,9 +240,9 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to modify: ")
-					PrettyPrintMapSet(ts)
+					ksmisc.PrettyPrintMapSet(ts)
 					fmt.Println("Topics Listed in the config that the tool was not able alter partitions for: ")
-					PrettyPrintMapSet(ps)
+					ksmisc.PrettyPrintMapSet(ps)
 				}
 				break
 			}
@@ -232,7 +250,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 	case DELETE_TOPIC:
 		for {
 			refreshTopicList(sca, true)
-			if !FindNonExistentTopicsInKafkaCluster(sca).Equal(utm.getTopicListFromUTMList()) && i <= 5 {
+			if !FindNonExistentTopicsInKafkaCluster(sca).Equal(getTopicListFromUTMList(utm)) && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been deleted yet. Waiting for Metadata to sync")
 				i += 1
@@ -240,7 +258,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to delete: ")
-					PrettyPrintMapSet(FindProvisionedTopics(sca))
+					ksmisc.PrettyPrintMapSet(FindProvisionedTopics(sca))
 				}
 				break
 			}
@@ -253,12 +271,12 @@ func (t TopicStatusDetails) prettyPrint() {
 }
 
 func PrettyPrintSaramaTopicDetail(topicName string, td *sarama.TopicDetail) {
+	tw.Flush()
 	var temp string = ""
 	for k, v := range td.ConfigEntries {
 		temp += fmt.Sprint(k, "=", *v, " , ")
 	}
-	fmt.Fprintf(&tw, "\nTopic:%s\tRF:%d\tPartitions:%d\tOther Configs:%s", topicName, td.ReplicationFactor, td.NumPartitions, temp)
-	tw.Flush()
+	fmt.Fprintf(tw, "\nTopic:%s\tRF:%d\tPartitions:%d\tOther Configs:%s", topicName, td.ReplicationFactor, td.NumPartitions, temp)
 }
 
 func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
@@ -269,7 +287,8 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 		ReplicaAssignment: nil,
 		ConfigEntries:     nil,
 	}
-	temp := tcm[topicName]
+
+	temp := (*tcm)[topicName]
 	for k, v := range temp {
 		switch k {
 		case "num.partitions":
@@ -296,7 +315,7 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 	return &td
 }
 
-func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff TopicNamesSet, partitionDiff TopicNamesSet) {
+func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff ksinternal.TopicNamesSet, partitionDiff ksinternal.TopicNamesSet) {
 	configDiff = mapset.NewSet()
 	partitionDiff = mapset.NewSet()
 	if topics, err := (*sca).ListTopics(); err != nil {
@@ -304,15 +323,15 @@ func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff TopicNames
 		fmt.Println("Something Went Wrong while Listing Topics. Here are the details: ", err)
 	} else {
 		for k, v := range topics {
-			if tcm[k] != nil {
-				_ = compareTopicDetails(k, &v, tcm[k], &configDiff, &partitionDiff)
+			if (*tcm)[k] != nil {
+				_ = compareTopicDetails(k, &v, (*tcm)[k], &configDiff, &partitionDiff)
 			}
 		}
 	}
 	return
 }
 
-func compareTopicDetails(topicName string, first *sarama.TopicDetail, second NVPairs, configDiff *TopicNamesSet, partitionDiff *TopicNamesSet) bool {
+func compareTopicDetails(topicName string, first *sarama.TopicDetail, second ksinternal.NVPairs, configDiff *ksinternal.TopicNamesSet, partitionDiff *ksinternal.TopicNamesSet) bool {
 	flag := true
 	for k, v := range second {
 		switch k {
