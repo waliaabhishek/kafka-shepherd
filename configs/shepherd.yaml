@@ -1,2 +1,30 @@
-core.location.conf.blueprints=/Users/abhishek.walia/Documents/Codes/github/kafka-ops-manager/configs/001_blueprints.yaml
-core.location.conf.definition=/Users/abhishek.walia/Documents/Codes/github/kafka-ops-manager/configs/102_dev_scoped.yaml
+---
+configs:
+  core:
+    filelocations:
+      config: "./configs/shepherd.yaml"
+      blueprints: "./configs/blueprints.yaml"
+      definitions: "./configs/definitions_dev.yaml"
+  clusters:
+    - dev_plaintext:
+        bootstrap.server: localhost:9092
+        security.type: "PLAINTEXT"
+    - test_ssl:
+        bootstrap.server: localhost:9092
+        security.type: "SSL"
+        configOverrides:
+          - security.protocol: SSL
+          - ssl.truststore.location: /docker/tls/certs/truststore.jks
+          - ssl.truststore.type: PKCS12
+          - ssl.truststore.password: test1234
+          - ssl.keystore.location: /docker/tls/certs/server.keystore.jks
+          - ssl.keystore.password: test1234
+          - ssl.keystore.type: PKCS12
+          - ssl.key.password: test1234
+    - test2_sasl_plaintext:
+        bootstrap.server: localhost:9092
+        security.type: "AK_SASL"
+        configOverrides:
+          - security.protocol: SASL_PLAINTEXT
+          - sasl.mechanism: PLAIN
+          - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="kafka";'
