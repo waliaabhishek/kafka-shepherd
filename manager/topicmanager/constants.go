@@ -1,29 +1,4 @@
-package kafkashepherd
-
-type ClientType int
-
-const (
-	PRODUCER ClientType = iota
-	CONSUMER
-	SOURCE_CONNECTOR
-	SINK_CONNECTOR
-	STREAM_READ
-	STREAM_WRITE
-	KSQL
-)
-
-func (r ClientType) String() string {
-	return [...]string{"PRODUCER", "CONSUMER", "SOURCE_CONNECTOR", "SINK_CONNECTOR", "STREAM_READ", "STREAM_WRITE", "KSQL"}[r]
-}
-
-/* Create a Struct for Channel signature
- */
-type TopicStatusDetails struct {
-	topicName  string
-	status     StatusType
-	errorStr   string
-	retryCount int
-}
+package topicmanager
 
 /* 	Set up a new constant for possible topic management Function
 to standardize action to be performed.

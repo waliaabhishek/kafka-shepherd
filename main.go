@@ -1,29 +1,26 @@
 package main
 
 import (
-	shepherd "kafkashepherd/core"
+	kstm "kafkashepherd/manager/topicmanager"
+	ksmisc "kafkashepherd/misc"
+
+	"github.com/Shopify/sarama"
 )
 
 func main() {
-	shepherd.DottedLineOutput("Starting New Run", "=", 100)
-	sca := shepherd.GetAdminConnection()
-	defer sca.Close()
+	ksmisc.DottedLineOutput("Starting New Run", "=", 100)
+	var sca *sarama.ClusterAdmin = kstm.GetKafkaClusterConnection()
+	defer (*sca).Close()
 
-	// _, tcm, _ := shepherd.InitObjects()
-	shepherd.InitObjects()
-	// fmt.Println("Rootstruct", rs.Blueprint)
-	// shepherd.DottedLineOutput("Topic Config Mapping Values", "=", 100)
-	// tcm.PrettyPrintTCM()
-
-	shepherd.DottedLineOutput("Create Any Topics as necessary", "=", 100)
+	ksmisc.DottedLineOutput("Create Any Topics as necessary", "=", 100)
 	// kafkaopsmanager.PrettyPrintMapSet(kafkaopsmanager.FindNonExistentTopicsInKafkaCluster(&sca))
-	shepherd.ExecuteRequests(&sca, 10, shepherd.CREATE_TOPIC)
+	kstm.ExecuteRequests(sca, 10, kstm.CREATE_TOPIC)
 
-	shepherd.DottedLineOutput("Modify Any Topics as necessary", "=", 100)
-	shepherd.ExecuteRequests(&sca, 10, shepherd.MODIFY_TOPIC)
+	ksmisc.DottedLineOutput("Modify Any Topics as necessary", "=", 100)
+	kstm.ExecuteRequests(sca, 10, kstm.MODIFY_TOPIC)
 
-	shepherd.DottedLineOutput("Delete all topics executed by configs", "=", 100)
-	shepherd.ExecuteRequests(&sca, 10, shepherd.DELETE_TOPIC)
+	ksmisc.DottedLineOutput("Delete all topics executed by configs", "=", 100)
+	kstm.ExecuteRequests(sca, 10, kstm.DELETE_TOPIC)
 }
 
 // TODO: Get the list of ACL's from UTM List

@@ -1,4 +1,4 @@
-package kafkashepherd
+package internal
 
 import (
 	"fmt"
@@ -6,10 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
+	ksmisc "kafkashepherd/misc"
 )
 
-func (def RootStruct) GenerateUserTopicMappings() *userTopicMapping {
+func (def RootStruct) GenerateMappings() (*UserTopicMapping, *TopicConfigMapping) {
 	// Adhoc Topic Structure Parsing and table setup
 	for _, v := range def.Definition.Definitions.AdhocTopicsDefinitions.TopicDefs {
 		for _, tName := range v.Name {
@@ -27,14 +28,14 @@ func (def RootStruct) GenerateUserTopicMappings() *userTopicMapping {
 			currClients := snd.Clients
 			currFilters := snd.Topics.FilterScope
 			val1, cont, snd = snd.getTokensForThisLevel(iter, def.Blueprint.Blueprints)
-			if !IsZero1DSlice(val1) {
+			if !ksmisc.IsZero1DSlice(val1) {
 				values = append(values, val1)
 			}
 			iter += 1
 			currValues := make([][]string, len(values))
 			copy(currValues, values)
 			currValues = append(currValues, currTopics)
-			currPerms := GetPermutationsString(currValues)
+			currPerms := ksmisc.GetPermutationsString(currValues)
 			// Iterate and find any topics that were created and should not exist due to filters
 			for _, v2 := range currPerms {
 				// TODO: Update seperator with the values from configuration
@@ -42,7 +43,7 @@ func (def RootStruct) GenerateUserTopicMappings() *userTopicMapping {
 				// Get current Topic Name for the current scope
 				temp := strings.Join(v2, sep)
 				// Ignore topic combinations with the filterscope at that level from being added to the UTM list
-				if !existsInString(temp, currFilters, RemoveValuesFromSlice(currTopics, "*"), sep) {
+				if !ksmisc.ExistsInString(temp, currFilters, ksmisc.RemoveValuesFromSlice(currTopics, "*"), sep) {
 					// fmt.Println("Inside the filter for *. Topic Name:", temp)
 					currClients.addClientToUTM(temp)
 					if !strings.HasSuffix(temp, ".*") {
@@ -52,7 +53,7 @@ func (def RootStruct) GenerateUserTopicMappings() *userTopicMapping {
 			}
 		}
 	}
-	return &utm
+	return &utm, &tcm
 }
 
 func (snd ScopeNodeDefinition) getTokensForThisLevel(level int, b Blueprint) ([]string, bool, *ScopeNodeDefinition) {
@@ -63,7 +64,7 @@ func (snd ScopeNodeDefinition) getTokensForThisLevel(level int, b Blueprint) ([]
 			temp = append(temp, v.Name)
 		}
 		if len(snd.CustomEnumRef) != 0 {
-			if loc, ok := Find(temp, snd.CustomEnumRef); ok {
+			if loc, ok := ksmisc.Find(temp, snd.CustomEnumRef); ok {
 				for _, v := range b.Custom[loc].Values {
 					if v != "" {
 						ret = append(ret, v)
@@ -150,18 +151,18 @@ func (c ConnectorDefinition) getConnectorTypeValue() ClientType {
 	}
 }
 
-func (utm *userTopicMapping) addDataToUserTopicMapping(clientId string, cType ClientType, topicName string) {
-	if val, present := (*utm)[userTopicMappingKey{id: clientId, clientType: cType}]; present {
-		if _, ok := Find(val.topicList, topicName); !ok {
-			val.topicList = append(val.topicList, topicName)
+func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType ClientType, topicName string) {
+	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType}]; present {
+		if _, ok := ksmisc.Find(val.TopicList, topicName); !ok {
+			val.TopicList = append(val.TopicList, topicName)
 		}
-		(*utm)[userTopicMappingKey{id: clientId, clientType: cType}] = val
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType}] = val
 	} else {
-		(*utm)[userTopicMappingKey{id: clientId, clientType: cType}] = userTopicMappingValue{topicList: []string{topicName}}
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType}] = UserTopicMappingValue{TopicList: []string{topicName}}
 	}
 }
 
-func (tcm *topicConfigMapping) addDataToTopicConfigMapping(td *TopicDefinition, topicName []string) {
+func (tcm *TopicConfigMapping) addDataToTopicConfigMapping(td *TopicDefinition, topicName []string) {
 	// fmt.Println("TopicDefinition Value:", td)
 	props := make(NVPairs)
 	// Get the default values from the blueprints and merge it to the currently applied values.
@@ -192,15 +193,15 @@ func (in *NVPairs) mergeMaps(temp []NVPairs) (out *NVPairs) {
 func (in *NVPairs) overrideMergeMaps(temp []NVPairs, whitelist []string, blacklist []string) (out *NVPairs) {
 	for _, v1 := range temp {
 		for k, v := range v1 {
-			_, wPresent := Find(whitelist, k)
-			_, bPresent := Find(blacklist, k)
+			_, wPresent := ksmisc.Find(whitelist, k)
+			_, bPresent := ksmisc.Find(blacklist, k)
 			//  The Property is either present in the whitelist or the whitelist is empty
 			//  and it is not present the blacklist
-			if (wPresent || IsZero1DSlice(whitelist)) && !bPresent {
+			if (wPresent || ksmisc.IsZero1DSlice(whitelist)) && !bPresent {
 				(*in)[k] = v
 				// This one only cares if the property is present in blacklist and the blacklist
 				// slice is non zero
-			} else if bPresent && !IsZero1DSlice(blacklist) {
+			} else if bPresent && !ksmisc.IsZero1DSlice(blacklist) {
 				continue
 			}
 		}

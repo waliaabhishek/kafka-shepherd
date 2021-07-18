@@ -1,4 +1,4 @@
-package kafkashepherd
+package internal
 
 import (
 	"fmt"
@@ -135,43 +135,43 @@ func (snd ScopeNodeDefinition) prettyPrintSND(tabCounter int) {
 	}
 }
 
-func (utm *userTopicMapping) PrettyPrintUTM() {
-	defer tw.Flush()
-
-	fmt.Fprintf(&tw, "\n %s\t%s\t%s\t", "User ID", "Client Type", "Topics Used")
-	fmt.Fprintf(&tw, "\n %s\t%s\t%s\t", "-------", "-----------", "-----------")
-
-	for k1, v1 := range *utm {
-		fmt.Fprintf(&tw, "\n %s\t%s\t%s\t", k1.id, k1.clientType.String(), strings.Join(v1.topicList, ", "))
-	}
-	fmt.Fprintln(&tw, " ")
-}
-
-func (tcm *topicConfigMapping) PrettyPrintTCM() {
-	defer tw.Flush()
-
-	fmt.Fprintf(&tw, "\n %s\t%s\t", "Key", "NVPairs")
-	fmt.Fprintf(&tw, "\n %s\t%s\t", "---", "-------")
-
-	for k1, v1 := range *tcm {
-		fmt.Fprintf(&tw, "\n %s\t%s\t", k1, v1)
-	}
-	fmt.Fprintln(&tw, " ")
-}
-
 type TopicNameString string
 type TopicNamesSet mapset.Set
 
 type TopicConfigSet mapset.Set
-type topicConfigMapping map[string]NVPairs
+type TopicConfigMapping map[string]NVPairs
 
-type userTopicMapping map[userTopicMappingKey]userTopicMappingValue
+type UserTopicMapping map[UserTopicMappingKey]UserTopicMappingValue
 
-type userTopicMappingKey struct {
-	id         string
-	clientType ClientType
+type UserTopicMappingKey struct {
+	ID         string
+	ClientType ClientType
 }
 
-type userTopicMappingValue struct {
-	topicList []string
+type UserTopicMappingValue struct {
+	TopicList []string
+}
+
+func (utm *UserTopicMapping) PrettyPrintUTM() {
+	defer TW.Flush()
+
+	fmt.Fprintf(TW, "\n %s\t%s\t%s\t", "User ID", "Client Type", "Topics Used")
+	fmt.Fprintf(TW, "\n %s\t%s\t%s\t", "-------", "-----------", "-----------")
+
+	for k1, v1 := range *utm {
+		fmt.Fprintf(TW, "\n %s\t%s\t%s\t", k1.ID, k1.ClientType.String(), strings.Join(v1.TopicList, ", "))
+	}
+	fmt.Fprintln(TW, " ")
+}
+
+func (tcm *TopicConfigMapping) PrettyPrintTCM() {
+	defer TW.Flush()
+
+	fmt.Fprintf(TW, "\n %s\t%s\t", "Key", "NVPairs")
+	fmt.Fprintf(TW, "\n %s\t%s\t", "---", "-------")
+
+	for k1, v1 := range *tcm {
+		fmt.Fprintf(TW, "\n %s\t%s\t", k1, v1)
+	}
+	fmt.Fprintln(TW, " ")
 }
