@@ -17,7 +17,9 @@ type Config struct {
 
 type Cluster struct {
 	Name                 string    `yaml:"name"`
+	IsEnabled            bool      `yaml:"is.enabled"`
 	BootstrapServer      string    `yaml:"bootstrap.server"`
+	ClientID             string    `yaml:"client.id"`
 	SecurityType         string    `yaml:"security.type"`
 	Configs              []NVPairs `yaml:"config,flow"`
 	EnvironmentOverrides []NVPairs `yaml:"envOverrides,flow"`

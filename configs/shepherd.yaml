@@ -4,9 +4,13 @@ config:
     - name: dev_plaintext
       bootstrap.server: localhost:9092
       security.type: "PLAINTEXT"
+      client.id: "abhishektest"
+      is.enabled: true
     - name: test_ssl
       bootstrap.server: localhost:9092
       security.type: "SSL"
+      is.enabled: false
+      client.id: "abhishektest"
       config:
         - security.protocol: SSL
         - ssl.truststore.location: /docker/tls/certs/truststore.jks
@@ -22,7 +26,9 @@ config:
         - ssl.key.password: "SHEPHERD_TEST_KEY_PASSWORD"
     - name: test2_sasl_plaintext
       bootstrap.server: localhost:9092
+      is.enabled: false
       security.type: "AK_SASL"
+      client.id: "abhishektest"
       config:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: PLAIN

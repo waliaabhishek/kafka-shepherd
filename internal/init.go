@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	ksmisc "shepherd/misc"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/Shopify/sarama"
@@ -23,12 +24,18 @@ var (
 	logger       *zap.SugaredLogger
 )
 
-func init() {
+var (
+	devMode *bool
+	runMode RunMode
+)
 
-	devMode := flag.Bool("devMode", false, "Turns on Developer mode logging features instead Production grade Structured logging.")
+func init() {
+	devMode = flag.Bool("devMode", false, "Turns on Developer mode logging features instead Production grade Structured logging.")
+	rm := flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER")
 	flag.Parse()
 	// Initialize Zap Logger
 	logger = getLogger(devMode)
+	runMode = validateRunMode(rm)
 
 	cf = getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", "./configs/shepherd.yaml")
 	bf = getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./configs/blueprints.yaml")
@@ -50,9 +57,9 @@ func init() {
 }
 
 // This method sets up a zap logger object for use and returns back a pointer to the object.
-func getLogger(devMode *bool) *zap.SugaredLogger {
+func getLogger(mode *bool) *zap.SugaredLogger {
 	var config zap.Config
-	if *devMode {
+	if *mode {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else {
@@ -66,6 +73,22 @@ func getLogger(devMode *bool) *zap.SugaredLogger {
 	logger, _ := config.Build()
 	defer logger.Sync()
 	return logger.Sugar()
+}
+
+func validateRunMode(mode *string) RunMode {
+	switch strings.ToUpper(strings.TrimSpace(*mode)) {
+	case SINGLE_CLUSTER.String():
+		return SINGLE_CLUSTER
+	case MULTI_CLUSTER.String():
+		logger.Fatal(MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	case MIGRATION.String():
+		logger.Fatal(MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
+	case CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String():
+		logger.Fatal(CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	default:
+		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, SINGLE_CLUSTER.String())
+	}
+	return SINGLE_CLUSTER
 }
 
 func GetObjects() (*RootStruct, *UserTopicMapping, *TopicConfigMapping) {

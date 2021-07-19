@@ -16,6 +16,7 @@ func parseShepherdConfig(scf *ShepherdConfig, configFilePath string) *ShepherdCo
 	if err := yaml.Unmarshal(temp, scf); err != nil {
 		logger.Fatal("Error Unmarshaling Shepherd Configs File", err)
 	}
+	validateShepherdConfig(scf)
 	streamlineParsedShepherdConfig(scf)
 	resolveEnvOverrides(scf)
 	return scf
@@ -23,6 +24,42 @@ func parseShepherdConfig(scf *ShepherdConfig, configFilePath string) *ShepherdCo
 
 func GetShepherdConfig() *ShepherdConfig {
 	return &scf
+}
+
+func validateShepherdConfig(scf *ShepherdConfig) {
+	count := 0
+	for _, cluster := range scf.Config.Clusters {
+		if cluster.IsEnabled {
+			count += 1
+		}
+	}
+
+	switch runMode {
+	case SINGLE_CLUSTER:
+		if count != 1 {
+			logger.Fatalw("Unique cluster not enabled in the config file for selected run mode. Either select the correct runMode or enable only ONE cluster via 'is.enabled' flag.",
+				"Selected RunMode", runMode.String(),
+				"Enabled Clusters", count)
+		}
+	case MULTI_CLUSTER:
+		if count < 1 {
+			logger.Fatalw("Cannot have less than one cluster(s) enabled in the config file for selected run mode. Either select the correct runMode or enable more clusters via 'is.enabled' flag.",
+				"Selected RunMode", runMode.String(),
+				"Enabled Clusters", count)
+		}
+	case MIGRATION:
+		if count < 2 {
+			logger.Fatalw("Cannot have less than two cluster(s) enabled in the config file for selected run mode. Either select the correct runMode or enable more clusters via 'is.enabled' flag.",
+				"Selected RunMode", runMode.String(),
+				"Enabled Clusters", count)
+		}
+	case CREATE_CONFIGS_FROM_EXISTING_CLUSTER:
+		if count != 1 {
+			logger.Fatalw("Unique cluster not enabled in the config file for selected run mode. Either select the correct runMode or enable only ONE cluster via 'is.enabled' flag.",
+				"Selected RunMode", runMode.String(),
+				"Enabled Clusters", count)
+		}
+	}
 }
 
 func streamlineParsedShepherdConfig(scf *ShepherdConfig) {
