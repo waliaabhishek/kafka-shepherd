@@ -1,30 +1,31 @@
 ---
-configs:
-  core:
-    filelocations:
-      config: "./configs/shepherd.yaml"
-      blueprints: "./configs/blueprints.yaml"
-      definitions: "./configs/definitions_dev.yaml"
+config:
   clusters:
-    - dev_plaintext:
-        bootstrap.server: localhost:9092
-        security.type: "PLAINTEXT"
-    - test_ssl:
-        bootstrap.server: localhost:9092
-        security.type: "SSL"
-        configOverrides:
-          - security.protocol: SSL
-          - ssl.truststore.location: /docker/tls/certs/truststore.jks
-          - ssl.truststore.type: PKCS12
-          - ssl.truststore.password: test1234
-          - ssl.keystore.location: /docker/tls/certs/server.keystore.jks
-          - ssl.keystore.password: test1234
-          - ssl.keystore.type: PKCS12
-          - ssl.key.password: test1234
-    - test2_sasl_plaintext:
-        bootstrap.server: localhost:9092
-        security.type: "AK_SASL"
-        configOverrides:
-          - security.protocol: SASL_PLAINTEXT
-          - sasl.mechanism: PLAIN
-          - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="kafka";'
+    - name: dev_plaintext
+      bootstrap.server: localhost:9092
+      security.type: "PLAINTEXT"
+    - name: test_ssl
+      bootstrap.server: localhost:9092
+      security.type: "SSL"
+      config:
+        - security.protocol: SSL
+        - ssl.truststore.location: /docker/tls/certs/truststore.jks
+        - ssl.truststore.type: PKCS12
+        - ssl.keystore.location: /docker/tls/certs/server.keystore.jks
+        - ssl.keystore.type: PKCS12
+        - ssl.truststore.password: "password1"
+        - ssl.keystore.password: "password1"
+        - ssl.key.password: "password1"
+      envOverrides:
+        - ssl.truststore.password: "SHEPHERD_TEST_TRUSTSTORE_PASSWORD"
+        - ssl.keystore.password: "SHEPHERD_TEST_KEYSTORE_PASSWORD"
+        - ssl.key.password: "SHEPHERD_TEST_KEY_PASSWORD"
+    - name: test2_sasl_plaintext
+      bootstrap.server: localhost:9092
+      security.type: "AK_SASL"
+      config:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: PLAIN
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="kafka"'
+s      envOverrides:
+  - sasl.jaas.config: "SHEPHERD_TEST2_SASL_JAAS_CONFIG"
