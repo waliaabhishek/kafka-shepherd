@@ -7,6 +7,22 @@ import (
 	mapset "github.com/deckarep/golang-set"
 )
 
+type ShepherdConfig struct {
+	Config Config `yaml:"config"`
+}
+
+type Config struct {
+	Clusters []Cluster `yaml:"clusters,flow"`
+}
+
+type Cluster struct {
+	Name                 string    `yaml:"name"`
+	BootstrapServer      string    `yaml:"bootstrap.server"`
+	SecurityType         string    `yaml:"security.type"`
+	Configs              []NVPairs `yaml:"config,flow"`
+	EnvironmentOverrides []NVPairs `yaml:"envOverrides,flow"`
+}
+
 type RootStruct struct {
 	Blueprint  Blueprints
 	Definition Definitions
