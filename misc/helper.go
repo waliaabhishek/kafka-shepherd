@@ -44,6 +44,10 @@ func Find(slice []string, val string) (int, bool) {
 	return -1, false
 }
 
+func FindSASLValues(s string, sep string) string {
+	return strings.Split(strings.Split(strings.Replace(s, "'", "\"", -1), sep)[1], "\"")[1]
+}
+
 func RemoveValuesFromSlice(s []string, val string) []string {
 	if pos, present := Find(s, val); present {
 		for present {

@@ -73,9 +73,47 @@ func streamlineParsedShepherdConfig(scf *ShepherdConfig) {
 }
 
 func resolveEnvOverrides(scf *ShepherdConfig) {
-	for _, cluster := range scf.Config.Clusters {
+	for idx, cluster := range scf.Config.Clusters {
 		for k, v := range cluster.EnvironmentOverrides[0] {
-			getEnvVarsWithDefaults(v, cluster.Configs[0][k])
+			cluster.Configs[0][k] = getEnvVarsWithDefaults(v, cluster.Configs[0][k])
+		}
+		scf.Config.Clusters[idx].EnvironmentOverrides = nil
+	}
+}
+
+func addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
+	for _, cluster := range scf.Config.Clusters {
+		if cluster.IsEnabled == true {
+			understandClusterTopology(&cluster)
+			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled, Name: cluster.Name, BootstrapServer: cluster.BootstrapServer}] = ClusterConfigMappingValue{ClientID: cluster.ClientID}
 		}
 	}
 }
+
+// func createTLSConfig(sc *ShepherdCluster) *tls.Config {
+// 	t = &tls.Config{
+// 		InsecureSkipVerify: true,
+// 	}
+// 	if  *caFile != "" {
+// 		tls.
+// 		cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+
+// 		caCert, err := ioutil.ReadFile(*caFile)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+
+// 		caCertPool := x509.NewCertPool()
+// 		caCertPool.AppendCertsFromPEM(caCert)
+
+// 		t = &tls.Config{
+// 			Certificates:       []tls.Certificate{cert},
+// 			RootCAs:            caCertPool,
+// 			InsecureSkipVerify: *verifySSL,
+// 		}
+// 	}
+
+// }

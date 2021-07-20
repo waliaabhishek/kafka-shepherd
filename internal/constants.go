@@ -28,3 +28,30 @@ const (
 func (r RunMode) String() string {
 	return [...]string{"SINGLE_CLUSTER", "MULTI_CLUSTER", "MIGRATION", "CREATE_CONFIGS_FROM_EXISTING_CLUSTER"}[r]
 }
+
+type ClusterSecurityMode int
+
+const (
+	PLAINTEXT ClusterSecurityMode = iota
+	SSL
+	SASL_SSL
+	SASL_PLAINTEXT
+)
+
+func (r ClusterSecurityMode) String() string {
+	return [...]string{"PLAINTEXT", "SSL", "SASL_SSL", "SASL_PLAINTEXT"}[r]
+}
+
+type ClusterSASLMechanism int
+
+const (
+	PLAIN ClusterSASLMechanism = iota
+	SCRAM_SHA_256
+	SCRAM_SHA_512
+	OAUTHBEARER
+	SASL_MECH_NULL
+)
+
+func (r ClusterSASLMechanism) String() string {
+	return [...]string{"PLAIN", "SCRAM_SHA_256", "SCRAM_SHA_512", "OAUTHBEARER", "SASL_MECH_NULL"}[r]
+}

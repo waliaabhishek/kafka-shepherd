@@ -3,12 +3,10 @@ config:
   clusters:
     - name: dev_plaintext
       bootstrap.server: localhost:9092
-      security.type: "PLAINTEXT"
       client.id: "abhishektest"
       is.enabled: true
     - name: test_ssl
-      bootstrap.server: localhost:9092
-      security.type: "SSL"
+      bootstrap.server: localhost:9093
       is.enabled: false
       client.id: "abhishektest"
       config:
@@ -25,13 +23,12 @@ config:
         - ssl.keystore.password: "SHEPHERD_TEST_KEYSTORE_PASSWORD"
         - ssl.key.password: "SHEPHERD_TEST_KEY_PASSWORD"
     - name: test2_sasl_plaintext
-      bootstrap.server: localhost:9092
+      bootstrap.server: localhost:9093
       is.enabled: false
-      security.type: "AK_SASL"
       client.id: "abhishektest"
       config:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: PLAIN
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="kafka"'
-s      envOverrides:
-  - sasl.jaas.config: "SHEPHERD_TEST2_SASL_JAAS_CONFIG"
+      envOverrides:
+        - sasl.jaas.config: "SHEPHERD_TEST2_SASL_JAAS_CONFIG"

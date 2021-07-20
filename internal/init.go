@@ -16,8 +16,9 @@ var (
 	bf, df, cf   string
 	rs           RootStruct
 	scf          ShepherdConfig
-	utm          UserTopicMapping   = UserTopicMapping{}
-	tcm          TopicConfigMapping = TopicConfigMapping{}
+	utm          UserTopicMapping     = UserTopicMapping{}
+	tcm          TopicConfigMapping   = TopicConfigMapping{}
+	ccm          ClusterConfigMapping = ClusterConfigMapping{}
 	blueprintMap map[string]NVPairs
 	sca          *sarama.ClusterAdmin
 	TW           *tabwriter.Writer = ksmisc.TW
@@ -25,16 +26,16 @@ var (
 )
 
 var (
-	devMode *bool
-	runMode RunMode
+	enableDebug *bool
+	runMode     RunMode
 )
 
 func init() {
-	devMode = flag.Bool("devMode", false, "Turns on Developer mode logging features instead Production grade Structured logging.")
+	enableDebug = flag.Bool("debugMode", false, "Turns on Debug mode logging features instead Production grade Structured logging.")
 	rm := flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER")
 	flag.Parse()
 	// Initialize Zap Logger
-	logger = getLogger(devMode)
+	logger = getLogger(enableDebug)
 	runMode = validateRunMode(rm)
 
 	cf = getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", "./configs/shepherd.yaml")
@@ -53,7 +54,7 @@ func init() {
 	rs.GenerateMappings()
 
 	// Get the Sarama Cluster Admin connection as that is the connection that is necessary for ACL & Topic provisioning.
-	sca = GetAdminConnection()
+	sca = setupAdminConnection()
 }
 
 // This method sets up a zap logger object for use and returns back a pointer to the object.

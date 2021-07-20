@@ -121,8 +121,6 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 		ts = FindNonExistentTopicsInKafkaCluster(sca)
 	case MODIFY_TOPIC:
 		ts, ps = FindMismatchedConfigTopics(sca)
-		ksmisc.DottedLineOutput("Topics in Modify List", "=", 100)
-		ksmisc.DottedLineOutput("Topics in Partition List", "=", 100)
 	case DELETE_TOPIC:
 		ts = FindProvisionedTopics(sca)
 	}

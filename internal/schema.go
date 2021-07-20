@@ -12,15 +12,15 @@ type ShepherdConfig struct {
 }
 
 type Config struct {
-	Clusters []Cluster `yaml:"clusters,flow"`
+	Clusters []ShepherdCluster `yaml:"clusters,flow"`
 }
 
-type Cluster struct {
+type ShepherdCluster struct {
 	Name                 string    `yaml:"name"`
 	IsEnabled            bool      `yaml:"is.enabled"`
 	BootstrapServer      string    `yaml:"bootstrap.server"`
 	ClientID             string    `yaml:"client.id"`
-	SecurityType         string    `yaml:"security.type"`
+	SecurityType         string    `yaml:",omitempty"`
 	Configs              []NVPairs `yaml:"config,flow"`
 	EnvironmentOverrides []NVPairs `yaml:"envOverrides,flow"`
 }
@@ -168,6 +168,20 @@ type UserTopicMappingKey struct {
 
 type UserTopicMappingValue struct {
 	TopicList []string
+}
+
+type ClusterConfigMapping map[ClusterConfigMappingKey]ClusterConfigMappingValue
+type ClusterConfigMappingKey struct {
+	IsEnabled       bool
+	Name            string
+	BootstrapServer string
+}
+
+type ClusterConfigMappingValue struct {
+	ClientID             string
+	ClusterSecurityMode  ClusterSecurityMode
+	ClusterSASLMechanism ClusterSASLMechanism
+	Configs              NVPairs
 }
 
 func (utm *UserTopicMapping) PrettyPrintUTM() {
