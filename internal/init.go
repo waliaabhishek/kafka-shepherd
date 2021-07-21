@@ -123,5 +123,5 @@ func envVarCheckNReplace(s string) string {
 	if strings.HasPrefix(s, ENVVAR_PREFIX) {
 		return getEnvVarsWithDefaults(strings.Replace(s, ENVVAR_PREFIX, "", 1), "")
 	}
-	return ""
+	return s
 }
