@@ -18,7 +18,7 @@ func parseShepherdConfig(scf *ShepherdConfig, configFilePath string) *ShepherdCo
 	}
 	validateShepherdConfig(scf)
 	streamlineParsedShepherdConfig(scf)
-	resolveEnvOverrides(scf)
+	scf.gatherENVVarValues()
 	return scf
 }
 
@@ -64,20 +64,9 @@ func validateShepherdConfig(scf *ShepherdConfig) {
 
 func streamlineParsedShepherdConfig(scf *ShepherdConfig) {
 	for idx, cluster := range scf.Config.Clusters {
-		cMap, eMap := make(NVPairs), make(NVPairs)
+		cMap := make(NVPairs)
 		cMap.mergeMaps(cluster.Configs)
-		eMap.mergeMaps(cluster.EnvironmentOverrides)
 		scf.Config.Clusters[idx].Configs = []NVPairs{cMap}
-		scf.Config.Clusters[idx].EnvironmentOverrides = []NVPairs{eMap}
-	}
-}
-
-func resolveEnvOverrides(scf *ShepherdConfig) {
-	for idx, cluster := range scf.Config.Clusters {
-		for k, v := range cluster.EnvironmentOverrides[0] {
-			cluster.Configs[0][k] = getEnvVarsWithDefaults(v, cluster.Configs[0][k])
-		}
-		scf.Config.Clusters[idx].EnvironmentOverrides = nil
 	}
 }
 
@@ -89,31 +78,3 @@ func addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
 		}
 	}
 }
-
-// func createTLSConfig(sc *ShepherdCluster) *tls.Config {
-// 	t = &tls.Config{
-// 		InsecureSkipVerify: true,
-// 	}
-// 	if  *caFile != "" {
-// 		tls.
-// 		cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		caCert, err := ioutil.ReadFile(*caFile)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		caCertPool := x509.NewCertPool()
-// 		caCertPool.AppendCertsFromPEM(caCert)
-
-// 		t = &tls.Config{
-// 			Certificates:       []tls.Certificate{cert},
-// 			RootCAs:            caCertPool,
-// 			InsecureSkipVerify: *verifySSL,
-// 		}
-// 	}
-
-// }

@@ -7,22 +7,59 @@ import (
 	mapset "github.com/deckarep/golang-set"
 )
 
+type CustomParser interface {
+	gatherENVVarValues()
+}
+
 type ShepherdConfig struct {
 	Config Config `yaml:"config"`
+}
+
+func (sc *ShepherdConfig) gatherENVVarValues() {
+	sc.Config.gatherENVVarValues()
 }
 
 type Config struct {
 	Clusters []ShepherdCluster `yaml:"clusters,flow"`
 }
 
+func (c *Config) gatherENVVarValues() {
+	for idx := 0; idx < len(c.Clusters); idx++ {
+		c.Clusters[idx].gatherENVVarValues()
+	}
+}
+
 type ShepherdCluster struct {
-	Name                 string    `yaml:"name"`
-	IsEnabled            bool      `yaml:"is.enabled"`
-	BootstrapServer      string    `yaml:"bootstrap.server"`
-	ClientID             string    `yaml:"client.id"`
-	SecurityType         string    `yaml:",omitempty"`
-	Configs              []NVPairs `yaml:"config,flow"`
-	EnvironmentOverrides []NVPairs `yaml:"envOverrides,flow"`
+	Name            string        `yaml:"name"`
+	IsEnabled       bool          `yaml:"isEnabled"`
+	BootstrapServer string        `yaml:"bootstrapServer"`
+	ClientID        string        `yaml:"clientId"`
+	SecurityConfig  ShepherdCerts `yaml:"tlsDetails,omitempty"`
+	Configs         []NVPairs     `yaml:"config,flow"`
+}
+
+func (sc *ShepherdCluster) gatherENVVarValues() {
+	sc.Name = envVarCheckNReplace(sc.Name)
+	sc.BootstrapServer = envVarCheckNReplace(sc.BootstrapServer)
+	sc.ClientID = envVarCheckNReplace(sc.ClientID)
+	sc.SecurityConfig.gatherENVVarValues()
+	for idx := 0; idx < len(sc.Configs); idx++ {
+		sc.Configs[idx].gatherENVVarValues()
+	}
+}
+
+type ShepherdCerts struct {
+	TrustedCerts       []string `yaml:"trustCertFilePath,flow"`
+	PrivateKey         string   `yaml:"privateKeyFilePath,flow"`
+	PrivateKeyPassword string   `yaml:"privateKeyPass,flow"`
+}
+
+func (sc *ShepherdCerts) gatherENVVarValues() {
+	for i, v := range sc.TrustedCerts {
+		sc.TrustedCerts[i] = envVarCheckNReplace(v)
+	}
+	sc.PrivateKey = envVarCheckNReplace(sc.PrivateKey)
+	sc.PrivateKeyPassword = envVarCheckNReplace(sc.PrivateKeyPassword)
 }
 
 type RootStruct struct {
@@ -86,6 +123,12 @@ type CustomBlueprint struct {
 }
 
 type NVPairs map[string]string
+
+func (nv *NVPairs) gatherENVVarValues() {
+	for k, v := range *nv {
+		(*nv)[k] = envVarCheckNReplace(v)
+	}
+}
 
 type TopicDefinitions struct {
 	TopicDefs []TopicDefinition `yaml:"topics,flow,omitempty"`

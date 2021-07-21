@@ -30,6 +30,10 @@ var (
 	runMode     RunMode
 )
 
+const (
+	ENVVAR_PREFIX string = "env::"
+)
+
 func init() {
 	enableDebug = flag.Bool("debugMode", false, "Turns on Debug mode logging features instead Production grade Structured logging.")
 	rm := flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER")
@@ -113,4 +117,11 @@ func getEnvVarsWithDefaults(envVarName string, defaultValue string) string {
 	}
 
 	return envVarValue
+}
+
+func envVarCheckNReplace(s string) string {
+	if strings.HasPrefix(s, ENVVAR_PREFIX) {
+		return getEnvVarsWithDefaults(strings.Replace(s, ENVVAR_PREFIX, "", 1), "")
+	}
+	return ""
 }
