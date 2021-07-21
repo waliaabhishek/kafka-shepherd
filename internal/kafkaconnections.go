@@ -1,6 +1,10 @@
 package internal
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"io/ioutil"
 	ksmisc "shepherd/misc"
 
 	"github.com/Shopify/sarama"
@@ -41,7 +45,7 @@ func understandClusterTopology(sc *ShepherdCluster) (ccmv *ClusterConfigMappingV
 		c.Net.SASL.Password = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "password")
 		c.Net.SASL.Handshake = true
 		c.Net.TLS.Enable = true
-		// c.Net.TLS.Config = createTLSConfig()
+		c.Net.TLS.Config = createTLSConfig(sc)
 	case "SASL_PLAINTEXT":
 		temp.ClusterSecurityMode = SASL_PLAINTEXT
 		c.Net.SASL.Enable = true
@@ -51,6 +55,8 @@ func understandClusterTopology(sc *ShepherdCluster) (ccmv *ClusterConfigMappingV
 		c.Net.TLS.Enable = false
 	case "SSL":
 		temp.ClusterSecurityMode = SSL
+		c.Net.TLS.Enable = true
+		c.Net.TLS.Config = createTLSConfig(sc)
 	case "":
 		temp.ClusterSecurityMode = PLAINTEXT
 	default:
@@ -79,4 +85,98 @@ func understandClusterTopology(sc *ShepherdCluster) (ccmv *ClusterConfigMappingV
 	}
 
 	return &temp, c, sc.BootstrapServer
+}
+
+func createTLSConfig(sc *ShepherdCluster) *tls.Config {
+	var t *tls.Config
+
+	// Generate the CACertPool from the SystemCertPool.
+	// If it fails, instantiate an empty pool.
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		caCertPool = x509.NewCertPool()
+	}
+
+	// Addding Certificates provided in the configuration file to Certificate Pool
+	for _, cert := range sc.TLSDetails.TrustedCerts {
+		caCert, err := ioutil.ReadFile(cert)
+		// Skipping the add if fails.
+		if err != nil {
+			logger.Warnw("Cannot read the CA Certificate file provided in the config. Skipping this certificate.",
+				"Certificate File Path", cert,
+				"Error Details", err)
+		} else {
+			caCertPool.AppendCertsFromPEM(caCert)
+		}
+	}
+
+	// Work on Client Certificates If Provided.
+	if sc.TLSDetails.ClientCertPath != "" && sc.TLSDetails.PrivateKeyPath != "" {
+		var v *pem.Block
+		var pKey []byte
+		var clientCert tls.Certificate
+		failFlag := false
+
+		cCert, err := ioutil.ReadFile(sc.TLSDetails.ClientCertPath)
+		if err != nil {
+			logger.Warnw("Cannot read the Client Cert file provided in config. Skipping setting up the client certificate.",
+				"Client Certificate Path", sc.TLSDetails.ClientCertPath,
+				"Error Details", err)
+			failFlag = true
+		}
+		b, err := ioutil.ReadFile(sc.TLSDetails.PrivateKeyPath)
+		if err != nil {
+			logger.Warnw("Cannot read the Private Key file provided in config. Skipping setting up the client certificate.",
+				"Private Key Path", sc.TLSDetails.PrivateKeyPath,
+				"Error Details", err)
+			failFlag = true
+		} else {
+			if !failFlag {
+				for {
+					v, b = pem.Decode(b)
+					if v == nil {
+						break
+					}
+					if v.Type == "RSA PRIVATE KEY" {
+						if x509.IsEncryptedPEMBlock(v) {
+							pKey, err = x509.DecryptPEMBlock(v, []byte(sc.TLSDetails.PrivateKeyPassword))
+							if err != nil {
+								logger.Warnw("Cannot decrypt the Private Key file provided in config. Skipping setting up the client certificate.",
+									"Client Certificate Path", sc.TLSDetails.ClientCertPath,
+									"Private Key Path", sc.TLSDetails.PrivateKeyPath,
+									"Error Details", err)
+								break
+							}
+							pKey = pem.EncodeToMemory(&pem.Block{
+								Type:  v.Type,
+								Bytes: pKey,
+							})
+						} else {
+							pKey = pem.EncodeToMemory(v)
+						}
+					}
+				}
+			}
+		}
+
+		if !failFlag {
+			clientCert, err = tls.X509KeyPair(cCert, pKey)
+			if err != nil {
+				logger.Warnw("Cannot Setup the Client certificate provided in config. Skipping setting up the client certificate.",
+					"Client Certificate Path", sc.TLSDetails.ClientCertPath,
+					"Private Key Path", sc.TLSDetails.PrivateKeyPath,
+					"Error Details", err)
+			} else {
+				t = &tls.Config{
+					Certificates:       []tls.Certificate{clientCert},
+					RootCAs:            caCertPool,
+					InsecureSkipVerify: !sc.TLSDetails.Enable2WaySSL,
+				}
+			}
+
+		}
+
+	}
+
+	return t
 }
