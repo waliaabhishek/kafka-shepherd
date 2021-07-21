@@ -34,7 +34,7 @@ type ShepherdCluster struct {
 	IsEnabled       bool          `yaml:"isEnabled"`
 	BootstrapServer string        `yaml:"bootstrapServer"`
 	ClientID        string        `yaml:"clientId"`
-	SecurityConfig  ShepherdCerts `yaml:"tlsDetails,omitempty"`
+	TLSDetails      ShepherdCerts `yaml:"tlsDetails,omitempty"`
 	Configs         []NVPairs     `yaml:"config,flow"`
 }
 
@@ -42,23 +42,26 @@ func (sc *ShepherdCluster) gatherENVVarValues() {
 	sc.Name = envVarCheckNReplace(sc.Name)
 	sc.BootstrapServer = envVarCheckNReplace(sc.BootstrapServer)
 	sc.ClientID = envVarCheckNReplace(sc.ClientID)
-	sc.SecurityConfig.gatherENVVarValues()
+	sc.TLSDetails.gatherENVVarValues()
 	for idx := 0; idx < len(sc.Configs); idx++ {
 		sc.Configs[idx].gatherENVVarValues()
 	}
 }
 
 type ShepherdCerts struct {
+	Enable2WaySSL      bool     `yaml:"enable2WaySSL,flow"`
 	TrustedCerts       []string `yaml:"trustCertFilePath,flow"`
-	PrivateKey         string   `yaml:"privateKeyFilePath,flow"`
-	PrivateKeyPassword string   `yaml:"privateKeyPass,flow"`
+	ClientCertPath     string   `yaml:"clientCertFilePath"`
+	PrivateKeyPath     string   `yaml:"privateKeyFilePath"`
+	PrivateKeyPassword string   `yaml:"privateKeyPass"`
 }
 
 func (sc *ShepherdCerts) gatherENVVarValues() {
 	for i, v := range sc.TrustedCerts {
 		sc.TrustedCerts[i] = envVarCheckNReplace(v)
 	}
-	sc.PrivateKey = envVarCheckNReplace(sc.PrivateKey)
+	sc.ClientCertPath = envVarCheckNReplace(sc.ClientCertPath)
+	sc.PrivateKeyPath = envVarCheckNReplace(sc.PrivateKeyPath)
 	sc.PrivateKeyPassword = envVarCheckNReplace(sc.PrivateKeyPassword)
 }
 

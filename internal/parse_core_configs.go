@@ -16,8 +16,8 @@ func parseShepherdConfig(scf *ShepherdConfig, configFilePath string) *ShepherdCo
 	if err := yaml.Unmarshal(temp, scf); err != nil {
 		logger.Fatal("Error Unmarshaling Shepherd Configs File", err)
 	}
-	validateShepherdConfig(scf)
-	streamlineParsedShepherdConfig(scf)
+	scf.validateShepherdConfig()
+	scf.streamlineParsedShepherdConfig()
 	scf.gatherENVVarValues()
 	return scf
 }
@@ -26,7 +26,7 @@ func GetShepherdConfig() *ShepherdConfig {
 	return &scf
 }
 
-func validateShepherdConfig(scf *ShepherdConfig) {
+func (scf *ShepherdConfig) validateShepherdConfig() {
 	count := 0
 	for _, cluster := range scf.Config.Clusters {
 		if cluster.IsEnabled {
@@ -62,7 +62,7 @@ func validateShepherdConfig(scf *ShepherdConfig) {
 	}
 }
 
-func streamlineParsedShepherdConfig(scf *ShepherdConfig) {
+func (scf *ShepherdConfig) streamlineParsedShepherdConfig() {
 	for idx, cluster := range scf.Config.Clusters {
 		cMap := make(NVPairs)
 		cMap.mergeMaps(cluster.Configs)
