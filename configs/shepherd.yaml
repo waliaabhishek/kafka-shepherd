@@ -2,7 +2,7 @@
 config:
   clusters:
     - name: dev_plaintext
-      bootstrap.server: localhost:9092
+      bootstrapServer: localhost:9092
       clientId: "env::SHEPHERD_DEV_CLIENTID"
       isEnabled: true
     - name: test_ssl
