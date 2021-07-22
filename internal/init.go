@@ -80,22 +80,6 @@ func getLogger(mode *bool) *zap.SugaredLogger {
 	return logger.Sugar()
 }
 
-func validateRunMode(mode *string) RunMode {
-	switch strings.ToUpper(strings.TrimSpace(*mode)) {
-	case SINGLE_CLUSTER.String():
-		return SINGLE_CLUSTER
-	case MULTI_CLUSTER.String():
-		logger.Fatal(MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
-	case MIGRATION.String():
-		logger.Fatal(MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
-	case CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String():
-		logger.Fatal(CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
-	default:
-		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, SINGLE_CLUSTER.String())
-	}
-	return SINGLE_CLUSTER
-}
-
 func GetObjects() (*RootStruct, *UserTopicMapping, *TopicConfigMapping) {
 	return &rs, &utm, &tcm
 }
