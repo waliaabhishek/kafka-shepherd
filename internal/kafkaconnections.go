@@ -14,7 +14,7 @@ func setupAdminConnection() *sarama.ClusterAdmin {
 
 	for _, cluster := range scf.Config.Clusters {
 		if cluster.IsEnabled {
-			_, conf, bs := understandClusterTopology(&cluster)
+			conf, bs := understandClusterTopology(&cluster)
 			ca, err := sarama.NewClusterAdmin([]string{bs}, conf)
 			if err != nil {
 				logger.Fatalw("Cannot set up the connection to Kafka Cluster. ",
@@ -31,15 +31,16 @@ func GetAdminConnection() *sarama.ClusterAdmin {
 	return sca
 }
 
-func understandClusterTopology(sc *ShepherdCluster) (ccmv *ClusterConfigMappingValue, conf *sarama.Config, bs string) {
-	temp := ClusterConfigMappingValue{}
+func understandClusterTopology(sc *ShepherdCluster) (conf *sarama.Config, bs string) {
+	// temp := ClusterConfigMappingValue{}
 	c := sarama.NewConfig()
 
 	c.ClientID = sc.ClientID
 	// Figure Out the Security Protocol
 	switch sc.Configs[0]["security.protocol"] {
 	case "SASL_SSL":
-		temp.ClusterSecurityMode = SASL_SSL
+		logger.Debug("Inside the SASL_SSL switch statement")
+		// temp.ClusterSecurityMode = SASL_SSL
 		c.Net.SASL.Enable = true
 		c.Net.SASL.User = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "username")
 		c.Net.SASL.Password = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "password")
@@ -47,18 +48,18 @@ func understandClusterTopology(sc *ShepherdCluster) (ccmv *ClusterConfigMappingV
 		c.Net.TLS.Enable = true
 		c.Net.TLS.Config = createTLSConfig(sc)
 	case "SASL_PLAINTEXT":
-		temp.ClusterSecurityMode = SASL_PLAINTEXT
+		logger.Debug("Inside the SASL_PLAINTEXT switch statement")
+		// temp.ClusterSecurityMode = SASL_PLAINTEXT
 		c.Net.SASL.Enable = true
 		c.Net.SASL.User = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "username")
 		c.Net.SASL.Password = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "password")
 		c.Net.SASL.Handshake = true
 		c.Net.TLS.Enable = false
 	case "SSL":
-		temp.ClusterSecurityMode = SSL
+		logger.Debug("Inside the SSL switch statement")
+		// temp.ClusterSecurityMode = SSL
 		c.Net.TLS.Enable = true
 		c.Net.TLS.Config = createTLSConfig(sc)
-	case "":
-		temp.ClusterSecurityMode = PLAINTEXT
 	default:
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",
 			"Cluster Name", sc.Name,
@@ -68,23 +69,28 @@ func understandClusterTopology(sc *ShepherdCluster) (ccmv *ClusterConfigMappingV
 	// Figure out the sasl mechanism
 	switch sc.Configs[0]["sasl.mechanism"] {
 	case "PLAIN":
-		temp.ClusterSASLMechanism = PLAIN
+		logger.Debug("Inside the PLAIN switch statement")
+		// temp.ClusterSASLMechanism = PLAIN
 		c.Net.SASL.Mechanism = "PLAIN"
 	case "SCRAM-SHA-256":
-		temp.ClusterSASLMechanism = SCRAM_SHA_256
+		logger.Debug("Inside SCRAM-256 SSL switch statement")
+		// temp.ClusterSASLMechanism = SCRAM_SHA_256
 		c.Net.SASL.Mechanism = "PLAIN"
 	case "SCRAM-SHA-512":
-		temp.ClusterSASLMechanism = SCRAM_SHA_512
+		logger.Debug("Inside the SCRAM-512 switch statement")
+		// temp.ClusterSASLMechanism = SCRAM_SHA_512
 		c.Net.SASL.Mechanism = "PLAIN"
 	case "OAUTHBEARER":
-		temp.ClusterSASLMechanism = OAUTHBEARER
+		logger.Debug("Inside the OAUTHBEARER switch statement")
+		// temp.ClusterSASLMechanism = OAUTHBEARER
 		c.Net.SASL.Mechanism = "OAUTHBEARER"
 	case "":
+		logger.Debug("Inside the EMPTY switch statement")
 		// Check for KRB5
 		//
 	}
 
-	return &temp, c, sc.BootstrapServer
+	return c, sc.BootstrapServer
 }
 
 func createTLSConfig(sc *ShepherdCluster) *tls.Config {
@@ -97,25 +103,38 @@ func createTLSConfig(sc *ShepherdCluster) *tls.Config {
 		caCertPool = x509.NewCertPool()
 	}
 
+	execFlag := false
 	// Addding Certificates provided in the configuration file to Certificate Pool
 	for _, cert := range sc.TLSDetails.TrustedCerts {
+		execFlag = true
 		caCert, err := ioutil.ReadFile(cert)
 		// Skipping the add if fails.
 		if err != nil {
 			logger.Warnw("Cannot read the CA Certificate file provided in the config. Skipping this certificate.",
 				"Certificate File Path", cert,
-				"Error Details", err)
+				"Error Details", err, err)
 		} else {
-			caCertPool.AppendCertsFromPEM(caCert)
+			logger.Debugw("Trying to load the certificate into the Truststore",
+				"Certificate Path", cert)
+			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+				logger.Warnw("Cannot append the CA Certificate into the truststore. Skipping this certificate.",
+					"Certificate File Path", cert)
+			}
 		}
 	}
 
+	if !execFlag {
+		logger.Debug("No Certificates were added to Truststore as no Trusted Certs were supplied via config.clusters.tlsDetails.trustCertFilePath")
+	}
+
+	execFlag = false
 	// Work on Client Certificates If Provided.
 	if sc.TLSDetails.ClientCertPath != "" && sc.TLSDetails.PrivateKeyPath != "" {
 		var v *pem.Block
 		var pKey []byte
 		var clientCert tls.Certificate
 		failFlag := false
+		execFlag = true
 
 		cCert, err := ioutil.ReadFile(sc.TLSDetails.ClientCertPath)
 		if err != nil {
@@ -134,11 +153,15 @@ func createTLSConfig(sc *ShepherdCluster) *tls.Config {
 			if !failFlag {
 				for {
 					v, b = pem.Decode(b)
+					logger.Debug("Private Key Decoded.")
 					if v == nil {
+						logger.Debug("inside the circuit Breaker for Decoder.")
 						break
 					}
-					if v.Type == "RSA PRIVATE KEY" {
+					if v.Type == "PRIVATE KEY" || v.Type == "RSA PRIVATE KEY" {
+						logger.Debug("Triggered Private Key Encryption Check")
 						if x509.IsEncryptedPEMBlock(v) {
+							logger.Debug("Private Key is Encrypted. Will need the Private Key Password")
 							pKey, err = x509.DecryptPEMBlock(v, []byte(sc.TLSDetails.PrivateKeyPassword))
 							if err != nil {
 								logger.Warnw("Cannot decrypt the Private Key file provided in config. Skipping setting up the client certificate.",
@@ -160,6 +183,7 @@ func createTLSConfig(sc *ShepherdCluster) *tls.Config {
 		}
 
 		if !failFlag {
+			logger.Debug("Private Certificate & Key Loaded")
 			clientCert, err = tls.X509KeyPair(cCert, pKey)
 			if err != nil {
 				logger.Warnw("Cannot Setup the Client certificate provided in config. Skipping setting up the client certificate.",
@@ -176,6 +200,10 @@ func createTLSConfig(sc *ShepherdCluster) *tls.Config {
 
 		}
 
+	}
+
+	if !execFlag {
+		logger.Debug("No Private SSL certs were loaded as no Private Key + Cert pair was supplied via config.clusters.tlsDetails.clientCertFilePath, privateKeyFilePath")
 	}
 
 	return t
