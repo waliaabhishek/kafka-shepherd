@@ -50,7 +50,7 @@ func (sc *ShepherdCluster) gatherENVVarValues() {
 
 type ShepherdCerts struct {
 	Enable2WaySSL      bool     `yaml:"enable2WaySSL,flow"`
-	TrustedCerts       []string `yaml:"trustCertFilePath,flow"`
+	TrustedCerts       []string `yaml:"trustCertsFilePath,flow"`
 	ClientCertPath     string   `yaml:"clientCertFilePath"`
 	PrivateKeyPath     string   `yaml:"privateKeyFilePath"`
 	PrivateKeyPassword string   `yaml:"privateKeyPass"`
