@@ -1,6 +1,7 @@
 package main
 
 import (
+	km "shepherd/manager/aclmanager"
 	kstm "shepherd/manager/topicmanager"
 	ksmisc "shepherd/misc"
 
@@ -20,18 +21,8 @@ func main() {
 
 	// ksmisc.DottedLineOutput("Delete all topics executed by configs", "=", 100)
 	// kstm.ExecuteRequests(sca, 10, kstm.DELETE_TOPIC)
-
-	// kaclm.GetACLListFromKafkaCluster()
-
-	// var value1 string = "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"kafkauser\" password=\"kafkapass\""
-	// var value3 string = "org.apache.kafka.common.security.plain.PlainLoginModule\n required \nusername='kafkauser' \npassword=\"kafkapass\""
-	// // var value2 string = "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"kafkauser\" password=\"kafkapass\""
-
-	// fmt.Println(findSASLValues(value1, "username"))
-	// fmt.Println(findSASLValues(value1, "password"))
-
-	// fmt.Println(findSASLValues(value3, "username"))
-	// fmt.Println(findSASLValues(value3, "password"))
+	km.AclManager.GetACLListFromKafkaCluster()
+	km.AclManager.GetACLListFromKafkaCluster()
 
 }
 
@@ -43,3 +34,13 @@ func main() {
 // TODO: Generate the Baseline YAML files from pre-existing clusters.
 
 // TODO: Full Cluster migration plans.
+
+/*
+	Current Status:
+		PLAINTEXT:					Working
+		SASL_PLAINTEXT_PLAIN		Working
+		1 Way SSL 					Working
+		Cert Veri Enabled 			Not Working
+		SASL_SSL					??
+		SASL_SCRAM					Working
+*/

@@ -12,6 +12,8 @@ import (
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var TW *tabwriter.Writer = GetNewWriter()
@@ -204,4 +206,30 @@ func DottedLineOutput(comment string, seperator string, length int) {
 	fmt.Println(strings.Repeat(seperator, length))
 	fmt.Printf("%s%s%s\n", strings.Repeat(seperator, right), comment, strings.Repeat(seperator, left))
 	fmt.Println(strings.Repeat(seperator, length))
+}
+
+// This method sets up a zap logger object for use and returns back a pointer to the object.
+func GetLogger(enableDebug *bool, enableConsole *bool) *zap.SugaredLogger {
+	var config zap.Config
+	if *enableConsole {
+		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	} else {
+		config = zap.NewProductionConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+		config.DisableStacktrace = true
+		config.DisableCaller = true
+	}
+	config.EncoderConfig.TimeKey = "timestamp"
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncoderConfig.EncodeDuration = zapcore.MillisDurationEncoder
+
+	if *enableDebug {
+		config.DisableStacktrace = false
+		config.DisableCaller = false
+	}
+
+	logger, _ := config.Build()
+	defer logger.Sync()
+	return logger.Sugar()
 }

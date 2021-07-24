@@ -1,28 +1,36 @@
 ---
-config:
+configs:
   clusters:
     - name: dev_plaintext
       bootstrapServer: localhost:9092
-      clientId: "env::SHEPHERD_DEV_CLIENTID"
-      isEnabled: true
-    - name: test_ssl
+      clientId: "abhishektest1"
+      isEnabled: false
+    - name: test_ssl_1WaySSL
       bootstrapServer: localhost:9093
       isEnabled: false
-      clientId: "abhishektest"
+      clientId: "abhishektest2"
+      tlsDetails:
+        enable2WaySSL: false
+        trustCertsFilePath:
+          - "SHEPHERD_TRUSTCERT_1"
+          - "SHEPHERD_TRUSTCERT_2"
+        clientCertFilePath: "SHEPHERD_CLIENTCERT_PEM"
+        privateKeyFilePath: "SHEPHERD_CLIENTKEY_KEY"
       config:
         - security.protocol: SSL
-        - ssl.truststore.location: /docker/tls/certs/truststore.jks
-        - ssl.keystore.location: /docker/tls/certs/server.keystore.jks
-        - ssl.truststore.type: PKCS12
-        - ssl.keystore.type: PKCS12
-        - ssl.truststore.password: "env::SHEPHERD_TEST_TRUSTSTORE_PASSWORD"
-        - ssl.keystore.password: "env::SHEPHERD_TEST_KEYSTORE_PASSWORD"
-        - ssl.key.password: "env::SHEPHERD_TEST_KEY_PASSWORD"
     - name: test2_sasl_plaintext
       bootstrapServer: localhost:9093
       isEnabled: false
-      clientId: "abhishektest"
+      clientId: "abhishektest3"
       config:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: PLAIN
-        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka" password="kafka"'
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'
+    - name: test3_sasl_plaintext_scram
+      bootstrapServer: localhost:9093,localhost:9094
+      isEnabled: true
+      clientId: "abhishektest4"
+      config:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: SCRAM-SHA-256
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-pass"'

@@ -1,13 +1,22 @@
-package internal
+package core
 
 import (
+	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"io/ioutil"
 	ksmisc "shepherd/misc"
+	"strings"
 
 	"github.com/Shopify/sarama"
+	"github.com/xdg/scram"
+)
+
+var (
+	SHA256 scram.HashGeneratorFcn = sha256.New
+	SHA512 scram.HashGeneratorFcn = sha512.New
 )
 
 func setupAdminConnection() *sarama.ClusterAdmin {
@@ -15,7 +24,7 @@ func setupAdminConnection() *sarama.ClusterAdmin {
 	for _, cluster := range scf.Config.Clusters {
 		if cluster.IsEnabled {
 			conf, bs := understandClusterTopology(&cluster)
-			ca, err := sarama.NewClusterAdmin([]string{bs}, conf)
+			ca, err := sarama.NewClusterAdmin(strings.Split(cluster.BootstrapServer, ","), conf)
 			if err != nil {
 				logger.Fatalw("Cannot set up the connection to Kafka Cluster. ",
 					"Bootstrap Server", bs,
@@ -71,15 +80,14 @@ func understandClusterTopology(sc *ShepherdCluster) (conf *sarama.Config, bs str
 	case "PLAIN":
 		logger.Debug("Inside the PLAIN switch statement")
 		// temp.ClusterSASLMechanism = PLAIN
-		c.Net.SASL.Mechanism = "PLAIN"
+		c.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	case "SCRAM-SHA-256":
-		logger.Debug("Inside SCRAM-256 SSL switch statement")
-		// temp.ClusterSASLMechanism = SCRAM_SHA_256
-		c.Net.SASL.Mechanism = "PLAIN"
+		logger.Debug("Inside SCRAM SSL switch statement")
+		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
+		c.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
 	case "SCRAM-SHA-512":
-		logger.Debug("Inside the SCRAM-512 switch statement")
-		// temp.ClusterSASLMechanism = SCRAM_SHA_512
-		c.Net.SASL.Mechanism = "PLAIN"
+		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA512} }
+		c.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
 	case "OAUTHBEARER":
 		logger.Debug("Inside the OAUTHBEARER switch statement")
 		// temp.ClusterSASLMechanism = OAUTHBEARER
@@ -207,4 +215,28 @@ func createTLSConfig(sc *ShepherdCluster) *tls.Config {
 	}
 
 	return t
+}
+
+type XDGSCRAMClient struct {
+	*scram.Client
+	*scram.ClientConversation
+	scram.HashGeneratorFcn
+}
+
+func (x *XDGSCRAMClient) Begin(userName, password, authzID string) (err error) {
+	x.Client, err = x.HashGeneratorFcn.NewClient(userName, password, authzID)
+	if err != nil {
+		return err
+	}
+	x.ClientConversation = x.Client.NewConversation()
+	return nil
+}
+
+func (x *XDGSCRAMClient) Step(challenge string) (response string, err error) {
+	response, err = x.ClientConversation.Step(challenge)
+	return
+}
+
+func (x *XDGSCRAMClient) Done() bool {
+	return x.ClientConversation.Done()
 }

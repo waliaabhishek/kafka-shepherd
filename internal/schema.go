@@ -1,102 +1,199 @@
-package internal
+package core
 
 import (
-	"fmt"
-	"strings"
-
 	mapset "github.com/deckarep/golang-set"
 )
 
 type CustomParser interface {
-	gatherENVVarValues()
+	readValuesFromENV()
 }
 
-type ShepherdConfig struct {
-	Config Config `yaml:"config"`
-}
+type NVPairs map[string]string
 
-func (sc *ShepherdConfig) gatherENVVarValues() {
-	sc.Config.gatherENVVarValues()
-}
-
-type Config struct {
-	Clusters []ShepherdCluster `yaml:"clusters,flow"`
-}
-
-func (c *Config) gatherENVVarValues() {
-	for idx := 0; idx < len(c.Clusters); idx++ {
-		c.Clusters[idx].gatherENVVarValues()
+func (nv *NVPairs) readValuesFromENV() {
+	for k, v := range *nv {
+		(*nv)[k] = envVarCheckNReplace(v, "")
 	}
 }
 
-type ShepherdCluster struct {
-	Name            string        `yaml:"name"`
-	IsEnabled       bool          `yaml:"isEnabled"`
-	BootstrapServer string        `yaml:"bootstrapServer"`
-	ClientID        string        `yaml:"clientId"`
-	TLSDetails      ShepherdCerts `yaml:"tlsDetails,omitempty"`
-	Configs         []NVPairs     `yaml:"config,flow"`
+/*
+	This struct holds all the available configuration maps that are calculated
+	and arranged by the core code. These can be used by the implementation layers
+	to calculate some custom behaviors. There will be additional convenience
+	functions added as and when needed on top of this struct so that you have
+	one layer to access everything.
+*/
+type ConfigurationMaps struct {
+	tcm *TopicConfigMapping
+	utm *UserTopicMapping
+	ccm *ClusterConfigMapping
 }
 
-func (sc *ShepherdCluster) gatherENVVarValues() {
-	sc.Name = envVarCheckNReplace(sc.Name)
-	sc.BootstrapServer = envVarCheckNReplace(sc.BootstrapServer)
-	sc.ClientID = envVarCheckNReplace(sc.ClientID)
-	sc.TLSDetails.gatherENVVarValues()
-	for idx := 0; idx < len(sc.Configs); idx++ {
-		sc.Configs[idx].gatherENVVarValues()
+/*
+	This is core structure of the configuration which holds pointers to all the
+	available configuration fields in a structured way. This will be used gather
+	and setup all and every Configuration mapper set up by the core platform.
+*/
+type ShepherdCore struct {
+	Configs     *ShepherdConfig
+	Blueprints  *ShepherdBlueprint
+	Definitions *ShepherdDefinition
+}
+
+func (c *ShepherdCore) readValuesFromENV() {
+	c.Configs.readValuesFromENV()
+	c.Blueprints.readValuesFromENV()
+	c.Definitions.readValuesFromENV()
+}
+
+type ShepherdConfig struct {
+	ConfigRoot *ConfigRoot `yaml:"configs"`
+}
+
+func (c *ShepherdConfig) readValuesFromENV() {
+	c.ConfigRoot.readValuesFromENV()
+}
+
+type ConfigRoot struct {
+	ShepherdCoreConfig *ShepherdCoreConfig `yaml:"core"`
+	Clusters           *[]ShepherdCluster  `yaml:"clusters,flow"`
+}
+
+func (c *ConfigRoot) readValuesFromENV() {
+	c.ShepherdCoreConfig.readValuesFromENV()
+	for idx := 0; idx < len(*c.Clusters); idx++ {
+		(*c.Clusters)[idx].readValuesFromENV()
+	}
+}
+
+type ShepherdCoreConfig struct {
+	SeperatorToken string `yaml:"seperatorToken,flow"`
+	DeleteUnknown  bool   `yaml:"deleteUnknownTopics"`
+}
+
+func (c *ShepherdCoreConfig) readValuesFromENV() {
+	c.SeperatorToken = envVarCheckNReplace(c.SeperatorToken, ".")
+}
+
+type ShepherdCluster struct {
+	Name             string         `yaml:"name"`
+	IsEnabled        bool           `yaml:"isEnabled"`
+	BootstrapServers []string       `yaml:"bootstrapServers,flow"`
+	ClientID         string         `yaml:"clientId"`
+	TLSDetails       *ShepherdCerts `yaml:"tlsDetails,omitempty"`
+	Configs          []NVPairs      `yaml:"config,flow"`
+}
+
+func (c *ShepherdCluster) readValuesFromENV() {
+	c.Name = envVarCheckNReplace(c.Name, "")
+	for i, v := range c.BootstrapServers {
+		c.BootstrapServers[i] = envVarCheckNReplace(v, "")
+	}
+	c.ClientID = envVarCheckNReplace(c.ClientID, "")
+	c.TLSDetails.readValuesFromENV()
+	c.Configs = streamlineNVPairs(c.Configs)
+	for idx := 0; idx < len(c.Configs); idx++ {
+		c.Configs[idx].readValuesFromENV()
 	}
 }
 
 type ShepherdCerts struct {
 	Enable2WaySSL      bool     `yaml:"enable2WaySSL,flow"`
-	TrustedCerts       []string `yaml:"trustCertsFilePath,flow"`
-	ClientCertPath     string   `yaml:"clientCertFilePath"`
-	PrivateKeyPath     string   `yaml:"privateKeyFilePath"`
+	TrustedCerts       []string `yaml:"trustedCerts,flow"`
+	ClientCert         string   `yaml:"clientCert"`
+	PrivateKey         string   `yaml:"privateKey"`
 	PrivateKeyPassword string   `yaml:"privateKeyPass"`
 }
 
-func (sc *ShepherdCerts) gatherENVVarValues() {
-	for i, v := range sc.TrustedCerts {
-		sc.TrustedCerts[i] = envVarCheckNReplace(v)
+func (c *ShepherdCerts) readValuesFromENV() {
+	for i, v := range c.TrustedCerts {
+		c.TrustedCerts[i] = envVarCheckNReplace(v, "")
 	}
-	sc.ClientCertPath = envVarCheckNReplace(sc.ClientCertPath)
-	sc.PrivateKeyPath = envVarCheckNReplace(sc.PrivateKeyPath)
-	sc.PrivateKeyPassword = envVarCheckNReplace(sc.PrivateKeyPassword)
+	c.ClientCert = envVarCheckNReplace(c.ClientCert, "")
+	c.PrivateKey = envVarCheckNReplace(c.PrivateKey, "")
+	c.PrivateKeyPassword = envVarCheckNReplace(c.PrivateKeyPassword, "")
 }
 
-type RootStruct struct {
-	Blueprint  Blueprints
-	Definition Definitions
+type ShepherdBlueprint struct {
+	Blueprint *BlueprintRoot `yaml:"blueprints"`
 }
 
-type Blueprints struct {
-	Blueprints Blueprint `yaml:"blueprints"`
+func (c *ShepherdBlueprint) readValuesFromENV() {
+	c.Blueprint.readValuesFromENV()
 }
 
-type Definitions struct {
-	Definitions Definition `yaml:"definitions"`
+type BlueprintRoot struct {
+	Topic       *TopicBlueprints  `yaml:"topic,omitempty"`
+	Policy      *PolicyBlueprints `yaml:"policy,omitempty"`
+	CustomEnums *[]CustomEnums    `yaml:"customEnums,flow,omitempty"`
 }
 
-type Blueprint struct {
-	Topic  TopicBlueprints   `yaml:"topic,omitempty"`
-	Policy PolicyBlueprints  `yaml:"policy,omitempty"`
-	Custom []CustomBlueprint `yaml:"customEnums,flow,omitempty"`
+func (c *BlueprintRoot) readValuesFromENV() {
+	c.Topic.readValuesFromENV()
+	c.Policy.readValuesFromENV()
+	for i := 0; i < len(*c.CustomEnums); i++ {
+		(*c.CustomEnums)[i].readValuesFromENV()
+	}
 }
 
-type Definition struct {
-	AdhocTopicsDefinitions TopicDefinitions   `yaml:"adhoc,omitempty"`
-	ScopeFlow              []ScopeDefinitions `yaml:"scopeFlow,flow,omitempty"`
+type TopicBlueprints struct {
+	TopicConfigs *[]TopicBlueprintConfigs `yaml:"topicConfigs,flow,omitempty"`
+}
+
+func (c *TopicBlueprints) readValuesFromENV() {
+	for i := 0; i < len(*c.TopicConfigs); i++ {
+		(*c.TopicConfigs)[i].readValuesFromENV()
+	}
+}
+
+type TopicBlueprintConfigs struct {
+	Name      string    `yaml:"name"`
+	Overrides []NVPairs `yaml:"configOverrides,omitempty,flow"`
+}
+
+func (c *TopicBlueprintConfigs) readValuesFromENV() {
+	c.Name = envVarCheckNReplace(c.Name, "")
+	c.Overrides = streamlineNVPairs(c.Overrides)
+	for i := 0; i < len(c.Overrides); i++ {
+		c.Overrides[i].readValuesFromENV()
+	}
 }
 
 type PolicyBlueprints struct {
-	TopicPolicy TopicPolicyConfigs `yaml:"topicPolicy,omitempty"`
-	ACLPolicy   ACLPolicyConfigs   `yaml:"aclPolicy,omitempty"`
+	TopicPolicy *TopicPolicyConfigs `yaml:"topicPolicy,omitempty"`
+	ACLPolicy   *ACLPolicyConfigs   `yaml:"aclPolicy,omitempty"`
+}
+
+func (c *PolicyBlueprints) readValuesFromENV() {
+	c.TopicPolicy.readValuesFromENV()
+	c.ACLPolicy.readValuesFromENV()
 }
 
 type TopicPolicyConfigs struct {
-	Defaults  []NVPairs            `yaml:"defaults,flow,omitempty"`
-	Overrides TopicPolicyOverrides `yaml:"overrides,omitempty"`
+	Defaults  []NVPairs             `yaml:"defaults,flow,omitempty"`
+	Overrides *TopicPolicyOverrides `yaml:"overrides,omitempty"`
+}
+
+func (c *TopicPolicyConfigs) readValuesFromENV() {
+	c.Defaults = streamlineNVPairs(c.Defaults)
+	for i := 0; i < len(c.Defaults); i++ {
+		c.Defaults[i].readValuesFromENV()
+	}
+	c.Overrides.readValuesFromENV()
+}
+
+type TopicPolicyOverrides struct {
+	Whitelist *[]string `yaml:"whitelist,flow,omitempty"`
+	Blacklist *[]string `yaml:"blacklist,flow,omitempty"`
+}
+
+func (c *TopicPolicyOverrides) readValuesFromENV() {
+	for i, v := range *c.Blacklist {
+		(*c.Blacklist)[i] = envVarCheckNReplace(v, "")
+	}
+	for i, v := range *c.Whitelist {
+		(*c.Whitelist)[i] = envVarCheckNReplace(v, "")
+	}
 }
 
 type ACLPolicyConfigs struct {
@@ -105,50 +202,92 @@ type ACLPolicyConfigs struct {
 	OptimizeACLs bool   `yaml:"optimizeACLs,omitempty"`
 }
 
-type TopicPolicyOverrides struct {
-	Whitelist []string `yaml:"whitelist,flow,omitempty"`
-	Blacklist []string `yaml:"blacklist,flow,omitempty"`
+func (c *ACLPolicyConfigs) readValuesFromENV() {
+	c.ACLType = envVarCheckNReplace(c.ACLType, "")
 }
 
-type TopicBlueprints struct {
-	TopicConfigs []TopicBlueprintConfigs `yaml:"topicConfigs,flow,omitempty"`
+type CustomEnums struct {
+	Name               string    `yaml:"name,omitempty"`
+	Values             *[]string `yaml:"values,flow,omitempty"`
+	IncludeInTopicName bool      `yaml:"mandatoryInTopicName,omitempty"`
 }
 
-type TopicBlueprintConfigs struct {
-	Name      string    `yaml:"name,omitempty"`
-	Overrides []NVPairs `yaml:"configOverrides,omitempty,flow"`
-}
-
-type CustomBlueprint struct {
-	Name               string   `yaml:"name,omitempty"`
-	Values             []string `yaml:"values,flow,omitempty"`
-	IncludeInTopicName bool     `yaml:"mandatoryInTopicName,omitempty"`
-}
-
-type NVPairs map[string]string
-
-func (nv *NVPairs) gatherENVVarValues() {
-	for k, v := range *nv {
-		(*nv)[k] = envVarCheckNReplace(v)
+func (c *CustomEnums) readValuesFromENV() {
+	c.Name = envVarCheckNReplace(c.Name, "")
+	for i, v := range *c.Values {
+		(*c.Values)[i] = envVarCheckNReplace(v, "")
 	}
 }
 
-type TopicDefinitions struct {
-	TopicDefs []TopicDefinition `yaml:"topics,flow,omitempty"`
+type ShepherdDefinition struct {
+	DefinitionRoot *DefinitionRoot `yaml:"definitions"`
+}
+
+func (c *ShepherdDefinition) readValuesFromENV() {
+	c.DefinitionRoot.readValuesFromENV()
+}
+
+type DefinitionRoot struct {
+	AdhocConfigs *AdhocConfig       `yaml:"adhoc,omitempty"`
+	ScopeFlow    *[]ScopeDefinition `yaml:"scopeFlow,flow,omitempty"`
+}
+
+func (c *DefinitionRoot) readValuesFromENV() {
+	c.AdhocConfigs.readValuesFromENV()
+	for i := 0; i < len(*c.ScopeFlow); i++ {
+		(*c.ScopeFlow)[i].readValuesFromENV()
+	}
+}
+
+type AdhocConfig struct {
+	Topics *[]TopicDefinition `yaml:"topics,flow,omitempty"`
+}
+
+func (c *AdhocConfig) readValuesFromENV() {
+	for i := 0; i < len(*c.Topics); i++ {
+		(*c.Topics)[i].readValuesFromENV()
+	}
 }
 
 type TopicDefinition struct {
-	Name                  []string         `yaml:"name,flow,omitempty"`
-	Clients               ClientDefinition `yaml:"clients,omitempty"`
-	FilterScope           []string         `yaml:"filterScope,flow,omitempty"`
-	TopicBlueprintEnumRef string           `yaml:"blueprintEnum,omitempty"`
-	ConfigOverrides       []NVPairs        `yaml:"configOverrides,flow,omitempty"`
+	Name                  *[]string         `yaml:"name,flow,omitempty"`
+	Clients               *ClientDefinition `yaml:"clients,omitempty"`
+	IgnoreScope           *[]string         `yaml:"ignoreScope,flow,omitempty"`
+	TopicBlueprintEnumRef string            `yaml:"blueprintEnum,omitempty"`
+	ConfigOverrides       []NVPairs         `yaml:"configOverrides,flow,omitempty"`
+}
+
+func (c *TopicDefinition) readValuesFromENV() {
+	for i, v := range *c.Name {
+		(*c.Name)[i] = envVarCheckNReplace(v, "")
+	}
+	c.Clients.readValuesFromENV()
+	for i, v := range *c.IgnoreScope {
+		(*c.IgnoreScope)[i] = envVarCheckNReplace(v, "")
+	}
+	c.TopicBlueprintEnumRef = envVarCheckNReplace(c.TopicBlueprintEnumRef, "")
+	c.ConfigOverrides = streamlineNVPairs(c.ConfigOverrides)
+	for i := 0; i < len(c.ConfigOverrides); i++ {
+		c.ConfigOverrides[i].readValuesFromENV()
+	}
 }
 
 type ClientDefinition struct {
-	Consumers  []ConsumerDefinition  `yaml:"consumers,flow,omitempty"`
-	Producers  []ProducerDefinition  `yaml:"producers,flow,omitempty"`
-	Connectors []ConnectorDefinition `yaml:"connectors,flow,omitempty"`
+	Consumers  *[]ConsumerDefinition  `yaml:"consumers,flow,omitempty"`
+	Producers  *[]ProducerDefinition  `yaml:"producers,flow,omitempty"`
+	Connectors *[]ConnectorDefinition `yaml:"connectors,flow,omitempty"`
+}
+
+func (c *ClientDefinition) readValuesFromENV() {
+	for i := 0; i < len(*c.Consumers); i++ {
+		(*c.Consumers)[i].readValuesFromENV()
+	}
+	for i := 0; i < len(*c.Producers); i++ {
+		(*c.Producers)[i].readValuesFromENV()
+	}
+	for i := 0; i < len(*c.Connectors); i++ {
+		(*c.Connectors)[i].readValuesFromENV()
+	}
 }
 
 type ConsumerDefinition struct {
@@ -156,9 +295,19 @@ type ConsumerDefinition struct {
 	Group string `yaml:"group,omitempty"`
 }
 
+func (c *ConsumerDefinition) readValuesFromENV() {
+	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Group = envVarCheckNReplace(c.Group, "")
+}
+
 type ProducerDefinition struct {
 	ID    string `yaml:"id,omitempty"`
 	Group string `yaml:"group,omitempty"`
+}
+
+func (c *ProducerDefinition) readValuesFromENV() {
+	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Group = envVarCheckNReplace(c.Group, "")
 }
 
 type ConnectorDefinition struct {
@@ -166,90 +315,78 @@ type ConnectorDefinition struct {
 	Type string `yaml:"type,omitempty"`
 }
 
-type ScopeDefinitions struct {
-	Scope ScopeNodeDefinition `yaml:"scope,omitempty"`
+func (c *ConnectorDefinition) readValuesFromENV() {
+	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Type = envVarCheckNReplace(c.Type, "")
 }
 
-type ScopeNodeDefinition struct {
-	ShortName          string               `yaml:"shortName,omitempty"`
-	Values             []string             `yaml:"values,flow,omitempty"`
-	IncludeInTopicName bool                 `yaml:"addToTopicName,omitempty"`
-	CustomEnumRef      string               `yaml:"customEnum,omitempty"`
-	Topics             TopicDefinition      `yaml:"topics,omitempty"`
-	Clients            ClientDefinition     `yaml:"clients,omitempty"`
-	Child              *ScopeNodeDefinition `yaml:"child,omitempty"`
+type ScopeDefinition struct {
+	ShortName          string            `yaml:"shortName,omitempty"`
+	Values             *[]string         `yaml:"values,flow,omitempty"`
+	IncludeInTopicName bool              `yaml:"addToTopicName,omitempty"`
+	CustomEnumRef      string            `yaml:"customEnum,omitempty"`
+	Topics             *TopicDefinition  `yaml:"topics,omitempty"`
+	Clients            *ClientDefinition `yaml:"clients,omitempty"`
+	Child              *ScopeDefinition  `yaml:"child,omitempty"`
 }
 
-func (sc Definitions) PrettyPrintScope() {
-	for _, v1 := range sc.Definitions.ScopeFlow {
-		v1.Scope.prettyPrintSND(0)
+func (c *ScopeDefinition) readValuesFromENV() {
+	c.ShortName = envVarCheckNReplace(c.ShortName, "")
+	for i, v := range *c.Values {
+		(*c.Values)[i] = envVarCheckNReplace(v, "")
 	}
-}
-
-func (snd ScopeNodeDefinition) prettyPrintSND(tabCounter int) {
-	fmt.Println(strings.Repeat("  ", tabCounter), "Short Name:", snd.ShortName)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Custom Enum Ref:", snd.CustomEnumRef)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Values:", snd.Values)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Include in Topic Name Flag:", snd.IncludeInTopicName)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Topics:", snd.Topics)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Clients:", snd.Clients)
-	if snd.Child != nil {
-		fmt.Println(strings.Repeat("  ", tabCounter), "Child Node:")
-		snd.Child.prettyPrintSND(tabCounter + 1)
-	}
+	c.CustomEnumRef = envVarCheckNReplace(c.CustomEnumRef, "")
+	c.Topics.readValuesFromENV()
+	c.Clients.readValuesFromENV()
+	c.Child.readValuesFromENV()
 }
 
 type TopicNameString string
 type TopicNamesSet mapset.Set
 
 type TopicConfigSet mapset.Set
+
+/*
+	Topic Config Mapping creates and maintains the Topic mapping provided in the configuration
+	files. The Key is topic name and values is a NVPair of all configuration properties
+	provided in the configuration files. The logic for overrides, blacklist & whitelist is to
+	be handled somewhere. This map will just maintain a uniques set of property values.
+*/
 type TopicConfigMapping map[string]NVPairs
 
+/*
+	This is the map which creates and maintains the mapping provided in the configuration files.
+	The Key maintains a unique set of Client IDs, Client Types & their respective Group IDs from
+	the configuration file. The value is a slice of topic names that are supposed to be a part of
+	this unique group.
+*/
 type UserTopicMapping map[UserTopicMappingKey]UserTopicMappingValue
 
 type UserTopicMappingKey struct {
 	ID         string
 	ClientType ClientType
+	GroupId    string
 }
 
 type UserTopicMappingValue struct {
 	TopicList []string
 }
 
+/*
+	Cluster Config Mapping creates and maintains the list of enabled clusters in this map and
+	allows for the consumption layers to set up their configurations accordingly. The key will
+	contain the unique identification markers and the value includes clientID to be used and
+	other supporting properties.
+*/
 type ClusterConfigMapping map[ClusterConfigMappingKey]ClusterConfigMappingValue
 type ClusterConfigMappingKey struct {
-	IsEnabled       bool
-	Name            string
-	BootstrapServer string
+	IsEnabled               bool
+	Name                    string
+	ClusterSecurityProtocol ClusterSecurityProtocol
+	ClusterSASLMechanism    ClusterSASLMechanism
 }
 
 type ClusterConfigMappingValue struct {
-	ClientID             string
-	ClusterSecurityMode  ClusterSecurityMode
-	ClusterSASLMechanism ClusterSASLMechanism
-	Configs              NVPairs
-}
-
-func (utm *UserTopicMapping) PrettyPrintUTM() {
-	defer TW.Flush()
-
-	fmt.Fprintf(TW, "\n %s\t%s\t%s\t", "User ID", "Client Type", "Topics Used")
-	fmt.Fprintf(TW, "\n %s\t%s\t%s\t", "-------", "-----------", "-----------")
-
-	for k1, v1 := range *utm {
-		fmt.Fprintf(TW, "\n %s\t%s\t%s\t", k1.ID, k1.ClientType.String(), strings.Join(v1.TopicList, ", "))
-	}
-	fmt.Fprintln(TW, " ")
-}
-
-func (tcm *TopicConfigMapping) PrettyPrintTCM() {
-	defer TW.Flush()
-
-	fmt.Fprintf(TW, "\n %s\t%s\t", "Key", "NVPairs")
-	fmt.Fprintf(TW, "\n %s\t%s\t", "---", "-------")
-
-	for k1, v1 := range *tcm {
-		fmt.Fprintf(TW, "\n %s\t%s\t", k1, v1)
-	}
-	fmt.Fprintln(TW, " ")
+	ClientID string
+	Configs  NVPairs
 }

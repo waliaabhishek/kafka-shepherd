@@ -1,4 +1,4 @@
-package internal
+package core
 
 type ClientType int
 
@@ -29,17 +29,18 @@ func (r RunMode) String() string {
 	return [...]string{"SINGLE_CLUSTER", "MULTI_CLUSTER", "MIGRATION", "CREATE_CONFIGS_FROM_EXISTING_CLUSTER"}[r]
 }
 
-type ClusterSecurityMode int
+type ClusterSecurityProtocol int
 
 const (
-	PLAINTEXT ClusterSecurityMode = iota
+	PLAINTEXT ClusterSecurityProtocol = iota
 	SSL
 	SASL_SSL
 	SASL_PLAINTEXT
+	UNIDENTIFIED_SECURITY_PROTOCOL
 )
 
-func (r ClusterSecurityMode) String() string {
-	return [...]string{"PLAINTEXT", "SSL", "SASL_SSL", "SASL_PLAINTEXT"}[r]
+func (r ClusterSecurityProtocol) String() string {
+	return [...]string{"PLAINTEXT", "SSL", "SASL_SSL", "SASL_PLAINTEXT", "UNIDENTIFIED_SECURITY_PROTOCOL"}[r]
 }
 
 type ClusterSASLMechanism int
@@ -50,8 +51,9 @@ const (
 	SCRAM_SHA_512
 	OAUTHBEARER
 	SASL_MECH_NULL
+	UNIDENTIFIED_SASL_MECHANISM
 )
 
 func (r ClusterSASLMechanism) String() string {
-	return [...]string{"PLAIN", "SCRAM_SHA_256", "SCRAM_SHA_512", "OAUTHBEARER", "SASL_MECH_NULL"}[r]
+	return [...]string{"PLAIN", "SCRAM_SHA_256", "SCRAM_SHA_512", "OAUTHBEARER", "SASL_MECH_NULL", "UNIDENTIFIED_SASL_MECHANISM"}[r]
 }

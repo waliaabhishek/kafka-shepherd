@@ -1,33 +1,33 @@
-package internal
+package core
 
 import (
 	"flag"
-	"os"
 	ksmisc "shepherd/misc"
 	"strings"
-	"text/tabwriter"
 
-	"github.com/Shopify/sarama"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
+// Externally available variables.
 var (
-	bf, df, cf   string
-	rs           RootStruct
-	scf          ShepherdConfig
-	utm          UserTopicMapping     = UserTopicMapping{}
-	tcm          TopicConfigMapping   = TopicConfigMapping{}
-	ccm          ClusterConfigMapping = ClusterConfigMapping{}
-	blueprintMap map[string]NVPairs
-	sca          *sarama.ClusterAdmin
-	TW           *tabwriter.Writer = ksmisc.TW
-	logger       *zap.SugaredLogger
+	ConfMaps ConfigurationMaps = ConfigurationMaps{
+		tcm: &TopicConfigMapping{},
+		utm: &UserTopicMapping{},
+		ccm: &ClusterConfigMapping{},
+	}
 )
 
+// Internal variables for function
 var (
-	enableDebug *bool
-	runMode     RunMode
+	enableDebug       *bool
+	enableConsoleLogs *bool
+	configFile        string
+	blueprintsFile    string
+	definitionsFile   string
+	runMode           RunMode
+	spdCore           ShepherdCore
+	blueprintMap      map[string]NVPairs
+	logger            *zap.SugaredLogger
 )
 
 const (
@@ -35,77 +35,53 @@ const (
 )
 
 func init() {
-	enableDebug = flag.Bool("debugMode", false, "Turns on Debug mode logging features instead Production grade Structured logging.")
-	rm := flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER")
-	flag.Parse()
-	// Initialize Zap Logger
-	logger = getLogger(enableDebug)
-	runMode = validateRunMode(rm)
-
-	cf = getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", "./configs/shepherd.yaml")
-	bf = getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./configs/blueprints.yaml")
-	df = getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", "./configs/definitions_dev.yaml")
+	ResolveFlags()
+	// Initialize Logger
+	logger = ksmisc.GetLogger(enableDebug, enableConsoleLogs)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	parseShepherdConfig(&scf, cf)
-	logger.Debug("Shepherd Config File parse Result: ", scf)
+	parseShepherdConfig(spdCore.Configs, getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile))
+	logger.Debug("Shepherd Config File parse Result: ", spdCore.Configs)
 
-	// Parse the Blueprints & Definitions file and setup the internal representations of the file.
-	rs = parseConfigurations(bf, df)
-	logger.Debug("Config File parse Result: ", rs)
+	// Parse Shepherd Blueprints from the YAML file.
+	parseShepherBlueprints(spdCore.Blueprints, getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
+	logger.Debug("Shepherd Blueprints parse Result: ", spdCore.Blueprints)
 
-	// Generate internal canonical from above structures.
-	rs.GenerateMappings()
+	// Parse Shepherd Internal Configurations from the YAML file.
+	parseShepherDefinitions(spdCore.Definitions, getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", definitionsFile))
+	logger.Debug("Shepherd Definitions parse Result: ", spdCore.Definitions)
 
-	// Get the Sarama Cluster Admin connection as that is the connection that is necessary for ACL & Topic provisioning.
-	sca = setupAdminConnection()
+	// Understand the Blueprints & Definitions file and setup the External facing representation of the core files.
+	GenerateMappings(&spdCore, GetConfigMaps().utm, GetConfigMaps().tcm)
+	logger.Debug("Config File parse Result: ", ConfMaps)
 }
 
-// This method sets up a zap logger object for use and returns back a pointer to the object.
-func getLogger(mode *bool) *zap.SugaredLogger {
-	var config zap.Config
-	if *mode {
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	} else {
-		config = zap.NewProductionConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	}
-	config.EncoderConfig.TimeKey = "timestamp"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	config.EncoderConfig.EncodeDuration = zapcore.MillisDurationEncoder
-
-	logger, _ := config.Build()
-	defer logger.Sync()
-	return logger.Sugar()
+func ResolveFlags() {
+	flag.BoolVar(enableDebug, "debug", false, "Turns on Debug mode log")
+	flag.BoolVar(enableConsoleLogs, "consoleLogs", true, "Turns off unstructured mode logging features and use Structured logging instead.")
+	flag.StringVar(&configFile, "configPath", "./configs/shepherd.yaml", "Absolute file Path for Core Configuration file. Please note that this might still be overwritten by the SHEPHERD_CONFIG_FILE_LOCATION for additional flexibility.")
+	flag.StringVar(&blueprintsFile, "blueprintsPath", "./configs/blueprints.yaml", "Absolute file Path for Shepherd Blueprints file. Please note that this might still be overwritten by the SHEPHERD_BLUEPRINTS_FILE_LOCATION for additional flexibility.")
+	flag.StringVar(&definitionsFile, "definitionsPath", "./configs/definitions_dev.yaml", "Absolute file Path for Shepherd Definitions file. Please note that this might still be overwritten by the SHEPHERD_DEFINITIONS_FILE_LOCATION for additional flexibility.")
+	runMode = assertRunMode(flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER"))
+	flag.Parse()
 }
 
-func GetObjects() (*RootStruct, *UserTopicMapping, *TopicConfigMapping) {
-	return &rs, &utm, &tcm
+func GetConfigMaps() (sc *ConfigurationMaps) {
+	return sc
 }
 
-func getEnvVarsWithDefaults(envVarName string, defaultValue string) string {
-	envVarValue, present := os.LookupEnv(envVarName)
-	if !present && defaultValue == "" {
-		logger.Fatal(envVarName, " is not available in ENV Variables. Cannot proceed without it.")
+func assertRunMode(mode *string) RunMode {
+	switch strings.ToUpper(strings.TrimSpace(*mode)) {
+	case SINGLE_CLUSTER.String():
+		return SINGLE_CLUSTER
+	case MULTI_CLUSTER.String():
+		logger.Fatal(MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	case MIGRATION.String():
+		logger.Fatal(MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
+	case CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String():
+		logger.Fatal(CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	default:
+		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, SINGLE_CLUSTER.String())
 	}
-
-	if envVarValue == "" && defaultValue == "" {
-		logger.Fatal(envVarName, "ENV Variable is empty. Please ensure it is instantiated properly.")
-	} else if envVarValue == "" && defaultValue != "" {
-		logger.Debugw("ENV Variable is empty. Using Default value\n",
-			"ENV Variable Name", envVarName,
-			"ENV Variable Value", envVarValue,
-			"Default Value", defaultValue)
-		return defaultValue
-	}
-
-	return envVarValue
-}
-
-func envVarCheckNReplace(s string) string {
-	if strings.HasPrefix(s, ENVVAR_PREFIX) {
-		return getEnvVarsWithDefaults(strings.Replace(s, ENVVAR_PREFIX, "", 1), "")
-	}
-	return s
+	return SINGLE_CLUSTER
 }
