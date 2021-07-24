@@ -324,7 +324,7 @@ type ScopeDefinition struct {
 	ShortName          string            `yaml:"shortName,omitempty"`
 	Values             *[]string         `yaml:"values,flow,omitempty"`
 	IncludeInTopicName bool              `yaml:"addToTopicName,omitempty"`
-	CustomEnumRef      string            `yaml:"customEnum,omitempty"`
+	CustomEnumRef      string            `yaml:"blueprintEnum,omitempty"`
 	Topics             *TopicDefinition  `yaml:"topics,omitempty"`
 	Clients            *ClientDefinition `yaml:"clients,omitempty"`
 	Child              *ScopeDefinition  `yaml:"child,omitempty"`

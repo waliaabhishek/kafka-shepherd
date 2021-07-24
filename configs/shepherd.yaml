@@ -2,24 +2,28 @@
 configs:
   clusters:
     - name: dev_plaintext
-      bootstrapServer: localhost:9092
+      bootstrapServers:
+        - localhost:9092
       clientId: "abhishektest1"
       isEnabled: false
     - name: test_ssl_1WaySSL
-      bootstrapServer: localhost:9093
+      bootstrapServers:
+        - localhost:9093
       isEnabled: false
       clientId: "abhishektest2"
       tlsDetails:
         enable2WaySSL: false
-        trustCertsFilePath:
-          - "SHEPHERD_TRUSTCERT_1"
-          - "SHEPHERD_TRUSTCERT_2"
-        clientCertFilePath: "SHEPHERD_CLIENTCERT_PEM"
-        privateKeyFilePath: "SHEPHERD_CLIENTKEY_KEY"
+        trustedCerts:
+          - "SHEPHERD_TRUSTCERT_1_PEM"
+          - "SHEPHERD_TRUSTCERT_2_PEM"
+        clientCert: "SHEPHERD_CLIENTCERT_PEM"
+        privateKey: "SHEPHERD_CLIENTKEY_KEY"
+        privateKeyPass: "SHEPHERD_CLIENTKEY_KEYPASS"
       config:
         - security.protocol: SSL
     - name: test2_sasl_plaintext
-      bootstrapServer: localhost:9093
+      bootstrapServers:
+        - localhost:9093
       isEnabled: false
       clientId: "abhishektest3"
       config:
@@ -27,7 +31,9 @@ configs:
         - sasl.mechanism: PLAIN
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'
     - name: test3_sasl_plaintext_scram
-      bootstrapServer: localhost:9093,localhost:9094
+      bootstrapServers:
+        - localhost:9093
+        - localhost:9094
       isEnabled: true
       clientId: "abhishektest4"
       config:
