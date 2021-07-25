@@ -5,76 +5,54 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	ksinternal "shepherd/internal"
+	kafkamanager "shepherd/manager"
 	ksmisc "shepherd/misc"
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
+	"go.uber.org/zap"
 )
 
-var topicsInCluster ksinternal.TopicNamesSet
-var topicsInConfig ksinternal.TopicNamesSet
-var utm *ksinternal.UserTopicMapping
-var tcm *ksinternal.TopicConfigMapping
-var tw *tabwriter.Writer = ksmisc.TW
+var topicsInCluster mapset.Set
+var topicsInConfig mapset.Set
 var sca *sarama.ClusterAdmin
-
-// var rs *ksinternal.RootStruct
+var logger *zap.SugaredLogger
 
 /* This is the function that Initializes User Topic mapping structure
 after parsing the configurations from input files. This also instantiates the configuration structure.
 */
 func init() {
-	_, utm, tcm = ksinternal.GetObjects()
-	topicsInConfig = getTopicListFromUTMList(utm)
-	sca = ksinternal.GetAdminConnection()
+	sca = kafkamanager.SetupAdminConnection()
 }
 
-func GetKafkaClusterConnection() *sarama.ClusterAdmin {
-	return sca
-}
-
-func getTopicListFromUTMList(utm *ksinternal.UserTopicMapping) ksinternal.TopicNamesSet {
-	t := mapset.NewSet()
-	for _, v := range *utm {
-		for _, topic := range v.TopicList {
-			if ksmisc.IsTopicName(topic, ".") {
-				t.Add(topic)
-			}
-		}
-	}
-	return t
-}
-
-/* This function returns the list of topics in Kafka Cluster.
- */
-func GetTopicListFromKafkaCluster(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
+/*
+	This function returns the list of topics from Kafka Cluster.
+*/
+func getTopicListFromKafkaCluster(sca *sarama.ClusterAdmin) []string {
 	tSet := mapset.NewSet()
 	if topics, err := (*sca).ListTopics(); err != nil {
-		//TODO: Change Error Handling
-		fmt.Println("Something Went Wrong while Listing Topics. Here are the details: ", err)
+		logger.Fatalw("Something Went Wrong while Listing Topics.",
+			"Error Details", err)
 	} else {
 		for t := range topics {
 			tSet.Add(string(t))
 		}
 	}
-	return tSet
+	return ksinternal.GetStringSliceFromMapSet(tSet)
 }
 
 func refreshTopicList(sca *sarama.ClusterAdmin, discardConnectionCache bool) {
 	if topicsInCluster == nil || discardConnectionCache {
-		topicsInCluster = GetTopicListFromKafkaCluster(sca)
-	}
-	if topicsInConfig == nil {
-		topicsInConfig = getTopicListFromUTMList(utm)
+		topicsInCluster = ksinternal.GetMapSetFromStringSlice(getTopicListFromKafkaCluster(sca))
 	}
 }
 
-/* Create a Struct for Channel signature
- */
+/*
+	Create a Struct for Channel signature
+*/
 type TopicStatusDetails struct {
 	topicName  string
 	status     StatusType
@@ -82,47 +60,27 @@ type TopicStatusDetails struct {
 	retryCount int
 }
 
-/*	This function compares the Configurations in the input files with the topics existing in the Kafka Cluster.
-Then it returns only the topics that do not exist on the Kafka Cluster.
-*/
-func FindNonExistentTopicsInKafkaCluster(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
-	refreshTopicList(sca, false)
-	return topicsInConfig.Difference(topicsInCluster)
-}
-
-/* This function returns the topics that are present on the Kafka Cluster but are not present in the Configuration input.
- */
-func FindNonExistentTopicsInTopicsConfig(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
-	refreshTopicList(sca, false)
-	return topicsInCluster.Difference(topicsInConfig).Difference(topicsInConfig)
-}
-
-/* This function returns the topic list that is part of the config and already exists in the cluster.
- */
-func FindProvisionedTopics(sca *sarama.ClusterAdmin) ksinternal.TopicNamesSet {
-	refreshTopicList(sca, false)
-	return topicsInConfig.Intersect(topicsInCluster)
-}
-
-/* This function takes the ksinternal.TopicManagementFunctionType constant and executes the CREATE, MODIFY or DELETE request.
-This function takes care of all internals and does not need any other details as it fetches these details from
-configuration files and kafka cluster.
+/*
+	This function takes the ksinternal.TopicManagementFunctionType constant and
+	executes the CREATE, MODIFY or DELETE request. This function takes care of
+	all internals and does not need any other details as it fetches these details
+	from configuration files and kafka cluster.
 */
 func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType TopicManagementFunctionType) {
 	refreshTopicList(sca, true)
 	c := make(chan TopicStatusDetails, threadCount)
 	rand.Seed(time.Now().UnixNano())
-	var ts ksinternal.TopicNamesSet
-	var ps ksinternal.TopicNamesSet
+	var ts mapset.Set
+	var ps mapset.Set
 	counter := 0
 
 	switch requestType {
 	case CREATE_TOPIC:
-		ts = FindNonExistentTopicsInKafkaCluster(sca)
+		ts = ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca))
 	case MODIFY_TOPIC:
 		ts, ps = FindMismatchedConfigTopics(sca)
 	case DELETE_TOPIC:
-		ts = FindProvisionedTopics(sca)
+		ts = ksinternal.FindProvisionedTopicsAsMapSet(getTopicListFromKafkaCluster(sca))
 	}
 
 	for item := range ts.Iterator().C {
@@ -159,6 +117,47 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 		}
 	}
 	waitForMetadataSync(sca, requestType)
+}
+
+func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff mapset.Set, partitionDiff mapset.Set) {
+	configDiff = mapset.NewSet()
+	partitionDiff = mapset.NewSet()
+	if topics, err := (*sca).ListTopics(); err != nil {
+		logger.Fatalw("Something Went Wrong while Listing Topics.",
+			"Error Details", err)
+	} else {
+		for k, v := range topics {
+			// if (*tcm)[k] != nil {
+			if (*ksinternal.ConfMaps.TCM)[k] != nil {
+				_ = compareTopicDetails(k, &v, (*ksinternal.ConfMaps.TCM)[k], &configDiff, &partitionDiff)
+			}
+		}
+	}
+	return
+}
+
+func compareTopicDetails(topicName string, first *sarama.TopicDetail, second ksinternal.NVPairs, configDiff *mapset.Set, partitionDiff *mapset.Set) bool {
+	flag := true
+	for k, v := range second {
+		switch k {
+		case "num.partitions":
+			if v != strconv.FormatInt(int64(first.NumPartitions), 10) {
+				(*partitionDiff).Add(topicName)
+				flag = false
+			}
+		case "replication.factor", "default.replication.factor":
+			if v != strconv.FormatInt(int64(first.ReplicationFactor), 10) {
+				(*configDiff).Add(topicName)
+				flag = false
+			}
+		default:
+			if v != *first.ConfigEntries[k] {
+				(*configDiff).Add(topicName)
+				flag = false
+			}
+		}
+	}
+	return flag
 }
 
 func executeTopicRequest(sca *sarama.ClusterAdmin, topicName string, topicDetail *sarama.TopicDetail, sleepTime time.Duration, retryCount int, requestType TopicManagementFunctionType, c chan TopicStatusDetails) {
@@ -217,7 +216,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 	case CREATE_TOPIC:
 		for {
 			refreshTopicList(sca, true)
-			if FindNonExistentTopicsInKafkaCluster(sca).Cardinality() != 0 && i <= 5 {
+			if ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca)).Cardinality() != 0 && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been created yet. Waiting for Metadata to sync")
 				i += 1
@@ -225,7 +224,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to create: ")
-					ksmisc.PrettyPrintMapSet(FindNonExistentTopicsInKafkaCluster(sca))
+					ksmisc.PrettyPrintMapSet(ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca)))
 				}
 				break
 			}
@@ -252,7 +251,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 	case DELETE_TOPIC:
 		for {
 			refreshTopicList(sca, true)
-			if !FindNonExistentTopicsInKafkaCluster(sca).Equal(getTopicListFromUTMList(utm)) && i <= 5 {
+			if !ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca)).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been deleted yet. Waiting for Metadata to sync")
 				i += 1
@@ -260,7 +259,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to delete: ")
-					ksmisc.PrettyPrintMapSet(FindProvisionedTopics(sca))
+					ksmisc.PrettyPrintMapSet(ksinternal.FindProvisionedTopicsAsMapSet(getTopicListFromKafkaCluster(sca)))
 				}
 				break
 			}
@@ -273,12 +272,15 @@ func (t TopicStatusDetails) prettyPrint() {
 }
 
 func PrettyPrintSaramaTopicDetail(topicName string, td *sarama.TopicDetail) {
-	tw.Flush()
 	var temp string = ""
 	for k, v := range td.ConfigEntries {
 		temp += fmt.Sprint(k, "=", *v, " , ")
 	}
-	fmt.Fprintf(tw, "\nTopic:%s\tRF:%d\tPartitions:%d\tOther Configs:%s", topicName, td.ReplicationFactor, td.NumPartitions, temp)
+	logger.Infow("Topic Details",
+		"Topic Name", topicName,
+		"Replication Factor", td.ReplicationFactor,
+		"Partition Count", td.NumPartitions,
+		"Other Configurations", temp)
 }
 
 func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
@@ -290,7 +292,7 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 		ConfigEntries:     nil,
 	}
 
-	temp := (*tcm)[topicName]
+	temp := (*ksinternal.ConfMaps.TCM)[topicName]
 	for k, v := range temp {
 		switch k {
 		case "num.partitions":
@@ -315,44 +317,4 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 		}
 	}
 	return &td
-}
-
-func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff ksinternal.TopicNamesSet, partitionDiff ksinternal.TopicNamesSet) {
-	configDiff = mapset.NewSet()
-	partitionDiff = mapset.NewSet()
-	if topics, err := (*sca).ListTopics(); err != nil {
-		//TODO: Change Error Handling
-		fmt.Println("Something Went Wrong while Listing Topics. Here are the details: ", err)
-	} else {
-		for k, v := range topics {
-			if (*tcm)[k] != nil {
-				_ = compareTopicDetails(k, &v, (*tcm)[k], &configDiff, &partitionDiff)
-			}
-		}
-	}
-	return
-}
-
-func compareTopicDetails(topicName string, first *sarama.TopicDetail, second ksinternal.NVPairs, configDiff *ksinternal.TopicNamesSet, partitionDiff *ksinternal.TopicNamesSet) bool {
-	flag := true
-	for k, v := range second {
-		switch k {
-		case "num.partitions":
-			if v != strconv.FormatInt(int64(first.NumPartitions), 10) {
-				(*partitionDiff).Add(topicName)
-				flag = false
-			}
-		case "replication.factor", "default.replication.factor":
-			if v != strconv.FormatInt(int64(first.ReplicationFactor), 10) {
-				(*configDiff).Add(topicName)
-				flag = false
-			}
-		default:
-			if v != *first.ConfigEntries[k] {
-				(*configDiff).Add(topicName)
-				flag = false
-			}
-		}
-	}
-	return flag
 }
