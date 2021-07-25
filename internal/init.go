@@ -5,16 +5,18 @@ import (
 	ksmisc "shepherd/misc"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"
 )
 
 // Externally available variables.
 var (
 	ConfMaps ConfigurationMaps = ConfigurationMaps{
-		tcm: &TopicConfigMapping{},
-		utm: &UserTopicMapping{},
-		ccm: &ClusterConfigMapping{},
+		TCM: &TopicConfigMapping{},
+		UTM: &UserTopicMapping{},
+		CCM: &ClusterConfigMapping{},
 	}
+	SpdCore ShepherdCore
 )
 
 // Internal variables for function
@@ -28,6 +30,7 @@ var (
 	spdCore           ShepherdCore
 	blueprintMap      map[string]NVPairs
 	logger            *zap.SugaredLogger
+	topicsInConfig    mapset.Set
 )
 
 const (
@@ -52,8 +55,11 @@ func init() {
 	logger.Debug("Shepherd Definitions parse Result: ", spdCore.Definitions)
 
 	// Understand the Blueprints & Definitions file and setup the External facing representation of the core files.
-	GenerateMappings(&spdCore, GetConfigMaps().utm, GetConfigMaps().tcm)
+	GenerateMappings(&spdCore, GetConfigMaps().UTM, GetConfigMaps().TCM)
 	logger.Debug("Config File parse Result: ", ConfMaps)
+
+	topicsInConfig = ConfMaps.UTM.getTopicListFromUTMList()
+	SpdCore = spdCore
 }
 
 func ResolveFlags() {
@@ -68,6 +74,14 @@ func ResolveFlags() {
 
 func GetConfigMaps() (sc *ConfigurationMaps) {
 	return sc
+}
+
+func GetLogger() (lg *zap.SugaredLogger) {
+	return logger
+}
+
+func GetConfigTopicsAsMapSet() mapset.Set {
+	return topicsInConfig
 }
 
 func assertRunMode(mode *string) RunMode {
