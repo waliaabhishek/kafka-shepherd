@@ -3,36 +3,28 @@ package aclmanager
 import (
 	"fmt"
 	ksinternal "shepherd/internal"
-	ksmisc "shepherd/misc"
+	kafkamanager "shepherd/manager"
 	"sync"
-	"text/tabwriter"
 
 	"github.com/Shopify/sarama"
 	"go.uber.org/zap"
 )
 
-var tw *tabwriter.Writer = ksmisc.TW
 var AclManager ACLManager
 var logger *zap.SugaredLogger
 
 type kafkaACLManager struct {
-	utm *ksinternal.UserTopicMapping
-	tcm *ksinternal.TopicConfigMapping
-	sca *sarama.ClusterAdmin
+	confMap *ksinternal.ConfigurationMaps
+	sca     *sarama.ClusterAdmin
 }
 
 func init() {
-	enableDebug := true
-
-	_, utm, tcm := ksinternal.GetObjects()
-
 	AclManager = &kafkaACLManager{
-		utm: utm,
-		tcm: tcm,
-		sca: ksinternal.GetAdminConnection(),
+		confMap: ksinternal.GetConfigMaps(),
+		sca:     kafkamanager.SetupAdminConnection(),
 	}
 
-	logger = ksmisc.GetLogger(&enableDebug)
+	logger = ksinternal.GetLogger()
 }
 
 func (kam *kafkaACLManager) GetACLListFromKafkaCluster() {
@@ -95,20 +87,28 @@ func (kam *kafkaACLManager) SetupProducerACLs(in *ACLResourceBundleRequest) {
 			if in.Hostname != nil {
 				for _, h := range *in.Hostname {
 					wg.Add(1)
-					go kam.executeACLRequest(AclExecutionRequest{
+					go kam.executeACLRequest(ACLExecutionRequest{
 						Principal: p,
 						TopicName: t,
 						HostName:  h,
 						Operation: in.Operation,
 					}, &wg)
 				}
+			} else {
+				wg.Add(1)
+				go kam.executeACLRequest(ACLExecutionRequest{
+					Principal: p,
+					TopicName: t,
+					HostName:  "",
+					Operation: in.Operation,
+				}, &wg)
 			}
 		}
 	}
 	wg.Wait()
 }
 
-func (kam *kafkaACLManager) executeACLRequest(in AclExecutionRequest, wg *sync.WaitGroup) {
+func (kam *kafkaACLManager) executeACLRequest(in ACLExecutionRequest, wg *sync.WaitGroup) {
 	defer wg.Done()
 	a, r := in.renderACLExecutionObjects()
 	for _, acl := range a {
@@ -127,7 +127,7 @@ func (kam *kafkaACLManager) executeACLRequest(in AclExecutionRequest, wg *sync.W
 	}
 }
 
-func (in *AclExecutionRequest) renderACLExecutionObjects() ([]sarama.Acl, sarama.Resource) {
+func (in *ACLExecutionRequest) renderACLExecutionObjects() ([]sarama.Acl, sarama.Resource) {
 	rsc := sarama.Resource{
 		ResourceType:        sarama.AclResourceTopic,
 		ResourceName:        in.TopicName,
@@ -154,6 +154,11 @@ func (in *AclExecutionRequest) renderACLExecutionObjects() ([]sarama.Acl, sarama
 			{
 				Principal:      in.Principal,
 				Operation:      sarama.AclOperationRead,
+				PermissionType: sarama.AclPermissionAllow,
+			},
+			{
+				Principal:      in.Principal,
+				Operation:      sarama.AclOperationDescribe,
 				PermissionType: sarama.AclPermissionAllow,
 			},
 		}
