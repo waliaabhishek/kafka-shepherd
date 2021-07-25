@@ -50,6 +50,10 @@ func FindSASLValues(s string, sep string) string {
 	return strings.Split(strings.Split(strings.Replace(s, "'", "\"", -1), sep)[1], "\"")[1]
 }
 
+/*
+	Identify if val exists anywhere in the slice s and if it does,
+	removes it from the slice and return the new slice.
+*/
 func RemoveValuesFromSlice(s []string, val string) []string {
 	if pos, present := Find(s, val); present {
 		for present {
@@ -117,6 +121,7 @@ func GetPermutationsString(sSlices [][]string) [][]string {
 	return ret
 }
 
+// Check if the slice is empty. Return true if empty or false if not.
 func IsZero1DSlice(s []string) bool {
 	for _, v := range s {
 		if v != "" {
@@ -126,6 +131,10 @@ func IsZero1DSlice(s []string) bool {
 	return true
 }
 
+/*
+	Find if any permutation of Join([]part1 + sep + []part2) exists in the string s.
+	If it oes return true, else return false.
+*/
 func ExistsInString(s string, part1 []string, part2 []string, sep string) bool {
 	for _, v1 := range part1 {
 		for _, v2 := range part2 {
