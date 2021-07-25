@@ -15,6 +15,7 @@ func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigM
 		for _, tName := range *v.Name {
 			v.Clients.addClientToUTM(utm, tName)
 		}
+		v.Clients.addHostnamesToUTM(ConfMaps.UTM)
 		tcm.addDataToTopicConfigMapping(sc, &v, *v.Name)
 	}
 
@@ -49,21 +50,10 @@ func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigM
 					}
 				}
 			}
+			currClients.addHostnamesToUTM(ConfMaps.UTM)
 		}
 	}
 	// return utm, tcm
-}
-
-func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
-	for _, cluster := range *sc.Configs.ConfigRoot.Clusters {
-		if cluster.IsEnabled == true {
-			sp, sc := cluster.understandClusterTopology()
-			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled,
-				Name:                    cluster.Name,
-				ClusterSecurityProtocol: sp,
-				ClusterSASLMechanism:    sc}] = ClusterConfigMappingValue{ClientID: cluster.ClientID}
-		}
-	}
 }
 
 func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]string, bool, *ScopeDefinition) {
@@ -95,30 +85,16 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 
 func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 	for _, v := range *c.Consumers {
-		v.addClientToUTM(utm, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, CONSUMER, v.Group, topic)
 	}
 	for _, v := range *c.Producers {
-		v.addClientToUTM(utm, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, PRODUCER, v.Group, topic)
+		// v.addClientToUTM(utm, topic)
 	}
 	for _, v := range *c.Connectors {
-		v.addClientToUTM(utm, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, v.getConnectorTypeValue(), "", topic)
+		// v.addClientToUTM(utm, topic)
 	}
-}
-
-type client interface {
-	addClientToUTM(utm *UserTopicMapping, t string)
-}
-
-func (c ProducerDefinition) addClientToUTM(utm *UserTopicMapping, topicName string) {
-	utm.addDataToUserTopicMapping(c.ID, PRODUCER, topicName)
-}
-
-func (c ConsumerDefinition) addClientToUTM(utm *UserTopicMapping, topicName string) {
-	utm.addDataToUserTopicMapping(c.ID, CONSUMER, topicName)
-}
-
-func (c ConnectorDefinition) addClientToUTM(utm *UserTopicMapping, topicName string) {
-	utm.addDataToUserTopicMapping(c.ID, c.getConnectorTypeValue(), topicName)
 }
 
 func (c ConnectorDefinition) getConnectorTypeValue() ClientType {
@@ -132,14 +108,43 @@ func (c ConnectorDefinition) getConnectorTypeValue() ClientType {
 /*
 	This is the core function that implements addition to the USER to TOPIC Mapping.
 */
-func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType ClientType, topicName string) {
-	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType}]; present {
+func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType ClientType, cGroup string, topicName string) {
+	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}]; present {
 		if _, ok := ksmisc.Find(val.TopicList, topicName); !ok {
 			val.TopicList = append(val.TopicList, topicName)
 		}
-		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType}] = val
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = val
 	} else {
-		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType}] = UserTopicMappingValue{TopicList: []string{topicName}}
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = UserTopicMappingValue{TopicList: []string{topicName}, Hostnames: []string{}}
+	}
+}
+
+func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
+	for _, v := range *c.Consumers {
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, CONSUMER, v.Group, v.Hostnames)
+	}
+	for _, v := range *c.Producers {
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, PRODUCER, v.Group, v.Hostnames)
+	}
+	for _, v := range *c.Connectors {
+		// TODO: COnnector Group Names ?????
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, v.getConnectorTypeValue(), "", v.Hostnames)
+	}
+}
+
+/*
+	This is the core function that implements addition to the USER to TOPIC Mapping.
+*/
+func (utm *UserTopicMapping) addHostnamesToUserTopicMapping(clientId string, cType ClientType, cGroup string, hostnames []string) {
+	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}]; present {
+		for _, v := range hostnames {
+			if _, found := ksmisc.Find(val.Hostnames, v); !found {
+				val.Hostnames = append(val.Hostnames, v)
+			}
+		}
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = val
+	} else {
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = UserTopicMappingValue{TopicList: []string{}, Hostnames: hostnames}
 	}
 }
 
@@ -184,7 +189,6 @@ func (in *NVPairs) overrideMergeMaps(temp []NVPairs, whitelist []string, blackli
 func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 	if blueprintMap == nil {
 		blueprintMap = make(map[string]NVPairs)
-		// for _, v := range rs.Blueprint.Blueprints.Topic.TopicConfigs {
 		for _, v := range *sc.Blueprints.Blueprint.Topic.TopicConfigs {
 			temp := NVPairs{}
 			// Get the default values configured in Topic Blueprints Defaults as those act as our baseline
@@ -198,6 +202,18 @@ func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 		// fmt.Println("Blueprint Topic Plan Map:", blueprintMap)
 	}
 	return blueprintMap[strings.ToLower(strings.TrimSpace(blueprintName))]
+}
+
+func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
+	for _, cluster := range *sc.Configs.ConfigRoot.Clusters {
+		if cluster.IsEnabled == true {
+			sp, sc := cluster.understandClusterTopology()
+			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled,
+				Name:                    cluster.Name,
+				ClusterSecurityProtocol: sp,
+				ClusterSASLMechanism:    sc}] = ClusterConfigMappingValue{ClientID: cluster.ClientID}
+		}
+	}
 }
 
 /*
