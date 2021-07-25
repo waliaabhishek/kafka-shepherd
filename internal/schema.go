@@ -1,9 +1,5 @@
 package core
 
-import (
-	mapset "github.com/deckarep/golang-set"
-)
-
 type CustomParser interface {
 	readValuesFromENV()
 }
@@ -24,9 +20,9 @@ func (nv *NVPairs) readValuesFromENV() {
 	one layer to access everything.
 */
 type ConfigurationMaps struct {
-	tcm *TopicConfigMapping
-	utm *UserTopicMapping
-	ccm *ClusterConfigMapping
+	TCM *TopicConfigMapping
+	UTM *UserTopicMapping
+	CCM *ClusterConfigMapping
 }
 
 /*
@@ -51,7 +47,9 @@ type ShepherdConfig struct {
 }
 
 func (c *ShepherdConfig) readValuesFromENV() {
-	c.ConfigRoot.readValuesFromENV()
+	if c.ConfigRoot != nil {
+		c.ConfigRoot.readValuesFromENV()
+	}
 }
 
 type ConfigRoot struct {
@@ -60,7 +58,9 @@ type ConfigRoot struct {
 }
 
 func (c *ConfigRoot) readValuesFromENV() {
-	c.ShepherdCoreConfig.readValuesFromENV()
+	if c.ShepherdCoreConfig != nil {
+		c.ShepherdCoreConfig.readValuesFromENV()
+	}
 	for idx := 0; idx < len(*c.Clusters); idx++ {
 		(*c.Clusters)[idx].readValuesFromENV()
 	}
@@ -90,7 +90,9 @@ func (c *ShepherdCluster) readValuesFromENV() {
 		c.BootstrapServers[i] = envVarCheckNReplace(v, "")
 	}
 	c.ClientID = envVarCheckNReplace(c.ClientID, "")
-	c.TLSDetails.readValuesFromENV()
+	if c.TLSDetails != nil {
+		c.TLSDetails.readValuesFromENV()
+	}
 	c.Configs = streamlineNVPairs(c.Configs)
 	for idx := 0; idx < len(c.Configs); idx++ {
 		c.Configs[idx].readValuesFromENV()
@@ -119,7 +121,9 @@ type ShepherdBlueprint struct {
 }
 
 func (c *ShepherdBlueprint) readValuesFromENV() {
-	c.Blueprint.readValuesFromENV()
+	if c.Blueprint != nil {
+		c.Blueprint.readValuesFromENV()
+	}
 }
 
 type BlueprintRoot struct {
@@ -129,8 +133,12 @@ type BlueprintRoot struct {
 }
 
 func (c *BlueprintRoot) readValuesFromENV() {
-	c.Topic.readValuesFromENV()
-	c.Policy.readValuesFromENV()
+	if c.Topic != nil {
+		c.Topic.readValuesFromENV()
+	}
+	if c.Policy != nil {
+		c.Policy.readValuesFromENV()
+	}
 	for i := 0; i < len(*c.CustomEnums); i++ {
 		(*c.CustomEnums)[i].readValuesFromENV()
 	}
@@ -141,8 +149,10 @@ type TopicBlueprints struct {
 }
 
 func (c *TopicBlueprints) readValuesFromENV() {
-	for i := 0; i < len(*c.TopicConfigs); i++ {
-		(*c.TopicConfigs)[i].readValuesFromENV()
+	if c.TopicConfigs != nil {
+		for i := 0; i < len(*c.TopicConfigs); i++ {
+			(*c.TopicConfigs)[i].readValuesFromENV()
+		}
 	}
 }
 
@@ -165,8 +175,12 @@ type PolicyBlueprints struct {
 }
 
 func (c *PolicyBlueprints) readValuesFromENV() {
-	c.TopicPolicy.readValuesFromENV()
-	c.ACLPolicy.readValuesFromENV()
+	if c.TopicPolicy != nil {
+		c.TopicPolicy.readValuesFromENV()
+	}
+	if c.ACLPolicy != nil {
+		c.ACLPolicy.readValuesFromENV()
+	}
 }
 
 type TopicPolicyConfigs struct {
@@ -179,7 +193,9 @@ func (c *TopicPolicyConfigs) readValuesFromENV() {
 	for i := 0; i < len(c.Defaults); i++ {
 		c.Defaults[i].readValuesFromENV()
 	}
-	c.Overrides.readValuesFromENV()
+	if c.Overrides != nil {
+		c.Overrides.readValuesFromENV()
+	}
 }
 
 type TopicPolicyOverrides struct {
@@ -188,11 +204,15 @@ type TopicPolicyOverrides struct {
 }
 
 func (c *TopicPolicyOverrides) readValuesFromENV() {
-	for i, v := range *c.Blacklist {
-		(*c.Blacklist)[i] = envVarCheckNReplace(v, "")
+	if c.Whitelist != nil {
+		for i, v := range *c.Whitelist {
+			(*c.Whitelist)[i] = envVarCheckNReplace(v, "")
+		}
 	}
-	for i, v := range *c.Whitelist {
-		(*c.Whitelist)[i] = envVarCheckNReplace(v, "")
+	if c.Blacklist != nil {
+		for i, v := range *c.Blacklist {
+			(*c.Blacklist)[i] = envVarCheckNReplace(v, "")
+		}
 	}
 }
 
@@ -214,8 +234,10 @@ type CustomEnums struct {
 
 func (c *CustomEnums) readValuesFromENV() {
 	c.Name = envVarCheckNReplace(c.Name, "")
-	for i, v := range *c.Values {
-		(*c.Values)[i] = envVarCheckNReplace(v, "")
+	if c.Values != nil {
+		for i, v := range *c.Values {
+			(*c.Values)[i] = envVarCheckNReplace(v, "")
+		}
 	}
 }
 
@@ -224,7 +246,9 @@ type ShepherdDefinition struct {
 }
 
 func (c *ShepherdDefinition) readValuesFromENV() {
-	c.DefinitionRoot.readValuesFromENV()
+	if c.DefinitionRoot != nil {
+		c.DefinitionRoot.readValuesFromENV()
+	}
 }
 
 type DefinitionRoot struct {
@@ -233,9 +257,13 @@ type DefinitionRoot struct {
 }
 
 func (c *DefinitionRoot) readValuesFromENV() {
-	c.AdhocConfigs.readValuesFromENV()
-	for i := 0; i < len(*c.ScopeFlow); i++ {
-		(*c.ScopeFlow)[i].readValuesFromENV()
+	if c.AdhocConfigs != nil {
+		c.AdhocConfigs.readValuesFromENV()
+	}
+	if c.ScopeFlow != nil {
+		for i := 0; i < len(*c.ScopeFlow); i++ {
+			(*c.ScopeFlow)[i].readValuesFromENV()
+		}
 	}
 }
 
@@ -244,8 +272,10 @@ type AdhocConfig struct {
 }
 
 func (c *AdhocConfig) readValuesFromENV() {
-	for i := 0; i < len(*c.Topics); i++ {
-		(*c.Topics)[i].readValuesFromENV()
+	if c.Topics != nil {
+		for i := 0; i < len(*c.Topics); i++ {
+			(*c.Topics)[i].readValuesFromENV()
+		}
 	}
 }
 
@@ -258,12 +288,18 @@ type TopicDefinition struct {
 }
 
 func (c *TopicDefinition) readValuesFromENV() {
-	for i, v := range *c.Name {
-		(*c.Name)[i] = envVarCheckNReplace(v, "")
+	if c.Name != nil {
+		for i, v := range *c.Name {
+			(*c.Name)[i] = envVarCheckNReplace(v, "")
+		}
 	}
-	c.Clients.readValuesFromENV()
-	for i, v := range *c.IgnoreScope {
-		(*c.IgnoreScope)[i] = envVarCheckNReplace(v, "")
+	if c.Clients != nil {
+		c.Clients.readValuesFromENV()
+	}
+	if c.IgnoreScope != nil {
+		for i, v := range *c.IgnoreScope {
+			(*c.IgnoreScope)[i] = envVarCheckNReplace(v, "")
+		}
 	}
 	c.TopicBlueprintEnumRef = envVarCheckNReplace(c.TopicBlueprintEnumRef, "")
 	c.ConfigOverrides = streamlineNVPairs(c.ConfigOverrides)
@@ -279,45 +315,63 @@ type ClientDefinition struct {
 }
 
 func (c *ClientDefinition) readValuesFromENV() {
-	for i := 0; i < len(*c.Consumers); i++ {
-		(*c.Consumers)[i].readValuesFromENV()
+	if c.Consumers != nil {
+		for i := 0; i < len(*c.Consumers); i++ {
+			(*c.Consumers)[i].readValuesFromENV()
+		}
 	}
-	for i := 0; i < len(*c.Producers); i++ {
-		(*c.Producers)[i].readValuesFromENV()
+	if c.Producers != nil {
+		for i := 0; i < len(*c.Producers); i++ {
+			(*c.Producers)[i].readValuesFromENV()
+		}
 	}
-	for i := 0; i < len(*c.Connectors); i++ {
-		(*c.Connectors)[i].readValuesFromENV()
+	if c.Connectors != nil {
+		for i := 0; i < len(*c.Connectors); i++ {
+			(*c.Connectors)[i].readValuesFromENV()
+		}
 	}
 }
 
 type ConsumerDefinition struct {
-	ID    string `yaml:"id,omitempty"`
-	Group string `yaml:"group,omitempty"`
+	ID        string   `yaml:"id,omitempty"`
+	Group     string   `yaml:"group,omitempty"`
+	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *ConsumerDefinition) readValuesFromENV() {
 	c.ID = envVarCheckNReplace(c.ID, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
+	for i, v := range c.Hostnames {
+		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	}
 }
 
 type ProducerDefinition struct {
-	ID    string `yaml:"id,omitempty"`
-	Group string `yaml:"group,omitempty"`
+	ID        string   `yaml:"id,omitempty"`
+	Group     string   `yaml:"group,omitempty"`
+	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *ProducerDefinition) readValuesFromENV() {
 	c.ID = envVarCheckNReplace(c.ID, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
+	for i, v := range c.Hostnames {
+		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	}
 }
 
 type ConnectorDefinition struct {
-	ID   string `yaml:"id,omitempty"`
-	Type string `yaml:"type,omitempty"`
+	ID        string   `yaml:"id,omitempty"`
+	Type      string   `yaml:"type,omitempty"`
+	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *ConnectorDefinition) readValuesFromENV() {
 	c.ID = envVarCheckNReplace(c.ID, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
+	for i, v := range c.Hostnames {
+		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	}
 }
 
 type ScopeDefinition struct {
@@ -332,19 +386,22 @@ type ScopeDefinition struct {
 
 func (c *ScopeDefinition) readValuesFromENV() {
 	c.ShortName = envVarCheckNReplace(c.ShortName, "")
-	for i, v := range *c.Values {
-		(*c.Values)[i] = envVarCheckNReplace(v, "")
+	if c.Values != nil {
+		for i, v := range *c.Values {
+			(*c.Values)[i] = envVarCheckNReplace(v, "")
+		}
 	}
 	c.CustomEnumRef = envVarCheckNReplace(c.CustomEnumRef, "")
-	c.Topics.readValuesFromENV()
-	c.Clients.readValuesFromENV()
-	c.Child.readValuesFromENV()
+	if c.Topics != nil {
+		c.Topics.readValuesFromENV()
+	}
+	if c.Clients != nil {
+		c.Clients.readValuesFromENV()
+	}
+	if c.Child != nil {
+		c.Child.readValuesFromENV()
+	}
 }
-
-type TopicNameString string
-type TopicNamesSet mapset.Set
-
-type TopicConfigSet mapset.Set
 
 /*
 	Topic Config Mapping creates and maintains the Topic mapping provided in the configuration
@@ -370,6 +427,7 @@ type UserTopicMappingKey struct {
 
 type UserTopicMappingValue struct {
 	TopicList []string
+	Hostnames []string
 }
 
 /*
