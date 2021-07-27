@@ -19,7 +19,7 @@ type ACLManager interface {
 }
 
 type ACLResourceBundleRequest struct {
-	Principal   *[]string
+	Principal   *string
 	TopicName   *[]string
 	Hostname    *[]string
 	Operation   *ksinternal.ClientType
