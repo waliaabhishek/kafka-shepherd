@@ -85,10 +85,10 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 
 func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 	for _, v := range *c.Consumers {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, CONSUMER, v.Group, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, CT_CONSUMER, v.Group, topic)
 	}
 	for _, v := range *c.Producers {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, PRODUCER, v.Group, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, CT_PRODUCER, v.Group, topic)
 		// v.addClientToUTM(utm, topic)
 	}
 	for _, v := range *c.Connectors {
@@ -99,9 +99,9 @@ func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 
 func (c ConnectorDefinition) getConnectorTypeValue() ClientType {
 	if strings.TrimSpace(strings.ToLower(c.Type)) == "source" {
-		return SOURCE_CONNECTOR
+		return CT_SOURCE_CONNECTOR
 	} else {
-		return SINK_CONNECTOR
+		return CT_SINK_CONNECTOR
 	}
 }
 
@@ -109,22 +109,22 @@ func (c ConnectorDefinition) getConnectorTypeValue() ClientType {
 	This is the core function that implements addition to the USER to TOPIC Mapping.
 */
 func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType ClientType, cGroup string, topicName string) {
-	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}]; present {
+	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupID: cGroup}]; present {
 		if _, ok := ksmisc.Find(val.TopicList, topicName); !ok {
 			val.TopicList = append(val.TopicList, topicName)
 		}
-		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = val
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupID: cGroup}] = val
 	} else {
-		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = UserTopicMappingValue{TopicList: []string{topicName}, Hostnames: []string{}}
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupID: cGroup}] = UserTopicMappingValue{TopicList: []string{topicName}, Hostnames: []string{}}
 	}
 }
 
 func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
 	for _, v := range *c.Consumers {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, CONSUMER, v.Group, v.Hostnames)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, CT_CONSUMER, v.Group, v.Hostnames)
 	}
 	for _, v := range *c.Producers {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, PRODUCER, v.Group, v.Hostnames)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, CT_PRODUCER, v.Group, v.Hostnames)
 	}
 	for _, v := range *c.Connectors {
 		// TODO: COnnector Group Names ?????
@@ -136,15 +136,15 @@ func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
 	This is the core function that implements addition to the USER to TOPIC Mapping.
 */
 func (utm *UserTopicMapping) addHostnamesToUserTopicMapping(clientId string, cType ClientType, cGroup string, hostnames []string) {
-	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}]; present {
+	if val, present := (*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupID: cGroup}]; present {
 		for _, v := range hostnames {
 			if _, found := ksmisc.Find(val.Hostnames, v); !found {
 				val.Hostnames = append(val.Hostnames, v)
 			}
 		}
-		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = val
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupID: cGroup}] = val
 	} else {
-		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupId: cGroup}] = UserTopicMappingValue{TopicList: []string{}, Hostnames: hostnames}
+		(*utm)[UserTopicMappingKey{ID: clientId, ClientType: cType, GroupID: cGroup}] = UserTopicMappingValue{TopicList: []string{}, Hostnames: hostnames}
 	}
 }
 
@@ -206,7 +206,7 @@ func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 
 func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
 	for _, cluster := range *sc.Configs.ConfigRoot.Clusters {
-		if cluster.IsEnabled == true {
+		if cluster.IsEnabled {
 			sp, sc := cluster.understandClusterTopology()
 			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled,
 				Name:                    cluster.Name,
@@ -223,46 +223,46 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 	`sasl.mechanism` to parse and understand the security mechanism. Still is a work in progress though.
 */
 func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol, ClusterSASLMechanism) {
-	var sp ClusterSecurityProtocol = UNIDENTIFIED_SECURITY_PROTOCOL
+	var sp ClusterSecurityProtocol
 	// Figure Out the Security Protocol
 	switch sc.Configs[0]["security.protocol"] {
 	case "SASL_SSL":
 		logger.Debug("Inside the SASL_SSL switch statement")
-		sp = SASL_SSL
+		sp = SP_SASL_SSL
 	case "SASL_PLAINTEXT":
 		logger.Debug("Inside the SASL_PLAINTEXT switch statement")
-		sp = SASL_PLAINTEXT
+		sp = SP_SASL_PLAINTEXT
 	case "SSL":
 		logger.Debug("Inside the SSL switch statement")
-		sp = SSL
+		sp = SP_SSL
 	case "":
 		logger.Debug("Inside the PLAINTEXT switch statement")
-		sp = PLAINTEXT
+		sp = SP_PLAINTEXT
 	default:
-		sp = UNIDENTIFIED_SECURITY_PROTOCOL
+		sp = SP_UNKNOWN
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",
 			"Cluster Name", sc.Name,
 			"Cluster Security Protocol Provided", sc.Configs[0]["security.protocol"])
 	}
 
-	var sm ClusterSASLMechanism = UNIDENTIFIED_SASL_MECHANISM
+	var sm ClusterSASLMechanism = SM_UNKNOWN
 	// Figure out the sasl mechanism
 	switch sc.Configs[0]["sasl.mechanism"] {
 	case "PLAIN":
 		logger.Debug("Inside the PLAIN switch statement")
-		sm = PLAIN
+		sm = SM_PLAIN
 		// temp.ClusterSASLMechanism = PLAIN
 	case "SCRAM-SHA-256":
 		logger.Debug("Inside SCRAM SSL switch statement")
-		sm = SCRAM_SHA_256
+		sm = SM_SCRAM_SHA_256
 	case "SCRAM-SHA-512":
-		sm = SCRAM_SHA_512
+		sm = SM_SCRAM_SHA_512
 	case "OAUTHBEARER":
 		logger.Debug("Inside the OAUTHBEARER switch statement")
-		sm = OAUTHBEARER
+		sm = SM_OAUTHBEARER
 	case "":
 		logger.Debug("Inside the EMPTY switch statement")
-		sm = UNIDENTIFIED_SASL_MECHANISM
+		sm = SM_UNKNOWN
 		// Check for KRB5
 		//
 	}

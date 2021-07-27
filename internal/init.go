@@ -31,6 +31,7 @@ var (
 	blueprintMap      map[string]NVPairs
 	logger            *zap.SugaredLogger
 	topicsInConfig    mapset.Set
+	aclList           ACLMapping
 )
 
 const (
@@ -60,6 +61,8 @@ func init() {
 
 	topicsInConfig = ConfMaps.UTM.getTopicListFromUTMList()
 	SpdCore = spdCore
+
+	aclList = ConfMaps.UTM.generateSimpleListFromUTM()
 }
 
 func ResolveFlags() {
@@ -86,16 +89,16 @@ func GetConfigTopicsAsMapSet() mapset.Set {
 
 func assertRunMode(mode *string) RunMode {
 	switch strings.ToUpper(strings.TrimSpace(*mode)) {
-	case SINGLE_CLUSTER.String():
-		return SINGLE_CLUSTER
-	case MULTI_CLUSTER.String():
-		logger.Fatal(MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
-	case MIGRATION.String():
-		logger.Fatal(MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
-	case CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String():
-		logger.Fatal(CREATE_CONFIGS_FROM_EXISTING_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	case RM_SINGLE_CLUSTER.String():
+		return RM_SINGLE_CLUSTER
+	case RM_MULTI_CLUSTER.String():
+		logger.Fatal(RM_MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	case RM_MIGRATION.String():
+		logger.Fatal(RM_MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
+	case RM_CREATE_CONFIGS.String():
+		logger.Fatal(RM_CREATE_CONFIGS.String(), " mode has not been implemented yet, but should be available soon.")
 	default:
-		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, SINGLE_CLUSTER.String())
+		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, RM_SINGLE_CLUSTER.String())
 	}
-	return SINGLE_CLUSTER
+	return RM_SINGLE_CLUSTER
 }

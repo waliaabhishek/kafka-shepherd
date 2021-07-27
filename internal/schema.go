@@ -422,7 +422,7 @@ type UserTopicMapping map[UserTopicMappingKey]UserTopicMappingValue
 type UserTopicMappingKey struct {
 	ID         string
 	ClientType ClientType
-	GroupId    string
+	GroupID    string
 }
 
 type UserTopicMappingValue struct {
@@ -447,4 +447,14 @@ type ClusterConfigMappingKey struct {
 type ClusterConfigMappingValue struct {
 	ClientID string
 	Configs  NVPairs
+}
+
+type ACLMapping map[ACLDetails]interface{}
+
+type ACLDetails struct {
+	ClientID  string
+	GroupID   string
+	Operation ClusterAclOperation
+	Hostname  string
+	TopicName string
 }
