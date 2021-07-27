@@ -1,4 +1,4 @@
-package manager
+package kafkamanager
 
 import (
 	"crypto/sha256"
