@@ -3,7 +3,7 @@ package aclmanager
 import (
 	"fmt"
 	ksinternal "shepherd/internal"
-	kafkamanager "shepherd/manager"
+	kafkamanager "shepherd/kafkamanager"
 	"sync"
 
 	"github.com/Shopify/sarama"
