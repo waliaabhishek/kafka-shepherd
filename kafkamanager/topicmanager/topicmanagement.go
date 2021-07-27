@@ -8,7 +8,7 @@ import (
 	"time"
 
 	ksinternal "shepherd/internal"
-	kafkamanager "shepherd/manager"
+	kafkamanager "shepherd/kafkamanager"
 	ksmisc "shepherd/misc"
 
 	"github.com/Shopify/sarama"
@@ -76,11 +76,11 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 
 	switch requestType {
 	case CREATE_TOPIC:
-		ts = ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca))
+		ts = ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca))
 	case MODIFY_TOPIC:
 		ts, ps = FindMismatchedConfigTopics(sca)
 	case DELETE_TOPIC:
-		ts = ksinternal.FindProvisionedTopicsAsMapSet(getTopicListFromKafkaCluster(sca))
+		ts = ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster(sca))
 	}
 
 	for item := range ts.Iterator().C {
@@ -120,45 +120,64 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 }
 
 func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff mapset.Set, partitionDiff mapset.Set) {
-	configDiff = mapset.NewSet()
-	partitionDiff = mapset.NewSet()
+	clusterTCM := ksinternal.TopicConfigMapping{}
 	if topics, err := (*sca).ListTopics(); err != nil {
 		logger.Fatalw("Something Went Wrong while Listing Topics.",
 			"Error Details", err)
 	} else {
 		for k, v := range topics {
-			// if (*tcm)[k] != nil {
-			if (*ksinternal.ConfMaps.TCM)[k] != nil {
-				_ = compareTopicDetails(k, &v, (*ksinternal.ConfMaps.TCM)[k], &configDiff, &partitionDiff)
-			}
+			generateTopicConfigMappings(&clusterTCM, k, &v)
 		}
 	}
+	configDiff, partitionDiff = ksinternal.FindMisconfiguredTopicsMapSet(clusterTCM)
 	return
 }
 
-func compareTopicDetails(topicName string, first *sarama.TopicDetail, second ksinternal.NVPairs, configDiff *mapset.Set, partitionDiff *mapset.Set) bool {
-	flag := true
-	for k, v := range second {
-		switch k {
-		case "num.partitions":
-			if v != strconv.FormatInt(int64(first.NumPartitions), 10) {
-				(*partitionDiff).Add(topicName)
-				flag = false
-			}
-		case "replication.factor", "default.replication.factor":
-			if v != strconv.FormatInt(int64(first.ReplicationFactor), 10) {
-				(*configDiff).Add(topicName)
-				flag = false
-			}
-		default:
-			if v != *first.ConfigEntries[k] {
-				(*configDiff).Add(topicName)
-				flag = false
-			}
+func generateTopicConfigMappings(ctcm *ksinternal.TopicConfigMapping, topicName string, topicDetails *sarama.TopicDetail) {
+
+	assignment := func(v *ksinternal.NVPairs) {
+		(*v)["num.partitions"] = strconv.FormatInt(int64(topicDetails.NumPartitions), 10)
+		(*v)["replication.factor"] = strconv.FormatInt(int64(topicDetails.ReplicationFactor), 10)
+		// TODO: Replica Assignment is completely ignored at this time due to format restrictions.
+		// Not even sure if that will be something that folks would need in the long run or not.
+		for pName, pVal := range topicDetails.ConfigEntries {
+			(*v)[pName] = *pVal
 		}
 	}
-	return flag
+
+	if value, present := (*ctcm)[topicName]; !present {
+		v := ksinternal.NVPairs{}
+		assignment(&v)
+		(*ctcm)[topicName] = v
+	} else {
+		assignment(&value)
+		(*ctcm)[topicName] = value
+	}
 }
+
+// func compareTopicDetails(topicName string, first *sarama.TopicDetail, second ksinternal.NVPairs, configDiff *mapset.Set, partitionDiff *mapset.Set) bool {
+// 	flag := true
+// 	for k, v := range second {
+// 		switch k {
+// 		case "num.partitions":
+// 			if v != strconv.FormatInt(int64(first.NumPartitions), 10) {
+// 				(*partitionDiff).Add(topicName)
+// 				flag = false
+// 			}
+// 		case "replication.factor", "default.replication.factor":
+// 			if v != strconv.FormatInt(int64(first.ReplicationFactor), 10) {
+// 				(*configDiff).Add(topicName)
+// 				flag = false
+// 			}
+// 		default:
+// 			if v != *first.ConfigEntries[k] {
+// 				(*configDiff).Add(topicName)
+// 				flag = false
+// 			}
+// 		}
+// 	}
+// 	return flag
+// }
 
 func executeTopicRequest(sca *sarama.ClusterAdmin, topicName string, topicDetail *sarama.TopicDetail, sleepTime time.Duration, retryCount int, requestType TopicManagementFunctionType, c chan TopicStatusDetails) {
 	if retryCount > 0 {
@@ -216,7 +235,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 	case CREATE_TOPIC:
 		for {
 			refreshTopicList(sca, true)
-			if ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca)).Cardinality() != 0 && i <= 5 {
+			if ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca)).Cardinality() != 0 && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been created yet. Waiting for Metadata to sync")
 				i += 1
@@ -224,7 +243,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to create: ")
-					ksmisc.PrettyPrintMapSet(ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca)))
+					ksmisc.PrettyPrintMapSet(ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca)))
 				}
 				break
 			}
@@ -251,7 +270,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 	case DELETE_TOPIC:
 		for {
 			refreshTopicList(sca, true)
-			if !ksinternal.FindNonExistentTopicsInKafkaClusterAsMapSet(getTopicListFromKafkaCluster(sca)).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
+			if !ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca)).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been deleted yet. Waiting for Metadata to sync")
 				i += 1
@@ -259,7 +278,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to delete: ")
-					ksmisc.PrettyPrintMapSet(ksinternal.FindProvisionedTopicsAsMapSet(getTopicListFromKafkaCluster(sca)))
+					ksmisc.PrettyPrintMapSet(ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster(sca)))
 				}
 				break
 			}
