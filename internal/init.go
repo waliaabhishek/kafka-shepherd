@@ -62,7 +62,7 @@ func init() {
 	topicsInConfig = ConfMaps.UTM.getTopicListFromUTMList()
 	SpdCore = spdCore
 
-	aclList = ConfMaps.UTM.generateSimpleListFromUTM()
+	aclList = ConfMaps.UTM.generateCoarseMappingsFromUTM()
 }
 
 func ResolveFlags() {
@@ -89,16 +89,16 @@ func GetConfigTopicsAsMapSet() mapset.Set {
 
 func assertRunMode(mode *string) RunMode {
 	switch strings.ToUpper(strings.TrimSpace(*mode)) {
-	case RM_SINGLE_CLUSTER.String():
-		return RM_SINGLE_CLUSTER
-	case RM_MULTI_CLUSTER.String():
-		logger.Fatal(RM_MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
-	case RM_MIGRATION.String():
-		logger.Fatal(RM_MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
-	case RM_CREATE_CONFIGS.String():
-		logger.Fatal(RM_CREATE_CONFIGS.String(), " mode has not been implemented yet, but should be available soon.")
+	case RunMode_SINGLE_CLUSTER.String():
+		return RunMode_SINGLE_CLUSTER
+	case RunMode_MULTI_CLUSTER.String():
+		logger.Fatal(RunMode_MULTI_CLUSTER.String(), " mode has not been implemented yet, but should be available soon.")
+	case RunMode_MIGRATION.String():
+		logger.Fatal(RunMode_MIGRATION.String(), " mode has not been implemented yet, but should be available soon.")
+	case RunMode_CREATE_CONFIGS.String():
+		logger.Fatal(RunMode_CREATE_CONFIGS.String(), " mode has not been implemented yet, but should be available soon.")
 	default:
-		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, RM_SINGLE_CLUSTER.String())
+		logger.Warnf("Selected runMode '%s' is incorrect. Reverting to %s mode to continue with the process.", *mode, RunMode_SINGLE_CLUSTER.String())
 	}
-	return RM_SINGLE_CLUSTER
+	return RunMode_SINGLE_CLUSTER
 }

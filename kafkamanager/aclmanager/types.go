@@ -22,7 +22,7 @@ type ACLResourceBundleRequest struct {
 	Principal   *string
 	TopicName   *[]string
 	Hostname    *[]string
-	Operation   *ksinternal.ClientType
+	Operation   *ksinternal.ShepherdClientType
 	respChannel *chan ACLExecutionResponse
 }
 
@@ -35,7 +35,7 @@ type ACLExecutionRequest struct {
 	Principal string
 	TopicName string
 	HostName  string
-	Operation *ksinternal.ClientType
+	Operation *ksinternal.ShepherdClientType
 }
 
 type ACLExecutionResponse struct {

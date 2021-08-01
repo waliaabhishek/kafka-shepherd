@@ -32,7 +32,7 @@ func (utm *UserTopicMapping) getTopicListFromUTMList() mapset.Set {
 func (utm *UserTopicMapping) PrintUTM() {
 	for k1, v1 := range *utm {
 		logger.Infow("User Topic Mapping Details",
-			"User ID", k1.ID,
+			"User ID", k1.Principal,
 			"Client Type", k1.ClientType,
 			"Group ID", k1.GroupID,
 			"Topic List", strings.Join(v1.TopicList, ", "))
@@ -80,22 +80,6 @@ func FindProvisionedACLsInCluster(in ACLMapping) ACLMapping {
 		val := ACLDetails{ClientID: key.ClientID, GroupID: key.GroupID, Operation: key.Operation, TopicName: key.TopicName, Hostname: key.Hostname}
 		if _, present := aclList[val]; present {
 			ret[val] = nil
-		}
-	}
-	return ret
-}
-
-func (utm *UserTopicMapping) generateSimpleListFromUTM() ACLMapping {
-	ret := make(ACLMapping, 0)
-	var temp ClusterAclOperation = CAO_UNKNOWN
-	for k, v := range *utm {
-		pairs := make([][]string, 5)
-		// TODO: Add logic to convert the higher level constructs (PRODUCER, CONSUMER, etc to the lower level constructs (ClusterAclOperation)
-		pairs = append(pairs, []string{k.ID}, []string{k.GroupID}, []string{k.ClientType.String()}, v.Hostnames, v.TopicList)
-		pairs = ksmisc.GetPermutationsString(pairs)
-		for _, i := range pairs {
-			temp.GetValue(i[2])
-			ret[ACLDetails{ClientID: i[0], GroupID: i[1], Operation: temp, Hostname: i[3], TopicName: i[4]}] = nil
 		}
 	}
 	return ret

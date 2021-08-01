@@ -30,25 +30,25 @@ func (scf *ShepherdConfig) validateShepherdConfig() {
 	}
 
 	switch runMode {
-	case RM_SINGLE_CLUSTER:
+	case RunMode_SINGLE_CLUSTER:
 		if count != 1 {
 			logger.Fatalw("Unique cluster not enabled in the config file for selected run mode. Either select the correct runMode or enable only ONE cluster via 'is.enabled' flag.",
 				"Selected RunMode", runMode.String(),
 				"Enabled Clusters", count)
 		}
-	case RM_MULTI_CLUSTER:
+	case RunMode_MULTI_CLUSTER:
 		if count < 1 {
 			logger.Fatalw("Cannot have less than one cluster(s) enabled in the config file for selected run mode. Either select the correct runMode or enable more clusters via 'is.enabled' flag.",
 				"Selected RunMode", runMode.String(),
 				"Enabled Clusters", count)
 		}
-	case RM_MIGRATION:
+	case RunMode_MIGRATION:
 		if count < 2 {
 			logger.Fatalw("Cannot have less than two cluster(s) enabled in the config file for selected run mode. Either select the correct runMode or enable more clusters via 'is.enabled' flag.",
 				"Selected RunMode", runMode.String(),
 				"Enabled Clusters", count)
 		}
-	case RM_CREATE_CONFIGS:
+	case RunMode_CREATE_CONFIGS:
 		if count != 1 {
 			logger.Fatalw("Unique cluster not enabled in the config file for selected run mode. Either select the correct runMode or enable only ONE cluster via 'is.enabled' flag.",
 				"Selected RunMode", runMode.String(),

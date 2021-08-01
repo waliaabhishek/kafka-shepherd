@@ -67,7 +67,7 @@ func (c *ConfigRoot) readValuesFromENV() {
 }
 
 type ShepherdCoreConfig struct {
-	SeperatorToken string `yaml:"seperatorToken,flow"`
+	SeperatorToken string `yaml:"seperatorToken"`
 	DeleteUnknown  bool   `yaml:"deleteUnknownTopics"`
 }
 
@@ -81,7 +81,8 @@ type ShepherdCluster struct {
 	BootstrapServers []string       `yaml:"bootstrapServers,flow"`
 	ClientID         string         `yaml:"clientId"`
 	TLSDetails       *ShepherdCerts `yaml:"tlsDetails,omitempty"`
-	Configs          []NVPairs      `yaml:"config,flow"`
+	Configs          []NVPairs      `yaml:"configOverrides,flow"`
+	ClusterDetails   []NVPairs      `yaml:"clusterDetails,flow"`
 }
 
 func (c *ShepherdCluster) readValuesFromENV() {
@@ -96,6 +97,10 @@ func (c *ShepherdCluster) readValuesFromENV() {
 	c.Configs = streamlineNVPairs(c.Configs)
 	for idx := 0; idx < len(c.Configs); idx++ {
 		c.Configs[idx].readValuesFromENV()
+	}
+	c.ClusterDetails = streamlineNVPairs(c.ClusterDetails)
+	for idx := 0; idx < len(c.ClusterDetails); idx++ {
+		c.ClusterDetails[idx].readValuesFromENV()
 	}
 }
 
@@ -312,6 +317,7 @@ type ClientDefinition struct {
 	Consumers  *[]ConsumerDefinition  `yaml:"consumers,flow,omitempty"`
 	Producers  *[]ProducerDefinition  `yaml:"producers,flow,omitempty"`
 	Connectors *[]ConnectorDefinition `yaml:"connectors,flow,omitempty"`
+	Streams    *[]StreamDefinition    `yaml:"streams,flow,omitempty"`
 }
 
 func (c *ClientDefinition) readValuesFromENV() {
@@ -328,6 +334,11 @@ func (c *ClientDefinition) readValuesFromENV() {
 	if c.Connectors != nil {
 		for i := 0; i < len(*c.Connectors); i++ {
 			(*c.Connectors)[i].readValuesFromENV()
+		}
+	}
+	if c.Streams != nil {
+		for i := 0; i < len(*c.Streams); i++ {
+			(*c.Streams)[i].readValuesFromENV()
 		}
 	}
 }
@@ -347,9 +358,11 @@ func (c *ConsumerDefinition) readValuesFromENV() {
 }
 
 type ProducerDefinition struct {
-	ID        string   `yaml:"id,omitempty"`
-	Group     string   `yaml:"group,omitempty"`
-	Hostnames []string `yaml:"hostnames,omitempty,flow"`
+	ID                string   `yaml:"id,omitempty"`
+	Group             string   `yaml:"group,omitempty"`
+	Hostnames         []string `yaml:"hostnames,omitempty,flow"`
+	EnableIdempotence bool     `yaml:"enableIdempotence"`
+	TransactionalID   string   `yaml:"transactionalID"`
 }
 
 func (c *ProducerDefinition) readValuesFromENV() {
@@ -361,12 +374,29 @@ func (c *ProducerDefinition) readValuesFromENV() {
 }
 
 type ConnectorDefinition struct {
-	ID        string   `yaml:"id,omitempty"`
-	Type      string   `yaml:"type,omitempty"`
-	Hostnames []string `yaml:"hostnames,omitempty,flow"`
+	ID             string   `yaml:"id,omitempty"`
+	Type           string   `yaml:"type,omitempty"`
+	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
+	ClusterNameRef string   `yaml:"connect.cluster.name,omitempty"`
 }
 
 func (c *ConnectorDefinition) readValuesFromENV() {
+	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Type = envVarCheckNReplace(c.Type, "")
+	for i, v := range c.Hostnames {
+		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	}
+	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
+}
+
+type StreamDefinition struct {
+	ID        string   `yaml:"id,omitempty"`
+	Type      string   `yaml:"type,omitempty"`
+	Group     string   `yaml:"group.id,omitempty"`
+	Hostnames []string `yaml:"hostnames,omitempty,flow"`
+}
+
+func (c *StreamDefinition) readValuesFromENV() {
 	c.ID = envVarCheckNReplace(c.ID, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	for i, v := range c.Hostnames {
@@ -420,8 +450,8 @@ type TopicConfigMapping map[string]NVPairs
 type UserTopicMapping map[UserTopicMappingKey]UserTopicMappingValue
 
 type UserTopicMappingKey struct {
-	ID         string
-	ClientType ClientType
+	Principal  string
+	ClientType ShepherdClientType
 	GroupID    string
 }
 
@@ -442,19 +472,11 @@ type ClusterConfigMappingKey struct {
 	Name                    string
 	ClusterSecurityProtocol ClusterSecurityProtocol
 	ClusterSASLMechanism    ClusterSASLMechanism
+	IsActive                bool
 }
 
 type ClusterConfigMappingValue struct {
-	ClientID string
-	Configs  NVPairs
-}
-
-type ACLMapping map[ACLDetails]interface{}
-
-type ACLDetails struct {
-	ClientID  string
-	GroupID   string
-	Operation ClusterAclOperation
-	Hostname  string
-	TopicName string
+	ClientID       string
+	Configs        NVPairs
+	ClusterDetails NVPairs
 }

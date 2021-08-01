@@ -29,7 +29,7 @@ blueprints:
           - replication.factor
     aclPolicy:
       setupACLs: false
-      aclType: '"zk" | "ccloud" | "confluentrbac"'
+      aclType: '"kafkaacls" | "confluentrbac"'
       optimizeACLs: true
   customEnums:
     - name: zones

@@ -136,7 +136,7 @@ func (in *ACLExecutionRequest) renderACLExecutionObjects() ([]sarama.Acl, sarama
 	var acl []sarama.Acl
 
 	switch *in.Operation {
-	case ksinternal.PRODUCER:
+	case ksinternal.ShepherdClientType_PRODUCER:
 		acl = []sarama.Acl{
 			{
 				Principal:      in.Principal,
@@ -149,7 +149,7 @@ func (in *ACLExecutionRequest) renderACLExecutionObjects() ([]sarama.Acl, sarama
 				PermissionType: sarama.AclPermissionAllow,
 			},
 		}
-	case ksinternal.CONSUMER:
+	case ksinternal.ShepherdClientType_CONSUMER:
 		acl = []sarama.Acl{
 			{
 				Principal:      in.Principal,
@@ -162,11 +162,11 @@ func (in *ACLExecutionRequest) renderACLExecutionObjects() ([]sarama.Acl, sarama
 				PermissionType: sarama.AclPermissionAllow,
 			},
 		}
-	case ksinternal.SOURCE_CONNECTOR:
-	case ksinternal.SINK_CONNECTOR:
-	case ksinternal.STREAM_READ:
-	case ksinternal.STREAM_WRITE:
-	case ksinternal.KSQL:
+	case ksinternal.ShepherdClientType_SOURCE_CONNECTOR:
+	case ksinternal.ShepherdClientType_SINK_CONNECTOR:
+	case ksinternal.ShepherdClientType_STREAM_READ:
+	case ksinternal.ShepherdClientType_STREAM_WRITE:
+	case ksinternal.ShepherdClientType_KSQL:
 	}
 	return acl, rsc
 }

@@ -14,19 +14,19 @@ configs:
       tlsDetails:
         enable2WaySSL: false
         trustedCerts:
-          - "SHEPHERD_TRUSTCERT_1_PEM"
-          - "SHEPHERD_TRUSTCERT_2_PEM"
-        clientCert: "SHEPHERD_CLIENTCERT_PEM"
-        privateKey: "SHEPHERD_CLIENTKEY_KEY"
-        privateKeyPass: "SHEPHERD_CLIENTKEY_KEYPASS"
-      config:
+          - "env::SHEPHERD_TRUSTCERT_1_PEM"
+          - "env::SHEPHERD_TRUSTCERT_2_PEM"
+        clientCert: "env::SHEPHERD_CLIENTCERT_PEM"
+        privateKey: "env::SHEPHERD_CLIENTKEY_KEY"
+        privateKeyPass: "env::SHEPHERD_CLIENTKEY_KEYPASS"
+      configOverrides:
         - security.protocol: SSL
     - name: test2_sasl_plaintext
       bootstrapServers:
         - localhost:9093
       isEnabled: false
       clientId: "abhishektest3"
-      config:
+      configOverrides:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: PLAIN
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'
@@ -36,7 +36,7 @@ configs:
         - localhost:9094
       isEnabled: true
       clientId: "abhishektest4"
-      config:
+      configOverrides:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: SCRAM-SHA-256
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-pass"'
