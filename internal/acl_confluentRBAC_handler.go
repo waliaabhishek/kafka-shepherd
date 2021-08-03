@@ -75,7 +75,7 @@ func (c ConfRBACType) GetValue(in string) (ACLOperationsInterface, error) {
 // This function will generate the mappings in the ConfRBACType internal structure type for all the mappings provided
 // as the input `in` value. Whatever it is able to properly convert, those mappings will be added to the success
 // map and the rest will be added to the failed map.
-func (c ConfRBACType) generateACLMappingStructures(in ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping) {
+func (c ConfRBACType) generateACLMappingStructures(in ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping, done chan<- bool) {
 	for k, v := range in {
 		temp := ACLMapping{}
 		value := make(NVPairs)
@@ -86,12 +86,76 @@ func (c ConfRBACType) generateACLMappingStructures(in ACLMapping, sChannel chan<
 		case ShepherdClientType:
 			switch k.Operation {
 			case ShepherdClientType_PRODUCER:
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, KafkaACLPatternType_LITERAL,
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, ConfRBACType_DEV_WRITE, k.Hostname)] = value
-				value["KAFKA_CLUSTER_NAME"] = "repl::KAFKA-CLUSTER-NAME"
+				if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
+					value[KafkaResourceType_SCHEMA_REGISTRY_CLUSTER.String()] = "repl::SCHEMA_REGISTRY_CLUSTER_ID"
+					temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, strings.Join([]string{k.ResourceName, "key"}, "-"), KafkaACLPatternType_LITERAL,
+						k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+					temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, strings.Join([]string{k.ResourceName, "value"}, "-"), KafkaACLPatternType_LITERAL,
+						k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+				}
 				sChannel <- temp
 			case ShepherdClientType_PRODUCER_IDEMPOTENCE:
-
+				//  TODO: Not sure what to do for this one
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA-CLUSTER-NAME"
+				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, "kafka-cluster", KafkaACLPatternType_LITERAL,
+					k.Principal, ConfRBACType_DEV_WRITE, k.Hostname)] = value
+				sChannel <- temp
+			case ShepherdClientType_TRANSACTIONAL_PRODUCER:
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL,
+					k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+			case ShepherdClientType_CONSUMER:
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
+					k.Principal, ConfRBACType_DEV_READ, k.Hostname)] = value
+				if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
+					value[KafkaResourceType_SCHEMA_REGISTRY_CLUSTER.String()] = "repl::SCHEMA_REGISTRY_CLUSTER_ID"
+					temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, strings.Join([]string{k.ResourceName, "key"}, "-"), KafkaACLPatternType_LITERAL,
+						k.Principal, ConfRBACType_DEV_READ, k.Hostname)] = value
+					temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, strings.Join([]string{k.ResourceName, "value"}, "-"), KafkaACLPatternType_LITERAL,
+						k.Principal, ConfRBACType_DEV_READ, k.Hostname)] = value
+				}
+				sChannel <- temp
+			case ShepherdClientType_CONSUMER_GROUP:
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName, KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfRBACType_DEV_READ, k.Hostname)] = value
+				sChannel <- temp
+			case ShepherdClientType_SOURCE_CONNECTOR, ShepherdClientType_SINK_CONNECTOR:
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
+					k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+				if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
+					value[KafkaResourceType_SCHEMA_REGISTRY_CLUSTER.String()] = "repl::SCHEMA_REGISTRY_CLUSTER_ID"
+					temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, strings.Join([]string{k.ResourceName, "key"}, "-"), KafkaACLPatternType_LITERAL,
+						k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+					temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, strings.Join([]string{k.ResourceName, "value"}, "-"), KafkaACLPatternType_LITERAL,
+						k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+				}
+				sChannel <- temp
+			case ShepherdClientType_STREAM_READ, ShepherdClientType_STREAM_WRITE:
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName, KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+				value[KafkaResourceType_SCHEMA_REGISTRY_CLUSTER.String()] = "repl::SCHEMA_REGISTRY_CLUSTER_ID"
+				temp[constructACLDetailsObject(KafkaResourceType_SUBJECT, k.ResourceName, KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
+			case ShepherdClientType_KSQL:
+				value[KafkaResourceType_CLUSTER.String()] = "repl::KAFKA_CLUSTER_ID"
+				value[KafkaResourceType_KSQL_CLUSTER.String()] = k.ResourceName
+				temp[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, "ksql-cluster", KafkaACLPatternType_LITERAL,
+					k.Principal, ConfRBACType_DEV_WRITE, k.Hostname)] = value
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, fmt.Sprintf("_confluent-ksql-%s", k.ResourceName), KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfRBACType_DEV_READ, k.Hostname)] = value
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("%sksql_processing_log", k.ResourceName), KafkaACLPatternType_LITERAL,
+					k.Principal, ConfRBACType_DEV_READ, k.Hostname)] = value
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%stransient", k.ResourceName), KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfRBACType_RES_OWNER, k.Hostname)] = value
 			}
 		default:
 			temp[k] = v
@@ -99,6 +163,8 @@ func (c ConfRBACType) generateACLMappingStructures(in ACLMapping, sChannel chan<
 			logger.Warnf("Conversion from %T type to %T type is not supported yet. The ACL mapping will be added to the Failed list.", k.Operation, c)
 		}
 	}
+	done <- true
 	close(sChannel)
 	close(fChannel)
+	close(done)
 }
