@@ -318,6 +318,7 @@ type ClientDefinition struct {
 	Producers  *[]ProducerDefinition  `yaml:"producers,flow,omitempty"`
 	Connectors *[]ConnectorDefinition `yaml:"connectors,flow,omitempty"`
 	Streams    *[]StreamDefinition    `yaml:"streams,flow,omitempty"`
+	KSQL       *[]KSQLDefinition      `yaml:"ksql,flow,omitempty"`
 }
 
 func (c *ClientDefinition) readValuesFromENV() {
@@ -344,13 +345,13 @@ func (c *ClientDefinition) readValuesFromENV() {
 }
 
 type ConsumerDefinition struct {
-	ID        string   `yaml:"id,omitempty"`
+	Principal string   `yaml:"id,omitempty"`
 	Group     string   `yaml:"group,omitempty"`
 	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *ConsumerDefinition) readValuesFromENV() {
-	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
 	for i, v := range c.Hostnames {
 		c.Hostnames[i] = envVarCheckNReplace(v, "")
@@ -358,7 +359,7 @@ func (c *ConsumerDefinition) readValuesFromENV() {
 }
 
 type ProducerDefinition struct {
-	ID                string   `yaml:"id,omitempty"`
+	Principal         string   `yaml:"id,omitempty"`
 	Group             string   `yaml:"group,omitempty"`
 	Hostnames         []string `yaml:"hostnames,omitempty,flow"`
 	EnableIdempotence bool     `yaml:"enableIdempotence"`
@@ -366,7 +367,7 @@ type ProducerDefinition struct {
 }
 
 func (c *ProducerDefinition) readValuesFromENV() {
-	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
 	for i, v := range c.Hostnames {
 		c.Hostnames[i] = envVarCheckNReplace(v, "")
@@ -374,14 +375,14 @@ func (c *ProducerDefinition) readValuesFromENV() {
 }
 
 type ConnectorDefinition struct {
-	ID             string   `yaml:"id,omitempty"`
+	Principal      string   `yaml:"id,omitempty"`
 	Type           string   `yaml:"type,omitempty"`
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
 	ClusterNameRef string   `yaml:"connect.cluster.name,omitempty"`
 }
 
 func (c *ConnectorDefinition) readValuesFromENV() {
-	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	for i, v := range c.Hostnames {
 		c.Hostnames[i] = envVarCheckNReplace(v, "")
@@ -390,18 +391,25 @@ func (c *ConnectorDefinition) readValuesFromENV() {
 }
 
 type StreamDefinition struct {
-	ID        string   `yaml:"id,omitempty"`
+	Principal string   `yaml:"id,omitempty"`
 	Type      string   `yaml:"type,omitempty"`
-	Group     string   `yaml:"group.id,omitempty"`
+	Group     string   `yaml:"application.id,omitempty"`
 	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *StreamDefinition) readValuesFromENV() {
-	c.ID = envVarCheckNReplace(c.ID, "")
+	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	for i, v := range c.Hostnames {
 		c.Hostnames[i] = envVarCheckNReplace(v, "")
 	}
+}
+
+type KSQLDefinition struct {
+	Principal      string   `yaml:"id,omitempty"`
+	Type           string   `yaml:"type,omitempty"`
+	ClusterNameRef string   `yaml:"ksql.service.id,omitempty"`
+	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
 }
 
 type ScopeDefinition struct {
