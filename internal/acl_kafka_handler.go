@@ -77,16 +77,16 @@ func (c KafkaACLOperation) GetValue(in string) (ACLOperationsInterface, error) {
 	return s, nil
 }
 
-func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping) {
+func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping, done chan<- bool) {
 	for k, v := range in {
 		temp := ACLMapping{}
 		switch k.Operation.(type) {
 		case KafkaACLOperation:
-			temp[k] = nil
+			temp[k] = v
 			sChannel <- temp
 		case ShepherdClientType:
 			switch k.Operation {
-			case ShepherdClientType_PRODUCER:
+			case ShepherdClientType_PRODUCER, ShepherdClientType_STREAM_WRITE:
 				// Enable Write to Topic
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
@@ -106,7 +106,7 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, k.ResourceName, KafkaACLPatternType_LITERAL,
 					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
 				sChannel <- temp
-			case ShepherdClientType_CONSUMER:
+			case ShepherdClientType_CONSUMER, ShepherdClientType_STREAM_READ:
 				// Enable Topic Read
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
@@ -125,10 +125,10 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
 				sChannel <- temp
 				if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
-					//  TODO : I am still debating if a Sink connector should be allowed to create a topic or not.
-					// Personally i dont think topic creation shoulld be allowed/tolerated at all via code bases
+					//  TODO : I am still debating if a connector should be allowed to create a topic or not.
+					// Personally i don't think topic creation should be allowed/tolerated at all via code bases
 					// so that they are centrally managed in a toolkit like this
-					// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)["KAFKA_CLUSTER_NAME"], KafkaACLPatternType_LITERAL,
+					// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
 					// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
 					// sChannel <- temp
 				}
@@ -137,29 +137,14 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				// Enable the connector to use consumer groups if they would want to
-				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)["CONSUMER_GROUP_NAME"], KafkaACLPatternType_LITERAL,
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)[KafkaResourceType_GROUP.String()], KafkaACLPatternType_LITERAL,
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				//  TODO : I am still debating if a Sink connector should be allowed to create a topic or not.
 				// Personally I don't think topic creation should be allowed/tolerated at all via code bases
 				// so that they are centrally managed in a toolkit like this
 				// If topic name is literal then enable create on that topic name as well
-				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)["KAFKA_CLUSTER_NAME"], KafkaACLPatternType_LITERAL,
+				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
 				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
-				sChannel <- temp
-			case ShepherdClientType_STREAM_READ:
-				// Enable Topic Read
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-				// Enable Describe Topic
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-				sChannel <- temp
-			case ShepherdClientType_STREAM_WRITE:
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
-				// Enable Describe Topic
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
 				sChannel <- temp
 			//  TODO: Implement use case for KSQL
 			// case ShepherdClientType_KSQL.String():
@@ -175,8 +160,10 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 			}
 		}
 	}
+	done <- true
 	close(sChannel)
 	close(fChannel)
+	close(done)
 }
 
 func determinePatternType(topicName string) KafkaACLPatternType {
