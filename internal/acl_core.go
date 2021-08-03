@@ -25,19 +25,23 @@ const (
 	KafkaResourceType_CONNECTOR
 	KafkaResourceType_SUBJECT
 	KafkaResourceType_KSQL_CLUSTER
+	KafkaResourceType_SCHEMA_REGISTRY_CLUSTER
+	KafkaResourceType_CONNECT_CLUSTER
 )
 
 func (in KafkaResourceType) String() string {
 	m := map[KafkaResourceType]string{
-		KafkaResourceType_UNKNOWN:         "KafkaResourceType_UNKNOWN",
-		KafkaResourceType_ANY:             "ANY",
-		KafkaResourceType_TOPIC:           "Topic",
-		KafkaResourceType_CLUSTER:         "Cluster",
-		KafkaResourceType_GROUP:           "Group",
-		KafkaResourceType_TRANSACTIONALID: "TransactionalId",
-		KafkaResourceType_CONNECTOR:       "Connector",
-		KafkaResourceType_SUBJECT:         "Subject",
-		KafkaResourceType_KSQL_CLUSTER:    "KsqlCluster",
+		KafkaResourceType_UNKNOWN:                 "KafkaResourceType_UNKNOWN",
+		KafkaResourceType_ANY:                     "ANY",
+		KafkaResourceType_TOPIC:                   "Topic",
+		KafkaResourceType_CLUSTER:                 "Cluster",
+		KafkaResourceType_GROUP:                   "Group",
+		KafkaResourceType_TRANSACTIONALID:         "TransactionalId",
+		KafkaResourceType_CONNECTOR:               "Connector",
+		KafkaResourceType_SUBJECT:                 "Subject",
+		KafkaResourceType_KSQL_CLUSTER:            "KsqlCluster",
+		KafkaResourceType_SCHEMA_REGISTRY_CLUSTER: "SchemaRegistryCluster",
+		KafkaResourceType_CONNECT_CLUSTER:         "ConnectCluster",
 	}
 	s, ok := m[in]
 	if !ok {
@@ -57,6 +61,8 @@ func (c KafkaResourceType) GetValue(in string) (ACLResourceInterface, error) {
 		"Connector":                 KafkaResourceType_CONNECTOR,
 		"Subject":                   KafkaResourceType_SUBJECT,
 		"KsqlCluster":               KafkaResourceType_KSQL_CLUSTER,
+		"SchemaRegistryCluster":     KafkaResourceType_SCHEMA_REGISTRY_CLUSTER,
+		"ConnectCluster":            KafkaResourceType_CONNECT_CLUSTER,
 	}
 	s, ok := m[strings.ToUpper(strings.TrimSpace(in))]
 	if !ok {
