@@ -19,6 +19,16 @@ type ACLDetails struct {
 	Hostname     string
 }
 
+type ACLStreamChannels struct {
+	sChannel chan ACLMapping
+	fChannel chan ACLMapping
+	finished chan bool
+}
+
+func getNewACLChannels() ACLStreamChannels {
+	return ACLStreamChannels{sChannel: make(chan ACLMapping), fChannel: make(chan ACLMapping), finished: make(chan bool)}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ////// ACL Operations Interface for helping with different ACL patterns ///////
 ///////////////////////////////////////////////////////////////////////////////
@@ -26,7 +36,7 @@ type ACLDetails struct {
 type ACLOperationsInterface interface {
 	String() string
 	GetValue(in string) (ACLOperationsInterface, error)
-	generateACLMappingStructures(pack ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping)
+	generateACLMappingStructures(pack ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping, done chan<- bool)
 }
 
 /*
@@ -35,10 +45,10 @@ type ACLOperationsInterface interface {
 	The sChannel caters to the ACLs that were successfully parsed and should be executed.
 	The fChannel caters to the ACLs that did not fit any bill as per the core determination functions  and needs further analysis from the caller.
 */
-func (u *UserTopicMapping) RenderACLMappings(in ACLMapping, needType ACLOperationsInterface) (sChannel chan ACLMapping, fChannel chan ACLMapping) {
-	sChannel, fChannel = make(chan ACLMapping, 50), make(chan ACLMapping, 50)
-	go needType.generateACLMappingStructures(in, sChannel, fChannel)
-	return sChannel, fChannel
+func (u *UserTopicMapping) RenderACLMappings(in ACLMapping, needType ACLOperationsInterface) ACLStreamChannels {
+	sChannel, fChannel, done := make(chan ACLMapping, 50), make(chan ACLMapping, 50), make(chan bool)
+	go needType.generateACLMappingStructures(in, sChannel, fChannel, done)
+	return ACLStreamChannels{sChannel: sChannel, fChannel: fChannel, finished: done}
 }
 
 func constructACLDetailsObject(resType ACLResourceInterface, resName string, patType KafkaACLPatternType,
