@@ -85,27 +85,39 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 
 func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 	for _, v := range *c.Consumers {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, ShepherdClientType_CONSUMER, v.Group, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
 		if v.Group != "" {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.ID, ShepherdClientType_CONSUMER_GROUP, v.Group, "")
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, "")
 		}
 	}
 	for _, v := range *c.Producers {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, ShepherdClientType_PRODUCER, v.Group, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
 		if v.TransactionalID != "" {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.ID, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, "")
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, "")
 		}
 		if v.EnableIdempotence {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.ID, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, "")
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, "")
 		}
 	}
 	for _, v := range *c.Connectors {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, v.getTypeValue(), v.ClusterNameRef, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
 		// v.addClientToUTM(utm, topic)
 	}
 
 	for _, v := range *c.Streams {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.ID, v.getTypeValue(), v.Group, topic)
+		if v.getTypeValue() == ShepherdClientType_STREAM_READ {
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
+		} else {
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
+		}
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic)
+	}
+
+	for _, v := range *c.KSQL {
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
+		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, topic)
 	}
 }
 
@@ -125,6 +137,14 @@ func (c StreamDefinition) getTypeValue() ShepherdClientType {
 	}
 }
 
+func (c KSQLDefinition) getTypeValue() ShepherdClientType {
+	if strings.TrimSpace(strings.ToLower(c.Type)) == "read" {
+		return ShepherdClientType_CONSUMER
+	} else {
+		return ShepherdClientType_PRODUCER
+	}
+}
+
 /*
 	This is the core function that implements addition to the USER to TOPIC Mapping.
 */
@@ -141,17 +161,17 @@ func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType Sh
 
 func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
 	for _, v := range *c.Consumers {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
 	}
 	for _, v := range *c.Producers {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
 	}
 	for _, v := range *c.Connectors {
 		// TODO: COnnector Group Names ?????
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, v.getTypeValue(), "", v.Hostnames)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), "", v.Hostnames)
 	}
 	for _, v := range *c.Streams {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.ID, v.getTypeValue(), v.Group, v.Hostnames)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
 	}
 }
 
