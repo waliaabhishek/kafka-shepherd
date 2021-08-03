@@ -62,7 +62,7 @@ func init() {
 	topicsInConfig = ConfMaps.UTM.getTopicListFromUTMList()
 	SpdCore = spdCore
 
-	aclList = ConfMaps.UTM.generateCoarseMappingsFromUTM()
+	aclList = ConfMaps.UTM.GenerateShepherdClientTypeMappings()
 }
 
 func ResolveFlags() {
