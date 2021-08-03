@@ -46,9 +46,9 @@ type ACLOperationsInterface interface {
 	The fChannel caters to the ACLs that did not fit any bill as per the core determination functions  and needs further analysis from the caller.
 */
 func (u *UserTopicMapping) RenderACLMappings(in ACLMapping, needType ACLOperationsInterface) ACLStreamChannels {
-	sChannel, fChannel, done := make(chan ACLMapping, 50), make(chan ACLMapping, 50), make(chan bool)
-	go needType.generateACLMappingStructures(in, sChannel, fChannel, done)
-	return ACLStreamChannels{sChannel: sChannel, fChannel: fChannel, finished: done}
+	channels := getNewACLChannels()
+	go needType.generateACLMappingStructures(in, channels.sChannel, channels.fChannel, channels.finished)
+	return channels
 }
 
 func constructACLDetailsObject(resType ACLResourceInterface, resName string, patType KafkaACLPatternType,
