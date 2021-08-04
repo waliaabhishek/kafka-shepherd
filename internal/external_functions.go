@@ -54,7 +54,6 @@ func ConditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping
 		case out := <-inputACLStream.finished:
 			runLoop = false
 			outputACLStream.finished <- out
-			break
 		}
 	}
 }
@@ -64,7 +63,7 @@ func ConditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping
 	to the map of ACLMapping created by parsing the configurations. The response is the mapping
 	that the Kafka connection will need to create as a baseline.
 */
-func FindNonExistentACLsInCluster(in *ACLMapping, providedAclType ACLOperationsInterface) (aclStream ACLStreamChannels) {
+func FindNonExistentACLsInCluster(in *ACLMapping, providedAclType ACLOperationsInterface) ACLStreamChannels {
 	// ret := make(ACLMapping)
 	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
 	outStream := getNewACLChannels()
