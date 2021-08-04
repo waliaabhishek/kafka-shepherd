@@ -6,21 +6,38 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
+	"os/signal"
 	ksinternal "shepherd/internal"
 	ksmisc "shepherd/misc"
+	"sync"
+	"syscall"
 
 	"github.com/Shopify/sarama"
 	"github.com/xdg/scram"
 )
 
 var (
+	sca    *sarama.ClusterAdmin
+	wg     sync.WaitGroup
 	SHA256 scram.HashGeneratorFcn = sha256.New
 	SHA512 scram.HashGeneratorFcn = sha512.New
+	term                          = make(chan os.Signal)
 	logger                        = ksinternal.GetLogger()
 )
 
-func SetupAdminConnection() *sarama.ClusterAdmin {
+func GetAdminConnection() ConnectionObject {
+	if sca == nil {
+		temp := setupAdminConnection().(sarama.ClusterAdmin)
+		sca = &temp
+	}
+	return *sca
+}
+
+func setupAdminConnection() ConnectionObject {
 
 	for _, cluster := range *ksinternal.SpdCore.Configs.ConfigRoot.Clusters {
 		if cluster.IsEnabled {
@@ -31,10 +48,39 @@ func SetupAdminConnection() *sarama.ClusterAdmin {
 					"Bootstrap Server", cluster.BootstrapServers,
 					"Error", err)
 			}
-			return &ca
+			addShutdownHook()
+			return ca
 		}
 	}
 	return nil
+}
+
+func CloseAdminConnection() {
+	wg.Add(1)
+	term <- syscall.SIGQUIT
+	wg.Wait()
+}
+
+func addShutdownHook() {
+	var err error = nil
+	signal.Notify(term, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	go func() {
+		defer wg.Done()
+		s := <-term
+		log.Println(s.String(), "SIGTERM received. Shutdown process initiated")
+		for i := 1; i <= 5 || err != nil; i++ {
+			fmt.Println("Trying to Close Kafka Cluster connection. Try ", i)
+			err = (*sca).Close()
+			if err != nil {
+				fmt.Println("Failed to Close Kafka Cluster connection.", err)
+			}
+		}
+		if err != nil {
+			fmt.Println("Aborting retries as its failing continuously. Will exit ungracefully.")
+		} else {
+			fmt.Println("Kafka Cluster Connection Successfully closed")
+		}
+	}()
 }
 
 func understandClusterTopology(sc *ksinternal.ShepherdCluster) (conf *sarama.Config) {

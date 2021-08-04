@@ -1,7 +1,10 @@
 package kafkamanager
 
 type KafkaConnection interface {
-	SetupAdminConnection() ConnectionObject
+	GetAdminConnection() ConnectionObject
+	CloseAdminConnection()
 }
 
-type ConnectionObject interface{}
+type ConnectionObject interface {
+	Close() error
+}
