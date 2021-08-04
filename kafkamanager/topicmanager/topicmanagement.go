@@ -8,7 +8,7 @@ import (
 	"time"
 
 	ksinternal "shepherd/internal"
-	kafkamanager "shepherd/kafkamanager"
+	kcm "shepherd/kafkamanager"
 	ksmisc "shepherd/misc"
 
 	"github.com/Shopify/sarama"
@@ -25,29 +25,8 @@ var logger *zap.SugaredLogger
 after parsing the configurations from input files. This also instantiates the configuration structure.
 */
 func init() {
-	sca = kafkamanager.SetupAdminConnection()
-}
-
-/*
-	This function returns the list of topics from Kafka Cluster.
-*/
-func getTopicListFromKafkaCluster(sca *sarama.ClusterAdmin) []string {
-	tSet := mapset.NewSet()
-	if topics, err := (*sca).ListTopics(); err != nil {
-		logger.Fatalw("Something Went Wrong while Listing Topics.",
-			"Error Details", err)
-	} else {
-		for t := range topics {
-			tSet.Add(string(t))
-		}
-	}
-	return ksinternal.GetStringSliceFromMapSet(tSet)
-}
-
-func refreshTopicList(sca *sarama.ClusterAdmin, discardConnectionCache bool) {
-	if topicsInCluster == nil || discardConnectionCache {
-		topicsInCluster = ksinternal.GetMapSetFromStringSlice(getTopicListFromKafkaCluster(sca))
-	}
+	temp := kcm.GetAdminConnection().(sarama.ClusterAdmin)
+	sca = &temp
 }
 
 /*
@@ -61,13 +40,13 @@ type TopicStatusDetails struct {
 }
 
 /*
-	This function takes the ksinternal.TopicManagementFunctionType constant and
+	This function takes the ksinternal.TopicManagementType constant and
 	executes the CREATE, MODIFY or DELETE request. This function takes care of
 	all internals and does not need any other details as it fetches these details
 	from configuration files and kafka cluster.
 */
-func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType TopicManagementFunctionType) {
-	refreshTopicList(sca, true)
+func ExecuteRequests(threadCount int, requestType TopicManagementType) {
+	refreshTopicList(true)
 	c := make(chan TopicStatusDetails, threadCount)
 	rand.Seed(time.Now().UnixNano())
 	var ts mapset.Set
@@ -75,26 +54,26 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 	counter := 0
 
 	switch requestType {
-	case CREATE_TOPIC:
-		ts = ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca))
-	case MODIFY_TOPIC:
-		ts, ps = FindMismatchedConfigTopics(sca)
-	case DELETE_TOPIC:
-		ts = ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster(sca))
+	case TopicManagementType_CREATE_TOPIC:
+		ts = ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster())
+	case TopicManagementType_MODIFY_TOPIC:
+		ts, ps = FindMismatchedConfigTopics()
+	case TopicManagementType_DELETE_TOPIC:
+		ts = ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster())
 	}
 
 	for item := range ts.Iterator().C {
 		tName := item.(string)
 		dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
-		go executeTopicRequest(sca, tName, getTopicConfigProperties(tName), dur, 0, requestType, c)
+		go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, requestType, c)
 		counter += 1
 	}
 
-	if requestType == MODIFY_TOPIC && ps.Cardinality() != 0 {
+	if requestType == TopicManagementType_MODIFY_TOPIC && ps.Cardinality() != 0 {
 		for item := range ps.Iterator().C {
 			tName := item.(string)
 			dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
-			go executeTopicRequest(sca, tName, getTopicConfigProperties(tName), dur, 0, ALTER_PARTITION_REQUEST, c)
+			go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, TopicManagementType_ALTER_PARTITION_REQUEST, c)
 			counter += 1
 		}
 	}
@@ -102,13 +81,13 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 	for i := 0; i < counter; i++ {
 		tsd := <-c
 		switch tsd.status {
-		case CREATED, DELETED, MODIFIED, PARTITION_ALTERED_SUCCESSFULLY:
+		case StatusType_CREATED, StatusType_DELETED, StatusType_MODIFIED, StatusType_PARTITION_ALTERED_SUCCESSFULLY:
 			tsd.prettyPrint()
-		case NOT_CREATED, NOT_DELETED, NOT_MODIFIED, PARTITION_NOT_ALTERED:
+		case StatusType_NOT_CREATED, StatusType_NOT_DELETED, StatusType_NOT_MODIFIED, StatusType_PARTITION_NOT_ALTERED:
 			if tsd.retryCount <= 5 {
 				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
 				tsd.prettyPrint()
-				go executeTopicRequest(sca, tsd.topicName, getTopicConfigProperties(tsd.topicName), dur, tsd.retryCount, requestType, c)
+				go executeTopicRequest(tsd.topicName, getTopicConfigProperties(tsd.topicName), dur, tsd.retryCount, requestType, c)
 				i -= 1
 			} else {
 				fmt.Println("Topic Request failed and is not retriable. Skipping for this topic.")
@@ -116,10 +95,10 @@ func ExecuteRequests(sca *sarama.ClusterAdmin, threadCount int, requestType Topi
 			}
 		}
 	}
-	waitForMetadataSync(sca, requestType)
+	waitForMetadataSync(requestType)
 }
 
-func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff mapset.Set, partitionDiff mapset.Set) {
+func FindMismatchedConfigTopics() (configDiff mapset.Set, partitionDiff mapset.Set) {
 	clusterTCM := ksinternal.TopicConfigMapping{}
 	if topics, err := (*sca).ListTopics(); err != nil {
 		logger.Fatalw("Something Went Wrong while Listing Topics.",
@@ -131,6 +110,28 @@ func FindMismatchedConfigTopics(sca *sarama.ClusterAdmin) (configDiff mapset.Set
 	}
 	configDiff, partitionDiff = ksinternal.FindMisconfiguredTopicsMapSet(clusterTCM)
 	return
+}
+
+/*
+	This function returns the list of topics from Kafka Cluster.
+*/
+func getTopicListFromKafkaCluster() []string {
+	tSet := mapset.NewSet()
+	if topics, err := (*sca).ListTopics(); err != nil {
+		logger.Fatalw("Something Went Wrong while Listing Topics.",
+			"Error Details", err)
+	} else {
+		for t := range topics {
+			tSet.Add(string(t))
+		}
+	}
+	return ksinternal.GetStringSliceFromMapSet(tSet)
+}
+
+func refreshTopicList(discardConnectionCache bool) {
+	if topicsInCluster == nil || discardConnectionCache {
+		topicsInCluster = ksinternal.GetMapSetFromStringSlice(getTopicListFromKafkaCluster())
+	}
 }
 
 func generateTopicConfigMappings(ctcm *ksinternal.TopicConfigMapping, topicName string, topicDetails *sarama.TopicDetail) {
@@ -179,28 +180,28 @@ func generateTopicConfigMappings(ctcm *ksinternal.TopicConfigMapping, topicName 
 // 	return flag
 // }
 
-func executeTopicRequest(sca *sarama.ClusterAdmin, topicName string, topicDetail *sarama.TopicDetail, sleepTime time.Duration, retryCount int, requestType TopicManagementFunctionType, c chan TopicStatusDetails) {
+func executeTopicRequest(topicName string, topicDetail *sarama.TopicDetail, sleepTime time.Duration, retryCount int, requestType TopicManagementType, c chan TopicStatusDetails) {
 	if retryCount > 0 {
 		time.Sleep(sleepTime)
 	}
 	switch requestType {
-	case CREATE_TOPIC:
+	case TopicManagementType_CREATE_TOPIC:
 		if err := (*sca).CreateTopic(topicName, topicDetail, false); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: NOT_CREATED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_NOT_CREATED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
-			c <- TopicStatusDetails{topicName: topicName, status: CREATED, errorStr: "", retryCount: retryCount}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_CREATED, errorStr: "", retryCount: retryCount}
 		}
-	case MODIFY_TOPIC:
+	case TopicManagementType_MODIFY_TOPIC:
 		if err := (*sca).AlterConfig(sarama.TopicResource, topicName, topicDetail.ConfigEntries, false); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: NOT_MODIFIED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_NOT_MODIFIED, errorStr: err.Error(), retryCount: retryCount + 1}
 			break
 		} else {
-			c <- TopicStatusDetails{topicName: topicName, status: MODIFIED, errorStr: "", retryCount: retryCount}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_MODIFIED, errorStr: "", retryCount: retryCount}
 		}
-	case ALTER_PARTITION_REQUEST:
+	case TopicManagementType_ALTER_PARTITION_REQUEST:
 		numParts := 0
 		if value, err := (*sca).DescribeTopics([]string{topicName}); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
 			for _, v := range value {
 				if strings.ToLower(strings.TrimSpace(v.Name)) == topicName {
@@ -209,33 +210,33 @@ func executeTopicRequest(sca *sarama.ClusterAdmin, topicName string, topicDetail
 			}
 			if numParts < int(topicDetail.NumPartitions) {
 				if err := (*sca).CreatePartitions(topicName, topicDetail.NumPartitions, nil, false); err != nil {
-					c <- TopicStatusDetails{topicName: topicName, status: PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
+					c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
 					break
 				} else {
-					c <- TopicStatusDetails{topicName: topicName, status: PARTITION_ALTERED_SUCCESSFULLY, errorStr: "", retryCount: retryCount}
+					c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_ALTERED_SUCCESSFULLY, errorStr: "", retryCount: retryCount}
 					break
 				}
 			} else if numParts > int(topicDetail.NumPartitions) {
 				// fmt.Println("Cannot decrease Partition count. Incorrect request. Please update the configuration files")
-				c <- TopicStatusDetails{topicName: topicName, status: PARTITION_NOT_ALTERED, errorStr: "Cannot decrease Partition count. Please update the configuration files. Error will not be retried.", retryCount: 6}
+				c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_NOT_ALTERED, errorStr: "Cannot decrease Partition count. Please update the configuration files. Error will not be retried.", retryCount: 6}
 			}
 		}
-	case DELETE_TOPIC:
+	case TopicManagementType_DELETE_TOPIC:
 		if err := (*sca).DeleteTopic(topicName); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: NOT_DELETED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_NOT_DELETED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
-			c <- TopicStatusDetails{topicName: topicName, status: DELETED, errorStr: "", retryCount: retryCount}
+			c <- TopicStatusDetails{topicName: topicName, status: StatusType_DELETED, errorStr: "", retryCount: retryCount}
 		}
 	}
 }
 
-func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFunctionType) {
+func waitForMetadataSync(requestType TopicManagementType) {
 	i := 0
 	switch requestType {
-	case CREATE_TOPIC:
+	case TopicManagementType_CREATE_TOPIC:
 		for {
-			refreshTopicList(sca, true)
-			if ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca)).Cardinality() != 0 && i <= 5 {
+			refreshTopicList(true)
+			if ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()).Cardinality() != 0 && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been created yet. Waiting for Metadata to sync")
 				i += 1
@@ -243,15 +244,15 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to create: ")
-					ksmisc.PrettyPrintMapSet(ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca)))
+					ksmisc.PrettyPrintMapSet(ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()))
 				}
 				break
 			}
 		}
-	case MODIFY_TOPIC:
+	case TopicManagementType_MODIFY_TOPIC:
 		for {
-			refreshTopicList(sca, true)
-			ts, ps := FindMismatchedConfigTopics(sca)
+			refreshTopicList(true)
+			ts, ps := FindMismatchedConfigTopics()
 			if ts.Cardinality() != 0 && ps.Cardinality() != 0 && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been modified yet. Waiting for Metadata to sync")
@@ -267,10 +268,10 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				break
 			}
 		}
-	case DELETE_TOPIC:
+	case TopicManagementType_DELETE_TOPIC:
 		for {
-			refreshTopicList(sca, true)
-			if !ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster(sca)).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
+			refreshTopicList(true)
+			if !ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been deleted yet. Waiting for Metadata to sync")
 				i += 1
@@ -278,7 +279,7 @@ func waitForMetadataSync(sca *sarama.ClusterAdmin, requestType TopicManagementFu
 				if i >= 5 {
 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
 					fmt.Println("Topics Listed in the config that the tool was not able to delete: ")
-					ksmisc.PrettyPrintMapSet(ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster(sca)))
+					ksmisc.PrettyPrintMapSet(ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster()))
 				}
 				break
 			}
