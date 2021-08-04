@@ -10,6 +10,10 @@ package core
 */
 type ACLMapping map[ACLDetails]interface{}
 
+func (m *ACLMapping) Append(k ACLDetails, v interface{}) {
+	(*m)[k] = v
+}
+
 type ACLDetails struct {
 	ResourceType ACLResourceInterface
 	ResourceName string
@@ -41,9 +45,11 @@ type ACLOperationsInterface interface {
 
 /*
 	The function takes in the input as the ACLMapping struct which is then processed and converted to the respective ACLs that you desire
-	as per the needType value. The response provided is 2 channels that will produce arbitrary number of ACLs as per your requirements.
+	as per the needType value. The response provided is 3 channels that will produce arbitrary number of ACLs as per your requirements.
 	The sChannel caters to the ACLs that were successfully parsed and should be executed.
 	The fChannel caters to the ACLs that did not fit any bill as per the core determination functions  and needs further analysis from the caller.
+	The finished Channel only produces a boolean value once (true) for you to understand that the ACL emission is completed and you can logically
+	close your select loops (if any).
 */
 func (u *UserTopicMapping) RenderACLMappings(in ACLMapping, needType ACLOperationsInterface) ACLStreamChannels {
 	channels := getNewACLChannels()
