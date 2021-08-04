@@ -1,7 +1,6 @@
 package core
 
 import (
-	"flag"
 	ksmisc "shepherd/misc"
 	"strings"
 
@@ -38,21 +37,22 @@ const (
 	ENVVAR_PREFIX string = "env::"
 )
 
-func init() {
-	ResolveFlags()
+func InitializeShepherdCore(enableDebug bool, enableConsoleLogs bool, shepherdConfigFilePath string,
+	shepherdBlueprintsFilePath string, shepherdDefinitionsFilePath string, runString string) {
 	// Initialize Logger
-	logger = ksmisc.GetLogger(enableDebug, enableConsoleLogs)
+	logger = ksmisc.GetLogger(&enableDebug, &enableConsoleLogs)
+	runMode = assertRunMode(&runString)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	parseShepherdConfig(spdCore.Configs, getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile))
+	parseShepherdConfig(spdCore.Configs, getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", shepherdConfigFilePath))
 	logger.Debug("Shepherd Config File parse Result: ", spdCore.Configs)
 
 	// Parse Shepherd Blueprints from the YAML file.
-	parseShepherBlueprints(spdCore.Blueprints, getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
+	parseShepherBlueprints(spdCore.Blueprints, getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", shepherdBlueprintsFilePath))
 	logger.Debug("Shepherd Blueprints parse Result: ", spdCore.Blueprints)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	parseShepherDefinitions(spdCore.Definitions, getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", definitionsFile))
+	parseShepherDefinitions(spdCore.Definitions, getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", shepherdDefinitionsFilePath))
 	logger.Debug("Shepherd Definitions parse Result: ", spdCore.Definitions)
 
 	// Understand the Blueprints & Definitions file and setup the External facing representation of the core files.
@@ -65,15 +65,15 @@ func init() {
 	aclList = ConfMaps.UTM.GenerateShepherdClientTypeMappings()
 }
 
-func ResolveFlags() {
-	flag.BoolVar(enableDebug, "debug", false, "Turns on Debug mode log")
-	flag.BoolVar(enableConsoleLogs, "consoleLogs", true, "Turns off unstructured mode logging features and use Structured logging instead.")
-	flag.StringVar(&configFile, "configPath", "./configs/shepherd.yaml", "Absolute file Path for Core Configuration file. Please note that this might still be overwritten by the SHEPHERD_CONFIG_FILE_LOCATION for additional flexibility.")
-	flag.StringVar(&blueprintsFile, "blueprintsPath", "./configs/blueprints.yaml", "Absolute file Path for Shepherd Blueprints file. Please note that this might still be overwritten by the SHEPHERD_BLUEPRINTS_FILE_LOCATION for additional flexibility.")
-	flag.StringVar(&definitionsFile, "definitionsPath", "./configs/definitions_dev.yaml", "Absolute file Path for Shepherd Definitions file. Please note that this might still be overwritten by the SHEPHERD_DEFINITIONS_FILE_LOCATION for additional flexibility.")
-	runMode = assertRunMode(flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER"))
-	flag.Parse()
-}
+// func ResolveFlags() {
+// 	flag.BoolVar(enableDebug, "debug", false, "Turns on Debug mode log")
+// 	flag.BoolVar(enableConsoleLogs, "consoleLogs", true, "Turns off unstructured mode logging features and use Structured logging instead.")
+// 	flag.StringVar(&configFile, "configPath", "./configs/shepherd.yaml", "Absolute file Path for Core Configuration file. Please note that this might still be overwritten by the SHEPHERD_CONFIG_FILE_LOCATION for additional flexibility.")
+// 	flag.StringVar(&blueprintsFile, "blueprintsPath", "./configs/blueprints.yaml", "Absolute file Path for Shepherd Blueprints file. Please note that this might still be overwritten by the SHEPHERD_BLUEPRINTS_FILE_LOCATION for additional flexibility.")
+// 	flag.StringVar(&definitionsFile, "definitionsPath", "./configs/definitions_dev.yaml", "Absolute file Path for Shepherd Definitions file. Please note that this might still be overwritten by the SHEPHERD_DEFINITIONS_FILE_LOCATION for additional flexibility.")
+// 	runMode = assertRunMode(flag.String("runMode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER"))
+// 	flag.Parse()
+// }
 
 func GetConfigMaps() (sc *ConfigurationMaps) {
 	return sc
