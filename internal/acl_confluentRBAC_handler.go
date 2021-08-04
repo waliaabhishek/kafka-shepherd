@@ -6,8 +6,7 @@ import (
 )
 
 type (
-	ConfRBACType        int
-	ConfRBACClusterType int
+	ConfRBACType int
 )
 
 const (

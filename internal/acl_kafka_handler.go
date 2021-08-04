@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	KafkaResourceType int
+	KafkaACLOperation int
 )
 
 // https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/acl/AclOperation.java

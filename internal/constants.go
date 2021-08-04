@@ -4,9 +4,6 @@ type (
 	RunMode                 int
 	ClusterSecurityProtocol int
 	ClusterSASLMechanism    int
-	KafkaACLOperation       int
-	KafkaACLPermissionType  int
-	KafkaACLPatternType     int
 )
 
 const (
@@ -77,48 +74,4 @@ func (in ClusterSASLMechanism) String() string {
 		ret = m[ClusterSASLMechanism_UNKNOWN]
 	}
 	return ret
-}
-
-const (
-	KafkaACLPermissionType_UNKNOWN KafkaACLPermissionType = iota
-	KafkaACLPermissionType_ANY
-	KafkaACLPermissionType_DENY
-	KafkaACLPermissionType_ALLOW
-)
-
-func (in *KafkaACLPermissionType) String() string {
-	m := map[KafkaACLPermissionType]string{
-		KafkaACLPermissionType_UNKNOWN: "KafkaACLPermissionType_UNKNOWN",
-		KafkaACLPermissionType_ANY:     "Any",
-		KafkaACLPermissionType_DENY:    "Deny",
-		KafkaACLPermissionType_ALLOW:   "Allow",
-	}
-	s, ok := m[*in]
-	if !ok {
-		s = m[KafkaACLPermissionType_UNKNOWN]
-	}
-	return s
-}
-
-const (
-	KafkaACLPatternType_UNKNOWN KafkaACLPatternType = iota
-	KafkaACLPatternType_ANY
-	KafkaACLPatternType_MATCH
-	KafkaACLPatternType_LITERAL
-	KafkaACLPatternType_PREFIXED
-)
-
-func (a *KafkaACLPatternType) String() string {
-	mapping := map[KafkaACLPatternType]string{
-		KafkaACLPatternType_UNKNOWN:  "KafkaACLPatternType_UNKNOWN",
-		KafkaACLPatternType_ANY:      "Any",
-		KafkaACLPatternType_MATCH:    "Match",
-		KafkaACLPatternType_LITERAL:  "Literal",
-		KafkaACLPatternType_PREFIXED: "Prefixed",
-	}
-	s, ok := mapping[*a]
-	if !ok {
-		s = mapping[KafkaACLPatternType_UNKNOWN]
-	}
-	return s
 }
