@@ -24,13 +24,13 @@ type ACLDetails struct {
 }
 
 type ACLStreamChannels struct {
-	sChannel chan ACLMapping
-	fChannel chan ACLMapping
-	finished chan bool
+	SChannel chan ACLMapping
+	FChannel chan ACLMapping
+	Finished chan bool
 }
 
 func getNewACLChannels() ACLStreamChannels {
-	return ACLStreamChannels{sChannel: make(chan ACLMapping), fChannel: make(chan ACLMapping), finished: make(chan bool)}
+	return ACLStreamChannels{SChannel: make(chan ACLMapping), FChannel: make(chan ACLMapping), Finished: make(chan bool)}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -53,7 +53,7 @@ type ACLOperationsInterface interface {
 */
 func (u *UserTopicMapping) RenderACLMappings(in ACLMapping, needType ACLOperationsInterface) ACLStreamChannels {
 	channels := getNewACLChannels()
-	go needType.generateACLMappingStructures(in, channels.sChannel, channels.fChannel, channels.finished)
+	go needType.generateACLMappingStructures(in, channels.SChannel, channels.FChannel, channels.Finished)
 	return channels
 }
 
