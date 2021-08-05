@@ -32,9 +32,9 @@ func init() {
 /*
 	Create a Struct for Channel signature
 */
-type TopicStatusDetails struct {
+type topicStatusDetails struct {
 	topicName  string
-	status     StatusType
+	status     statusType
 	errorStr   string
 	retryCount int
 }
@@ -47,7 +47,7 @@ type TopicStatusDetails struct {
 */
 func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 	refreshTopicList(true)
-	c := make(chan TopicStatusDetails, threadCount)
+	c := make(chan topicStatusDetails, threadCount)
 	rand.Seed(time.Now().UnixNano())
 	var ts mapset.Set
 	var ps mapset.Set
@@ -57,7 +57,7 @@ func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 	case TopicManagementType_CREATE_TOPIC:
 		ts = ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster())
 	case TopicManagementType_MODIFY_TOPIC:
-		ts, ps = FindMismatchedConfigTopics()
+		ts, ps = findMismatchedConfigTopics()
 	case TopicManagementType_DELETE_TOPIC:
 		ts = ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster())
 	}
@@ -73,7 +73,7 @@ func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 		for item := range ps.Iterator().C {
 			tName := item.(string)
 			dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
-			go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, TopicManagementType_ALTER_PARTITION_REQUEST, c)
+			go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, topicManagementType_ALTER_PARTITION_REQUEST, c)
 			counter += 1
 		}
 	}
@@ -81,9 +81,9 @@ func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 	for i := 0; i < counter; i++ {
 		tsd := <-c
 		switch tsd.status {
-		case StatusType_CREATED, StatusType_DELETED, StatusType_MODIFIED, StatusType_PARTITION_ALTERED_SUCCESSFULLY:
+		case statusType_CREATED, statusType_DELETED, statusType_MODIFIED, statusType_PARTITION_ALTERED_SUCCESSFULLY:
 			tsd.prettyPrint()
-		case StatusType_NOT_CREATED, StatusType_NOT_DELETED, StatusType_NOT_MODIFIED, StatusType_PARTITION_NOT_ALTERED:
+		case statusType_NOT_CREATED, statusType_NOT_DELETED, statusType_NOT_MODIFIED, statusType_PARTITION_NOT_ALTERED:
 			if tsd.retryCount <= 5 {
 				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
 				tsd.prettyPrint()
@@ -98,7 +98,7 @@ func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 	waitForMetadataSync(requestType)
 }
 
-func FindMismatchedConfigTopics() (configDiff mapset.Set, partitionDiff mapset.Set) {
+func findMismatchedConfigTopics() (configDiff mapset.Set, partitionDiff mapset.Set) {
 	clusterTCM := ksinternal.TopicConfigMapping{}
 	if topics, err := (*sca).ListTopics(); err != nil {
 		logger.Fatalw("Something Went Wrong while Listing Topics.",
@@ -180,28 +180,28 @@ func generateTopicConfigMappings(ctcm *ksinternal.TopicConfigMapping, topicName 
 // 	return flag
 // }
 
-func executeTopicRequest(topicName string, topicDetail *sarama.TopicDetail, sleepTime time.Duration, retryCount int, requestType TopicManagementType, c chan TopicStatusDetails) {
+func executeTopicRequest(topicName string, topicDetail *sarama.TopicDetail, sleepTime time.Duration, retryCount int, requestType TopicManagementType, c chan topicStatusDetails) {
 	if retryCount > 0 {
 		time.Sleep(sleepTime)
 	}
 	switch requestType {
 	case TopicManagementType_CREATE_TOPIC:
 		if err := (*sca).CreateTopic(topicName, topicDetail, false); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_NOT_CREATED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_NOT_CREATED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_CREATED, errorStr: "", retryCount: retryCount}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_CREATED, errorStr: "", retryCount: retryCount}
 		}
 	case TopicManagementType_MODIFY_TOPIC:
 		if err := (*sca).AlterConfig(sarama.TopicResource, topicName, topicDetail.ConfigEntries, false); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_NOT_MODIFIED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_NOT_MODIFIED, errorStr: err.Error(), retryCount: retryCount + 1}
 			break
 		} else {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_MODIFIED, errorStr: "", retryCount: retryCount}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_MODIFIED, errorStr: "", retryCount: retryCount}
 		}
-	case TopicManagementType_ALTER_PARTITION_REQUEST:
+	case topicManagementType_ALTER_PARTITION_REQUEST:
 		numParts := 0
 		if value, err := (*sca).DescribeTopics([]string{topicName}); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
 			for _, v := range value {
 				if strings.ToLower(strings.TrimSpace(v.Name)) == topicName {
@@ -210,22 +210,22 @@ func executeTopicRequest(topicName string, topicDetail *sarama.TopicDetail, slee
 			}
 			if numParts < int(topicDetail.NumPartitions) {
 				if err := (*sca).CreatePartitions(topicName, topicDetail.NumPartitions, nil, false); err != nil {
-					c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
+					c <- topicStatusDetails{topicName: topicName, status: statusType_PARTITION_NOT_ALTERED, errorStr: err.Error(), retryCount: retryCount + 1}
 					break
 				} else {
-					c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_ALTERED_SUCCESSFULLY, errorStr: "", retryCount: retryCount}
+					c <- topicStatusDetails{topicName: topicName, status: statusType_PARTITION_ALTERED_SUCCESSFULLY, errorStr: "", retryCount: retryCount}
 					break
 				}
 			} else if numParts > int(topicDetail.NumPartitions) {
 				// fmt.Println("Cannot decrease Partition count. Incorrect request. Please update the configuration files")
-				c <- TopicStatusDetails{topicName: topicName, status: StatusType_PARTITION_NOT_ALTERED, errorStr: "Cannot decrease Partition count. Please update the configuration files. Error will not be retried.", retryCount: 6}
+				c <- topicStatusDetails{topicName: topicName, status: statusType_PARTITION_NOT_ALTERED, errorStr: "Cannot decrease Partition count. Please update the configuration files. Error will not be retried.", retryCount: 6}
 			}
 		}
 	case TopicManagementType_DELETE_TOPIC:
 		if err := (*sca).DeleteTopic(topicName); err != nil {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_NOT_DELETED, errorStr: err.Error(), retryCount: retryCount + 1}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_NOT_DELETED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
-			c <- TopicStatusDetails{topicName: topicName, status: StatusType_DELETED, errorStr: "", retryCount: retryCount}
+			c <- topicStatusDetails{topicName: topicName, status: statusType_DELETED, errorStr: "", retryCount: retryCount}
 		}
 	}
 }
@@ -252,7 +252,7 @@ func waitForMetadataSync(requestType TopicManagementType) {
 	case TopicManagementType_MODIFY_TOPIC:
 		for {
 			refreshTopicList(true)
-			ts, ps := FindMismatchedConfigTopics()
+			ts, ps := findMismatchedConfigTopics()
 			if ts.Cardinality() != 0 && ps.Cardinality() != 0 && i <= 5 {
 				time.Sleep(2 * time.Second)
 				fmt.Println("The Topics Have not been modified yet. Waiting for Metadata to sync")
@@ -287,11 +287,11 @@ func waitForMetadataSync(requestType TopicManagementType) {
 	}
 }
 
-func (t TopicStatusDetails) prettyPrint() {
+func (t topicStatusDetails) prettyPrint() {
 	fmt.Println("TopicName: ", t.topicName, "Status:", t.status, "Error:", t.errorStr, "\t\tRetry Count:", t.retryCount)
 }
 
-func PrettyPrintSaramaTopicDetail(topicName string, td *sarama.TopicDetail) {
+func prettyPrintSaramaTopicDetail(topicName string, td *sarama.TopicDetail) {
 	var temp string = ""
 	for k, v := range td.ConfigEntries {
 		temp += fmt.Sprint(k, "=", *v, " , ")
