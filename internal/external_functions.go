@@ -39,25 +39,6 @@ func (utm *UserTopicMapping) PrintUTM() {
 	}
 }
 
-func ConditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping, presenceCheck bool, outputACLStream ACLStreamChannels) {
-	runLoop := true
-	for runLoop {
-		select {
-		case out := <-inputACLStream.sChannel:
-			for k := range out {
-				if _, present := (*findIn)[k]; present == presenceCheck {
-					outputACLStream.sChannel <- out
-				}
-			}
-		case out := <-inputACLStream.fChannel:
-			outputACLStream.fChannel <- out
-		case out := <-inputACLStream.finished:
-			runLoop = false
-			outputACLStream.finished <- out
-		}
-	}
-}
-
 /*
 	Returns the Map of ACLMapping by comparing the output of ACL's present in the Kafka Cluster
 	to the map of ACLMapping created by parsing the configurations. The response is the mapping
@@ -67,26 +48,8 @@ func FindNonExistentACLsInCluster(in *ACLMapping, providedAclType ACLOperationsI
 	// ret := make(ACLMapping)
 	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
 	outStream := getNewACLChannels()
-	go ConditionalACLStreamer(inStream, in, false, outStream)
+	go conditionalACLStreamer(inStream, in, false, outStream)
 	return outStream
-	// runLoop := true
-	// for runLoop {
-	// 	select {
-	// 	case out := <-inStream.sChannel:
-	// 		for k, v := range out {
-	// 			if _, present := (*in)[k]; !present {
-	// 				ret[k] = v
-	// 				sChannel <- out
-	// 			}
-	// 		}
-	// 	case out := <-failed:
-	// 		fChannel <- out
-	// 	case out := <-finished:
-	// 		runLoop = false
-	// 		done <- out
-	// 		break
-	// 	}
-	// }
 }
 
 /*
@@ -97,26 +60,8 @@ func FindNonExistentACLsInConfig(in *ACLMapping, providedAclType ACLOperationsIn
 	// ret := make(ACLMapping)
 	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
 	outStream := getNewACLChannels()
-	go ConditionalACLStreamer(inStream, &aclList, false, outStream)
+	go conditionalACLStreamer(inStream, &aclList, false, outStream)
 	return outStream
-	// runLoop := true
-	// for runLoop {
-	// 	select {
-	// 	case out := <-success:
-	// 		for key, value := range out {
-	// 			if _, present := aclList[key]; !present {
-	// 				ret[key] = value
-	// 				sChannel <- out
-	// 			}
-	// 		}
-	// 	case out := <-failed:
-	// 		fChannel <- out
-	// 	case out := <-finished:
-	// 		runLoop = false
-	// 		done <- out
-	// 		break
-	// 	}
-	// }
 }
 
 /*
@@ -126,7 +71,7 @@ func FindNonExistentACLsInConfig(in *ACLMapping, providedAclType ACLOperationsIn
 func FindProvisionedACLsInCluster(in ACLMapping, providedAclType ACLOperationsInterface) ACLStreamChannels {
 	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
 	outStream := getNewACLChannels()
-	go ConditionalACLStreamer(inStream, &aclList, true, outStream)
+	go conditionalACLStreamer(inStream, &aclList, true, outStream)
 	return outStream
 	// ret := make(ACLMapping)
 	// for key := range in {
@@ -136,6 +81,25 @@ func FindProvisionedACLsInCluster(in ACLMapping, providedAclType ACLOperationsIn
 	// 	}
 	// }
 	// return ret
+}
+
+func conditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping, presenceCheck bool, outputACLStream ACLStreamChannels) {
+	runLoop := true
+	for runLoop {
+		select {
+		case out := <-inputACLStream.SChannel:
+			for k := range out {
+				if _, present := (*findIn)[k]; present == presenceCheck {
+					outputACLStream.SChannel <- out
+				}
+			}
+		case out := <-inputACLStream.FChannel:
+			outputACLStream.FChannel <- out
+		case out := <-inputACLStream.Finished:
+			runLoop = false
+			outputACLStream.Finished <- out
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
