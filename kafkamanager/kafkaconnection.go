@@ -6,9 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	ksinternal "shepherd/internal"
@@ -39,7 +37,7 @@ func GetAdminConnection() ConnectionObject {
 
 func setupAdminConnection() ConnectionObject {
 
-	for _, cluster := range *ksinternal.SpdCore.Configs.ConfigRoot.Clusters {
+	for _, cluster := range ksinternal.SpdCore.Configs.ConfigRoot.Clusters {
 		if cluster.IsEnabled {
 			conf := understandClusterTopology(&cluster)
 			ca, err := sarama.NewClusterAdmin(cluster.BootstrapServers, conf)
@@ -67,18 +65,21 @@ func addShutdownHook() {
 	go func() {
 		defer wg.Done()
 		s := <-term
-		log.Println(s.String(), "SIGTERM received. Shutdown process initiated")
-		for i := 1; i <= 5 || err != nil; i++ {
-			fmt.Println("Trying to Close Kafka Cluster connection. Try ", i)
+		logger.Infof("%s received. Shutdown Process Initiated", s.String())
+		logger.Info("Trying to Close Kafka Cluster connection. Initial Try")
+		err = (*sca).Close()
+		for i := 2; i <= 5 && err != nil; i++ {
+			logger.Errorw("Failed to Close Kafka Cluster connection.", "Error", err)
+			logger.Warnw("Trying to Close Kafka Cluster connection again.", "Try", i)
 			err = (*sca).Close()
 			if err != nil {
-				fmt.Println("Failed to Close Kafka Cluster connection.", err)
+				logger.Errorw("Failed to Close Kafka Cluster connection.", "Error", err)
 			}
 		}
 		if err != nil {
-			fmt.Println("Aborting retries as its failing continuously. Will exit ungracefully.")
+			logger.Fatalf("Aborting retries as I was still not able to close the connection even after 5 retries. Will exit ungracefully.")
 		} else {
-			fmt.Println("Kafka Cluster Connection Successfully closed")
+			logger.Info("Kafka Cluster Connection Successfully closed")
 		}
 	}()
 }
