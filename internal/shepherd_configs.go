@@ -6,11 +6,14 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func parseShepherdConfig(shp *ShepherdConfig, configFilePath string) *ShepherdConfig {
-
+func (shp *ShepherdConfig) parseShepherdConfig(configFilePath string) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatal("Cannot read the filepath provided in SHEPHERD_CONFIG_FILELOCATION variable. Please Correct. Error Received", err)
+	}
+
+	if shp == nil {
+		shp = &ShepherdConfig{}
 	}
 
 	if err := yaml.Unmarshal(temp, shp); err != nil {
@@ -18,12 +21,12 @@ func parseShepherdConfig(shp *ShepherdConfig, configFilePath string) *ShepherdCo
 	}
 	shp.validateShepherdConfig()
 	shp.readValuesFromENV()
-	return shp
+	// return shp
 }
 
 func (scf *ShepherdConfig) validateShepherdConfig() {
 	count := 0
-	for _, cluster := range *scf.ConfigRoot.Clusters {
+	for _, cluster := range scf.ConfigRoot.Clusters {
 		if cluster.IsEnabled {
 			count += 1
 		}

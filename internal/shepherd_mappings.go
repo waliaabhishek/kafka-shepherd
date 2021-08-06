@@ -11,24 +11,24 @@ import (
 
 func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigMapping) {
 	// Adhoc Topic Structure Parsing and table setup
-	for _, v := range *sc.Definitions.DefinitionRoot.AdhocConfigs.Topics {
-		for _, tName := range *v.Name {
+	for _, v := range sc.Definitions.DefinitionRoot.AdhocConfigs.Topics {
+		for _, tName := range v.Name {
 			v.Clients.addClientToUTM(utm, tName)
 		}
-		v.Clients.addHostnamesToUTM(ConfMaps.UTM)
-		tcm.addDataToTopicConfigMapping(sc, &v, *v.Name)
+		v.Clients.addHostnamesToUTM(&ConfMaps.UTM)
+		tcm.addDataToTopicConfigMapping(sc, &v, v.Name)
 	}
 
-	for _, v := range *sc.Definitions.DefinitionRoot.ScopeFlow {
+	for _, v := range sc.Definitions.DefinitionRoot.ScopeFlow {
 		iter := 0
 		values := [][]string{}
 		val1, cont, snd := []string{}, true, &v
 		sep := sc.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken
 		for cont {
-			currTopics := append(*snd.Topics.Name, "*")
+			currTopics := append(snd.Topics.Name, "*")
 			currClients := snd.Clients
 			currFilters := snd.Topics.IgnoreScope
-			val1, cont, snd = snd.getTokensForThisLevel(iter, sc.Blueprints.Blueprint)
+			val1, cont, snd = snd.getTokensForThisLevel(iter, &sc.Blueprints.Blueprint)
 			if !ksmisc.IsZero1DSlice(val1) {
 				values = append(values, val1)
 			}
@@ -42,15 +42,15 @@ func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigM
 				// Get current Topic Name for the current scope
 				temp := strings.Join(v2, sep)
 				// Ignore topic combinations with the filterscope at that level from being added to the UTM list
-				if !ksmisc.ExistsInString(temp, *currFilters, ksmisc.RemoveValuesFromSlice(currTopics, "*"), sep) {
+				if !ksmisc.ExistsInString(temp, currFilters, ksmisc.RemoveValuesFromSlice(currTopics, "*"), sep) {
 					// fmt.Println("Inside the filter for *. Topic Name:", temp)
 					currClients.addClientToUTM(utm, temp)
 					if !strings.HasSuffix(temp, ".*") {
-						tcm.addDataToTopicConfigMapping(sc, v.Topics, []string{temp})
+						tcm.addDataToTopicConfigMapping(sc, &v.Topics, []string{temp})
 					}
 				}
 			}
-			currClients.addHostnamesToUTM(ConfMaps.UTM)
+			currClients.addHostnamesToUTM(&ConfMaps.UTM)
 		}
 	}
 	// return utm, tcm
@@ -60,12 +60,12 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 	ret := []string{}
 	temp := []string{}
 	if sd.IncludeInTopicName {
-		for _, v := range *b.CustomEnums {
+		for _, v := range b.CustomEnums {
 			temp = append(temp, v.Name)
 		}
 		if len(sd.CustomEnumRef) != 0 {
 			if loc, ok := ksmisc.Find(temp, sd.CustomEnumRef); ok {
-				for _, v := range *(*b.CustomEnums)[loc].Values {
+				for _, v := range b.CustomEnums[loc].Values {
 					if v != "" {
 						ret = append(ret, v)
 					}
@@ -73,7 +73,7 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 			}
 		}
 		if sd.Values != nil {
-			for _, v := range *sd.Values {
+			for _, v := range sd.Values {
 				if v != "" {
 					ret = append(ret, v)
 				}
@@ -84,13 +84,13 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 }
 
 func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
-	for _, v := range *c.Consumers {
+	for _, v := range c.Consumers {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
 		if v.Group != "" {
 			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, "")
 		}
 	}
-	for _, v := range *c.Producers {
+	for _, v := range c.Producers {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
 		if v.TransactionalID != "" {
 			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, "")
@@ -99,12 +99,11 @@ func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, "")
 		}
 	}
-	for _, v := range *c.Connectors {
+	for _, v := range c.Connectors {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
 		// v.addClientToUTM(utm, topic)
 	}
-
-	for _, v := range *c.Streams {
+	for _, v := range c.Streams {
 		if v.getTypeValue() == ShepherdClientType_STREAM_READ {
 			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
 		} else {
@@ -114,8 +113,7 @@ func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic)
 	}
-
-	for _, v := range *c.KSQL {
+	for _, v := range c.KSQL {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, topic)
 	}
@@ -160,19 +158,21 @@ func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType Sh
 }
 
 func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
-	for _, v := range *c.Consumers {
+	for _, v := range c.Consumers {
 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
 	}
-	for _, v := range *c.Producers {
+	for _, v := range c.Producers {
 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
 	}
-	for _, v := range *c.Connectors {
+	for _, v := range c.Connectors {
 		// TODO: COnnector Group Names ?????
 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), "", v.Hostnames)
 	}
-	for _, v := range *c.Streams {
+	for _, v := range c.Streams {
 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
 	}
+
+	// TODO: KSQL Implementation is missing
 }
 
 /*
@@ -198,19 +198,19 @@ func (tcm *TopicConfigMapping) addDataToTopicConfigMapping(sc *ShepherdCore, td 
 	// If Blueprint reference exists in the topic Config, fetch the NV Pairs for that Blueprint and add those props here.
 	if td.TopicBlueprintEnumRef != "" {
 		props.overrideMergeMaps([]NVPairs{sc.getBlueprintProps((*td).TopicBlueprintEnumRef)},
-			*sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,
-			*sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Blacklist)
+			sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,
+			sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Blacklist)
 	}
 	// Merge and overwrite values configured as overrides in the scopeflow or the adhoc topic configs
 	props.overrideMergeMaps(td.ConfigOverrides,
-		*sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,
-		*sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Blacklist)
+		sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,
+		sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Blacklist)
 	for _, topic := range topicName {
 		(*tcm)[topic] = props
 	}
 }
 
-func (in *NVPairs) overrideMergeMaps(temp []NVPairs, whitelist []string, blacklist []string) (out *NVPairs) {
+func (in *NVPairs) overrideMergeMaps(temp []NVPairs, whitelist []string, blacklist []string) {
 	for _, v1 := range temp {
 		for k, v := range v1 {
 			_, wPresent := ksmisc.Find(whitelist, k)
@@ -226,20 +226,19 @@ func (in *NVPairs) overrideMergeMaps(temp []NVPairs, whitelist []string, blackli
 			}
 		}
 	}
-	return in
 }
 
 func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 	if blueprintMap == nil {
 		blueprintMap = make(map[string]NVPairs)
-		for _, v := range *sc.Blueprints.Blueprint.Topic.TopicConfigs {
+		for _, v := range sc.Blueprints.Blueprint.Topic.TopicConfigs {
 			temp := NVPairs{}
 			// Get the default values configured in Topic Blueprints Defaults as those act as our baseline
 			temp.mergeMaps(sc.Blueprints.Blueprint.Policy.TopicPolicy.Defaults)
 			// Get the Base Config Override Values from Topic Blueprint Configuration
 			temp.overrideMergeMaps(v.Overrides,
-				*sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,
-				*sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Blacklist)
+				sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,
+				sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Blacklist)
 			blueprintMap[strings.ToLower(strings.TrimSpace(v.Name))] = temp
 		}
 		// fmt.Println("Blueprint Topic Plan Map:", blueprintMap)
@@ -248,7 +247,7 @@ func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 }
 
 func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
-	for _, cluster := range *sc.Configs.ConfigRoot.Clusters {
+	for _, cluster := range sc.Configs.ConfigRoot.Clusters {
 		if cluster.IsEnabled {
 			sp, sc := cluster.understandClusterTopology()
 			value := ClusterConfigMappingValue{

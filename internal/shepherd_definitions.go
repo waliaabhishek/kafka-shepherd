@@ -6,11 +6,15 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func parseShepherDefinitions(shp *ShepherdDefinition, configFilePath string) *ShepherdDefinition {
+func (shp *ShepherdDefinition) parseShepherDefinitions(configFilePath string) *ShepherdDefinition {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_DEFINITIONS_FILE_LOCATION variable. Please Correct.",
 			"Error Received", err)
+	}
+
+	if shp == nil {
+		shp = &ShepherdDefinition{}
 	}
 
 	if err := yaml.Unmarshal(temp, shp); err != nil {
