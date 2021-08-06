@@ -95,7 +95,7 @@ func (c ShepherdClientType) generateACLMappingStructures(in ACLMapping, sChannel
 }
 
 func (utm *UserTopicMapping) GenerateShepherdClientTypeMappings() ACLMapping {
-	ret := make(ACLMapping, 0)
+	ret := make(ACLMapping)
 	var temp ShepherdClientType
 	for k, v := range *utm {
 		pairs := make([][]string, 5)

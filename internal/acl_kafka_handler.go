@@ -167,7 +167,7 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 }
 
 func determinePatternType(topicName string) KafkaACLPatternType {
-	if strings.HasSuffix(topicName, fmt.Sprintf("%s*", spdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken)) {
+	if strings.HasSuffix(topicName, fmt.Sprintf("%s*", SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken)) {
 		return KafkaACLPatternType_PREFIXED
 	}
 	return KafkaACLPatternType_LITERAL
