@@ -3,6 +3,7 @@ package aclmanager
 import (
 	ksinternal "shepherd/internal"
 	kafkamanager "shepherd/kafkamanager"
+	ksmisc "shepherd/misc"
 	"sync"
 	"time"
 
@@ -10,10 +11,12 @@ import (
 	"go.uber.org/zap"
 )
 
-var sca *sarama.ClusterAdmin
-var logger *zap.SugaredLogger
-var aclMappings ksinternal.ACLMapping
-var lastUpdateTime int64
+var (
+	aclMappings    ksinternal.ACLMapping = make(ksinternal.ACLMapping)
+	sca            *sarama.ClusterAdmin
+	logger         *zap.SugaredLogger
+	lastUpdateTime int64
+)
 
 func init() {
 	temp := kafkamanager.GetAdminConnection().(sarama.ClusterAdmin)
@@ -24,37 +27,36 @@ func init() {
 }
 
 func GetACLListInKafkaACLFormat() ksinternal.ACLMapping {
+	acls := listKafkaACLs()
+	var wg sync.WaitGroup
+	wg.Add(len(*acls))
+	for _, v := range *acls {
+		mapACLDetails(v, aclMappings, &wg)
+	}
+	wg.Wait()
+	return aclMappings
+}
+
+func listKafkaACLs() *[]sarama.ResourceAcls {
 	filter := sarama.AclFilter{
-		ResourceType:              sarama.AclResourceTopic,
+		ResourceType:              sarama.AclResourceAny,
 		ResourcePatternTypeFilter: sarama.AclPatternAny,
 		PermissionType:            sarama.AclPermissionAny,
 		Operation:                 sarama.AclOperationAny,
 		Version:                   1,
 	}
-	acls, _ := (*sca).ListAcls(filter)
-	aclMapping := ksinternal.ACLMapping{}
-	var wg sync.WaitGroup
-	wg.Add(len(acls))
-	for _, v := range acls {
-		go printACLDetails(v, aclMapping, &wg)
+	acls, err := (*sca).ListAcls(filter)
+	if err != nil {
+		logger.Fatalw("Failed to list Kafka Cluster ACLs. Cannot proceed without the correct ACLs.")
 	}
-	wg.Wait()
-	return aclMapping
+	return &acls
 }
 
-func printACLDetails(in sarama.ResourceAcls, mapping ksinternal.ACLMapping, wg *sync.WaitGroup) {
+func mapACLDetails(in sarama.ResourceAcls, mapping ksinternal.ACLMapping, wg *sync.WaitGroup) {
 	defer wg.Done()
+
 	for _, v := range in.Acls {
 		if v.PermissionType == sarama.AclPermissionAllow {
-			logger.Debugw("ACL Details",
-				"Resource Type", in.Resource.ResourceType.String(),
-				"Resource Name", in.Resource.ResourceName,
-				"Resource Pattern Type", in.Resource.ResourcePatternType.String(),
-				"Principal Name", v.Principal,
-				"Host", v.Host,
-				"ACL Operation", v.Operation.String(),
-				"Permission Type", v.PermissionType.String(),
-			)
 			mapping.Append(ksinternal.ACLDetails{
 				ResourceType: sarama2KafkaResourceTypeConversion[in.Resource.ResourceType],
 				ResourceName: in.Resource.ResourceName,
@@ -67,6 +69,48 @@ func printACLDetails(in sarama.ResourceAcls, mapping ksinternal.ACLMapping, wg *
 	}
 }
 
+func printClusterACLDetails() {
+	acls := listKafkaACLs()
+	for _, in := range *acls {
+		for _, v := range in.Acls {
+			logger.Infow("Sarama ACL Details",
+				"Resource Type", in.Resource.ResourceType.String(),
+				"Resource Name", in.Resource.ResourceName,
+				"Resource Pattern Type", in.Resource.ResourcePatternType.String(),
+				"Principal Name", v.Principal,
+				"Host", v.Host,
+				"ACL Operation", v.Operation.String(),
+				"Permission Type", v.PermissionType.String(),
+			)
+		}
+	}
+	for k := range aclMappings {
+		logger.Infow("Mapped Kafka ACL Details (Only Alllow Mappings are filtered)",
+			"Resource Type", k.ResourceType.String(),
+			"Resource Name", k.ResourceName,
+			"Resource Pattern Type", k.PatternType.String(),
+			"Principal Name", k.Principal,
+			"Host", k.Hostname,
+			"ACL Operation", k.Operation.String(),
+			"Permission Type", ksinternal.KafkaACLPermissionType_ALLOW,
+		)
+	}
+}
+
+func printConfigACLDetails() {
+	for k := range *ksinternal.ACLList {
+		logger.Infow("Mapped Kafka ACL Details",
+			"Resource Type", k.ResourceType.String(),
+			"Resource Name", k.ResourceName,
+			"Resource Pattern Type", k.PatternType.String(),
+			"Principal Name", k.Principal,
+			"Host", k.Hostname,
+			"ACL Operation", k.Operation.String(),
+			"Permission Type", ksinternal.KafkaACLPermissionType_ALLOW,
+		)
+	}
+}
+
 func refreshACLMetadata(forceRefresh bool) {
 	if time.Now().Unix()-lastUpdateTime > 30 || forceRefresh {
 		aclMappings = GetACLListInKafkaACLFormat()
@@ -76,6 +120,14 @@ func refreshACLMetadata(forceRefresh bool) {
 func ExecuteRequests(requestType ACLManagementType) {
 	refreshACLMetadata(false)
 	switch requestType {
+	case ACLManagementType_LIST_CLUSTER_ACL:
+		ksmisc.DottedLineOutput("List Cluster ACLs", "=", 80)
+		printClusterACLDetails()
+		ksmisc.DottedLineOutput("", "=", 80)
+	case ACLManagementType_LIST_CONFIG_ACL:
+		ksmisc.DottedLineOutput("List Config ACLs", "=", 80)
+		printConfigACLDetails()
+		ksmisc.DottedLineOutput("", "=", 80)
 	case ACLManagementType_CREATE_ACL:
 		createStream := ksinternal.FindNonExistentACLsInCluster(&aclMappings, ksinternal.KafkaACLOperation_ANY)
 		createACLs(createStream)
