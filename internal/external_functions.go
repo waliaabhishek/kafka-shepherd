@@ -21,7 +21,7 @@ func (utm *UserTopicMapping) getTopicListFromUTMList() mapset.Set {
 	t := mapset.NewSet()
 	for _, v := range *utm {
 		for _, topic := range v.TopicList {
-			if ksmisc.IsTopicName(topic, spdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken) {
+			if ksmisc.IsTopicName(topic, SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken) {
 				t.Add(topic)
 			}
 		}
@@ -114,6 +114,10 @@ func (tcm *TopicConfigMapping) PrintTCM() {
 	}
 }
 
+func ListTopicsInConfig() []string {
+	return GetStringSliceFromMapSet(topicsInConfig)
+}
+
 /*
 	This function compares the Configurations in the input files with the
 	topics existing in the Kafka Cluster. Then it returns only the topics
@@ -203,8 +207,8 @@ func FindMisconfiguredTopicsMapSet(topics TopicConfigMapping) (configDiff mapset
 	partitionDiff = mapset.NewSet()
 
 	for k, v := range topics {
-		if (*ConfMaps.TCM)[k] != nil {
-			_ = compareTopicDetails(k, v, (*ConfMaps.TCM)[k], &configDiff, &partitionDiff)
+		if (ConfMaps.TCM)[k] != nil {
+			_ = compareTopicDetails(k, v, (ConfMaps.TCM)[k], &configDiff, &partitionDiff)
 		}
 	}
 

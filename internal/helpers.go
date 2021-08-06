@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	ksmisc "shepherd/misc"
+
 	mapset "github.com/deckarep/golang-set"
 )
 
@@ -58,8 +60,8 @@ func (in *NVPairs) mergeMaps(temp []NVPairs) (out *NVPairs) {
 	return in
 }
 
-func (sc DefinitionRoot) PrettyPrintScope() {
-	for _, v1 := range *sc.ScopeFlow {
+func (sc *DefinitionRoot) PrettyPrintScope() {
+	for _, v1 := range sc.ScopeFlow {
 		v1.prettyPrintSND(0)
 	}
 }
@@ -78,7 +80,7 @@ func (snd *ScopeDefinition) prettyPrintSND(tabCounter int) {
 }
 
 func GetStringSliceFromMapSet(in mapset.Set) []string {
-	result := make([]string, in.Cardinality())
+	result := make([]string, 0)
 	for item := range in.Iterator().C {
 		result = append(result, item.(string))
 	}
@@ -91,4 +93,17 @@ func GetMapSetFromStringSlice(in []string) mapset.Set {
 		result.Add(v)
 	}
 	return result
+}
+
+func (c *ACLMapping) prettyPrintACLMapping() {
+	ksmisc.DottedLineOutput("List ACLMapping", "=", 80)
+	for k := range *c {
+		logger.Infow("ACL Mapping Details",
+			"Principal", k.Principal,
+			"Hostname", k.Hostname,
+			"Operation", k.Operation.String(),
+			"Resource Type", k.ResourceType.String(),
+			"Resource Name", k.ResourceName)
+	}
+	ksmisc.DottedLineOutput("", "=", 80)
 }
