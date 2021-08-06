@@ -7,35 +7,34 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"text/tabwriter"
 	"time"
 
-	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var TW *tabwriter.Writer = GetNewWriter()
+// var TW *tabwriter.Writer = GetNewWriter()
+var zaplog *zap.SugaredLogger
 
-func GetNewWriter() *tabwriter.Writer {
-	return tabwriter.NewWriter(os.Stdout, 1, 0, 4, ' ', tabwriter.Debug)
-}
+// func GetNewWriter() *tabwriter.Writer {
+// 	return tabwriter.NewWriter(os.Stdout, 1, 0, 4, ' ', tabwriter.Debug)
+// }
 
-func TabledOutput(t map[string]sarama.TopicDetail) {
-	defer TW.Flush()
-	// fmt.Fprintf(TW, "\n %s\t%s\t%s\t%s\t", "Topic Name", "Replication Factor", "Number Of Partitions", "Configuration Entries")
-	// fmt.Fprintf(TW, "\n %s\t%s\t%s\t%s\t", "----------", "------------------", "--------------------", "---------------------")
+// func TabledOutput(t map[string]sarama.TopicDetail) {
+// 	defer TW.Flush()
+// 	// fmt.Fprintf(TW, "\n %s\t%s\t%s\t%s\t", "Topic Name", "Replication Factor", "Number Of Partitions", "Configuration Entries")
+// 	// fmt.Fprintf(TW, "\n %s\t%s\t%s\t%s\t", "----------", "------------------", "--------------------", "---------------------")
 
-	for topic, detail := range t {
-		var cm string = ""
-		for k, v := range detail.ConfigEntries {
-			cm += fmt.Sprint(k, "=", *v, " , ")
-		}
-		fmt.Fprintf(TW, "\n %s\t%d\t%d\t%s", topic, detail.ReplicationFactor, detail.NumPartitions, cm)
-	}
-	fmt.Fprintln(TW, " ")
-}
+// 	for topic, detail := range t {
+// 		var cm string = ""
+// 		for k, v := range detail.ConfigEntries {
+// 			cm += fmt.Sprint(k, "=", *v, " , ")
+// 		}
+// 		fmt.Fprintf(TW, "\n %s\t%d\t%d\t%s", topic, detail.ReplicationFactor, detail.NumPartitions, cm)
+// 	}
+// 	fmt.Fprintln(TW, " ")
+// }
 
 func Find(slice []string, val string) (int, bool) {
 	for i, item := range slice {
@@ -167,23 +166,23 @@ func InPlaceDedup(in []string) []string {
 	return in[:j+1]
 }
 
-func PrettyPrint1DStringSlice(in []string) {
-	for i, v := range in {
-		fmt.Fprintf(TW, "\n%d\t%s", i, v)
-	}
-	fmt.Fprintln(TW, " ")
-	TW.Flush()
-}
+// func PrettyPrint1DStringSlice(in []string) {
+// 	for i, v := range in {
+// 		fmt.Fprintf(TW, "\n%d\t%s", i, v)
+// 	}
+// 	fmt.Fprintln(TW, " ")
+// 	TW.Flush()
+// }
 
 func PrettyPrintMapSet(in mapset.Set) {
-	defer TW.Flush()
 	it := in.Iterator()
 	index := 1
 	for elem := range it.C {
-		fmt.Fprintf(TW, "\n%d\t%s", index, elem)
+		// fmt.Fprintf(TW, "\n%d\t%s", index, elem)
+		zaplog.Infof("%04d: %s", index, elem)
 		index += 1
 	}
-	fmt.Fprintln(TW, " ")
+	// fmt.Fprintln(TW, " ")
 	it.Stop()
 }
 
@@ -212,17 +211,18 @@ func DottedLineOutput(comment string, seperator string, length int) {
 		right += diff / 2
 		left += (diff / 2) + 1
 	}
-	fmt.Println(strings.Repeat(seperator, length))
-	fmt.Printf("%s%s%s\n", strings.Repeat(seperator, right), comment, strings.Repeat(seperator, left))
-	fmt.Println(strings.Repeat(seperator, length))
+	zaplog.Info(strings.Repeat(seperator, length))
+	zaplog.Infof("%s%s%s", strings.Repeat(seperator, right), comment, strings.Repeat(seperator, left))
+	// zaplog.Info(strings.Repeat(seperator, length))
 }
 
 // This method sets up a zap logger object for use and returns back a pointer to the object.
-func GetLogger(enableDebug *bool, enableConsole *bool) *zap.SugaredLogger {
+func GetLogger(enableDebug bool, enableStructuredLogs bool) *zap.SugaredLogger {
 	var config zap.Config
-	if *enableConsole {
+	if !enableStructuredLogs {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.DisableCaller = true
 	} else {
 		config = zap.NewProductionConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
@@ -233,12 +233,15 @@ func GetLogger(enableDebug *bool, enableConsole *bool) *zap.SugaredLogger {
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	config.EncoderConfig.EncodeDuration = zapcore.MillisDurationEncoder
 
-	if *enableDebug {
-		config.DisableStacktrace = false
+	if enableDebug {
 		config.DisableCaller = false
+	} else {
+		config.DisableStacktrace = false
+		config.Level.SetLevel(zap.InfoLevel)
 	}
 
 	logger, _ := config.Build()
 	defer logger.Sync()
-	return logger.Sugar()
+	zaplog = logger.Sugar()
+	return zaplog
 }
