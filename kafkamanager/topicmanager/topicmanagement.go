@@ -3,6 +3,7 @@ package topicmanager
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ after parsing the configurations from input files. This also instantiates the co
 func init() {
 	temp := kcm.GetAdminConnection().(sarama.ClusterAdmin)
 	sca = &temp
+
+	logger = ksinternal.GetLogger()
 }
 
 /*
@@ -54,6 +57,20 @@ func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 	counter := 0
 
 	switch requestType {
+	case TopicManagementType_LIST_CLUSTER_TOPICS:
+		ksmisc.DottedLineOutput("List Cluster Topics", "=", 80)
+		for idx, item := range getTopicListFromKafkaCluster() {
+			logger.Infof("%04d# : %s", idx+1, item)
+		}
+		ksmisc.DottedLineOutput("", "=", 80)
+		return
+	case TopicManagementType_LIST_CONFIG_TOPICS:
+		ksmisc.DottedLineOutput("List Config Topics", "=", 80)
+		for idx, item := range ksinternal.ListTopicsInConfig() {
+			logger.Infof("%04d# : %s", idx+1, item)
+		}
+		ksmisc.DottedLineOutput("", "=", 80)
+		return
 	case TopicManagementType_CREATE_TOPIC:
 		ts = ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster())
 	case TopicManagementType_MODIFY_TOPIC:
@@ -125,7 +142,9 @@ func getTopicListFromKafkaCluster() []string {
 			tSet.Add(string(t))
 		}
 	}
-	return ksinternal.GetStringSliceFromMapSet(tSet)
+	ret := ksinternal.GetStringSliceFromMapSet(tSet)
+	sort.Strings(ret)
+	return ret
 }
 
 func refreshTopicList(discardConnectionCache bool) {
@@ -288,7 +307,7 @@ func waitForMetadataSync(requestType TopicManagementType) {
 }
 
 func (t topicStatusDetails) prettyPrint() {
-	fmt.Println("TopicName: ", t.topicName, "Status:", t.status, "Error:", t.errorStr, "\t\tRetry Count:", t.retryCount)
+	logger.Infow("Topic Details", "TopicName", t.topicName, "Status", t.status.String(), "Error", t.errorStr, "Retry Count", t.retryCount)
 }
 
 func prettyPrintSaramaTopicDetail(topicName string, td *sarama.TopicDetail) {
@@ -312,7 +331,7 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 		ConfigEntries:     nil,
 	}
 
-	temp := (*ksinternal.ConfMaps.TCM)[topicName]
+	temp := ksinternal.ConfMaps.TCM[topicName]
 	for k, v := range temp {
 		switch k {
 		case "num.partitions":
