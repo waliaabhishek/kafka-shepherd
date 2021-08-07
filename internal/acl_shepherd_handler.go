@@ -98,7 +98,7 @@ func (utm *UserTopicMapping) GenerateShepherdClientTypeMappings() ACLMapping {
 	ret := make(ACLMapping)
 	var temp ShepherdClientType
 	for k, v := range *utm {
-		pairs := make([][]string, 5)
+		pairs := make([][]string, 0)
 		pairs = append(pairs, []string{k.Principal}, []string{k.GroupID}, []string{k.ClientType.String()}, v.Hostnames, v.TopicList)
 		// TODO: Add logic to convert the higher level constructs (PRODUCER, CONSUMER, etc to the lower level constructs (ClusterAclOperation)
 		pairs = ksmisc.GetPermutationsString(pairs)
@@ -144,14 +144,14 @@ func (utm *UserTopicMapping) GenerateShepherdClientTypeMappings() ACLMapping {
 			default:
 				// TODO: Error handling if the Client Type provided is unknown
 			}
-			ret[ACLDetails{
-				ResourceType: KafkaResourceType_TOPIC,
-				ResourceName: i[4],
-				PatternType:  determinePatternType(i[4]),
-				Principal:    i[0],
-				Operation:    varType,
-				Hostname:     i[3],
-			}] = nil
+			// ret[ACLDetails{
+			// 	ResourceType: KafkaResourceType_TOPIC,
+			// 	ResourceName: i[4],
+			// 	PatternType:  determinePatternType(i[4]),
+			// 	Principal:    i[0],
+			// 	Operation:    varType,
+			// 	Hostname:     i[3],
+			// }] = nil
 		}
 	}
 	return ret
