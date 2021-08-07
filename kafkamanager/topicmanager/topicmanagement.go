@@ -75,44 +75,60 @@ func ExecuteRequests(threadCount int, requestType TopicManagementType) {
 		ts = ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster())
 	case TopicManagementType_MODIFY_TOPIC:
 		ts, ps = findMismatchedConfigTopics()
-	case TopicManagementType_DELETE_TOPIC:
+	case TopicManagementType_DELETE_CONFIG_TOPIC:
 		ts = ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster())
+	case TopicManagementType_DELETE_UNKNOWN_TOPIC:
+		ts = ksinternal.FindNonExistentTopicsInConfigMapSet(getTopicListFromKafkaCluster())
 	}
 
 	for item := range ts.Iterator().C {
 		tName := item.(string)
-		dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
-		go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, requestType, c)
-		counter += 1
+		if ksinternal.DryRun {
+			logger.Infow("Topic management Request Dry Run",
+				"Topic Name", tName,
+				"Topic Request Type", requestType.String())
+		} else {
+			dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
+			go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, requestType, c)
+			counter += 1
+		}
 	}
 
 	if requestType == TopicManagementType_MODIFY_TOPIC && ps.Cardinality() != 0 {
 		for item := range ps.Iterator().C {
 			tName := item.(string)
-			dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
-			go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, topicManagementType_ALTER_PARTITION_REQUEST, c)
-			counter += 1
-		}
-	}
-	fmt.Println("Total Requests Triggered: ")
-	for i := 0; i < counter; i++ {
-		tsd := <-c
-		switch tsd.status {
-		case statusType_CREATED, statusType_DELETED, statusType_MODIFIED, statusType_PARTITION_ALTERED_SUCCESSFULLY:
-			tsd.prettyPrint()
-		case statusType_NOT_CREATED, statusType_NOT_DELETED, statusType_NOT_MODIFIED, statusType_PARTITION_NOT_ALTERED:
-			if tsd.retryCount <= 5 {
-				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
-				tsd.prettyPrint()
-				go executeTopicRequest(tsd.topicName, getTopicConfigProperties(tsd.topicName), dur, tsd.retryCount, requestType, c)
-				i -= 1
+			if ksinternal.DryRun {
+				logger.Infow("Topic management Request Dry Run",
+					"Topic Name", tName,
+					"Topic Request Type", requestType.String())
 			} else {
-				fmt.Println("Topic Request failed and is not retriable. Skipping for this topic.")
-				tsd.prettyPrint()
+				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
+				go executeTopicRequest(tName, getTopicConfigProperties(tName), dur, 0, topicManagementType_ALTER_PARTITION_REQUEST, c)
+				counter += 1
 			}
 		}
 	}
-	waitForMetadataSync(requestType)
+	if !ksinternal.DryRun {
+		fmt.Println("Total Requests Triggered: ")
+		for i := 0; i < counter; i++ {
+			tsd := <-c
+			switch tsd.status {
+			case statusType_CREATED, statusType_DELETED, statusType_MODIFIED, statusType_PARTITION_ALTERED_SUCCESSFULLY:
+				tsd.prettyPrint()
+			case statusType_NOT_CREATED, statusType_NOT_DELETED, statusType_NOT_MODIFIED, statusType_PARTITION_NOT_ALTERED:
+				if tsd.retryCount <= 5 {
+					dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(3, 10), "s")
+					tsd.prettyPrint()
+					go executeTopicRequest(tsd.topicName, getTopicConfigProperties(tsd.topicName), dur, tsd.retryCount, requestType, c)
+					i -= 1
+				} else {
+					fmt.Println("Topic Request failed and is not retriable. Skipping for this topic.")
+					tsd.prettyPrint()
+				}
+			}
+		}
+		waitForMetadataSync(requestType)
+	}
 }
 
 func findMismatchedConfigTopics() (configDiff mapset.Set, partitionDiff mapset.Set) {
@@ -240,7 +256,7 @@ func executeTopicRequest(topicName string, topicDetail *sarama.TopicDetail, slee
 				c <- topicStatusDetails{topicName: topicName, status: statusType_PARTITION_NOT_ALTERED, errorStr: "Cannot decrease Partition count. Please update the configuration files. Error will not be retried.", retryCount: 6}
 			}
 		}
-	case TopicManagementType_DELETE_TOPIC:
+	case TopicManagementType_DELETE_CONFIG_TOPIC, TopicManagementType_DELETE_UNKNOWN_TOPIC:
 		if err := (*sca).DeleteTopic(topicName); err != nil {
 			c <- topicStatusDetails{topicName: topicName, status: statusType_NOT_DELETED, errorStr: err.Error(), retryCount: retryCount + 1}
 		} else {
@@ -287,7 +303,7 @@ func waitForMetadataSync(requestType TopicManagementType) {
 				break
 			}
 		}
-	case TopicManagementType_DELETE_TOPIC:
+	case TopicManagementType_DELETE_CONFIG_TOPIC, TopicManagementType_DELETE_UNKNOWN_TOPIC:
 		for {
 			refreshTopicList(true)
 			if !ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
