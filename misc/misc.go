@@ -232,11 +232,13 @@ func GetLogger(enableDebug bool, enableStructuredLogs bool) *zap.SugaredLogger {
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	config.EncoderConfig.EncodeDuration = zapcore.MillisDurationEncoder
+	config.OutputPaths = []string{"stdout"}
 
 	if enableDebug {
 		config.DisableCaller = false
-	} else {
 		config.DisableStacktrace = false
+	} else {
+		config.DisableStacktrace = true
 		config.Level.SetLevel(zap.InfoLevel)
 	}
 
