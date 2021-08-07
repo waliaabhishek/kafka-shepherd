@@ -15,7 +15,8 @@ const (
 	topicManagementType_ALTER_PARTITION_REQUEST
 	TopicManagementType_CREATE_TOPIC
 	TopicManagementType_MODIFY_TOPIC
-	TopicManagementType_DELETE_TOPIC
+	TopicManagementType_DELETE_CONFIG_TOPIC
+	TopicManagementType_DELETE_UNKNOWN_TOPIC
 	TopicManagementType_LIST_CLUSTER_TOPICS
 	TopicManagementType_LIST_CONFIG_TOPICS
 )
@@ -26,7 +27,8 @@ func (a *TopicManagementType) String() string {
 		topicManagementType_ALTER_PARTITION_REQUEST: "ALTER_PARTITION_REQUEST",
 		TopicManagementType_CREATE_TOPIC:            "CREATE_TOPIC",
 		TopicManagementType_MODIFY_TOPIC:            "MODIFY_TOPIC",
-		TopicManagementType_DELETE_TOPIC:            "DELETE_TOPIC",
+		TopicManagementType_DELETE_CONFIG_TOPIC:     "DELETE_CONFIG_TOPIC",
+		TopicManagementType_DELETE_UNKNOWN_TOPIC:    "DELETE_UNKNOWN_TOPIC",
 		TopicManagementType_LIST_CLUSTER_TOPICS:     "LIST_CLUSTER_TOPICS",
 		TopicManagementType_LIST_CONFIG_TOPICS:      "LIST_CONFIG_TOPICS",
 	}
