@@ -312,8 +312,12 @@ type ConsumerDefinition struct {
 func (c *ConsumerDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
-	for i, v := range c.Hostnames {
-		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	if len(c.Hostnames) == 0 {
+		c.Hostnames = append(c.Hostnames, "*")
+	} else {
+		for i, v := range c.Hostnames {
+			c.Hostnames[i] = envVarCheckNReplace(v, "")
+		}
 	}
 }
 
@@ -322,14 +326,24 @@ type ProducerDefinition struct {
 	Group             string   `yaml:"group,omitempty"`
 	Hostnames         []string `yaml:"hostnames,omitempty,flow"`
 	EnableIdempotence bool     `yaml:"enableIdempotence"`
-	TransactionalID   string   `yaml:"transactionalID"`
+	TransactionalID   bool     `yaml:"enableTransactions"`
 }
 
 func (c *ProducerDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
-	for i, v := range c.Hostnames {
-		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	if len(c.Hostnames) == 0 {
+		c.Hostnames = append(c.Hostnames, "*")
+	} else {
+		for i, v := range c.Hostnames {
+			c.Hostnames[i] = envVarCheckNReplace(v, "")
+		}
+	}
+	if c.TransactionalID && c.Group == "" {
+		logger.Fatalw("If Transactions are enabled, Producer needs to have a group defined.",
+			"Producer Principal", c.Principal,
+			"Producer Group", c.Group,
+			"Transactions Enabled", c.TransactionalID)
 	}
 }
 
@@ -343,8 +357,17 @@ type ConnectorDefinition struct {
 func (c *ConnectorDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
-	for i, v := range c.Hostnames {
-		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	if c.Type != "source" && c.Type != "sink" {
+		logger.Fatalw("Connectors need to be source or sink type. null or any other values are not expected.",
+			"Connector Principal", c.Principal,
+			"Connector Type provided", c.Type)
+	}
+	if len(c.Hostnames) == 0 {
+		c.Hostnames = append(c.Hostnames, "*")
+	} else {
+		for i, v := range c.Hostnames {
+			c.Hostnames[i] = envVarCheckNReplace(v, "")
+		}
 	}
 	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
 }
@@ -352,31 +375,55 @@ func (c *ConnectorDefinition) readValuesFromENV() {
 type StreamDefinition struct {
 	Principal string   `yaml:"id,omitempty"`
 	Type      string   `yaml:"type,omitempty"`
-	Group     string   `yaml:"application.id,omitempty"`
+	Group     string   `yaml:"group,omitempty"`
 	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *StreamDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
-	for i, v := range c.Hostnames {
-		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	if c.Type != "read" && c.Type != "write" {
+		logger.Fatalw("Streams need to be read or write type. null or any other values are not expected.",
+			"Stream Principal", c.Principal,
+			"Stream Type provided", c.Type)
+	}
+	c.Group = envVarCheckNReplace(c.Group, "")
+	if c.Group == "" {
+		logger.Fatalw("Streams need a group Name. It is the application.id that the Streams application is expected to use. null is not expected.",
+			"Stream Principal", c.Principal,
+			"Stream Group Name", c.Group)
+	}
+	if len(c.Hostnames) == 0 {
+		c.Hostnames = append(c.Hostnames, "*")
+	} else {
+		for i, v := range c.Hostnames {
+			c.Hostnames[i] = envVarCheckNReplace(v, "")
+		}
 	}
 }
 
 type KSQLDefinition struct {
 	Principal      string   `yaml:"id,omitempty"`
 	Type           string   `yaml:"type,omitempty"`
-	ClusterNameRef string   `yaml:"ksql.service.id,omitempty"`
+	ClusterNameRef string   `yaml:"group,omitempty"`
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
 }
 
 func (c *KSQLDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
+	if c.Type != "read" && c.Type != "write" {
+		logger.Fatalw("Connectors need to be source or sink type. null or any other values are not expected.",
+			"Connector Principal", c.Principal,
+			"Connector Type provided", c.Type)
+	}
 	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
-	for i, v := range c.Hostnames {
-		c.Hostnames[i] = envVarCheckNReplace(v, "")
+	if len(c.Hostnames) == 0 {
+		c.Hostnames = append(c.Hostnames, "*")
+	} else {
+		for i, v := range c.Hostnames {
+			c.Hostnames[i] = envVarCheckNReplace(v, "")
+		}
 	}
 }
 
