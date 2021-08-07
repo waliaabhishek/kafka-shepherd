@@ -2,6 +2,7 @@ package core
 
 import (
 	"strings"
+	"sync"
 
 	ksmisc "shepherd/misc"
 
@@ -36,6 +37,35 @@ func (utm *UserTopicMapping) PrintUTM() {
 			"Client Type", k1.ClientType,
 			"Group ID", k1.GroupID,
 			"Topic List", strings.Join(v1.TopicList, ", "))
+	}
+}
+
+func conditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping, presenceCheck bool, outputACLStream ACLStreamChannels) {
+	publishedACLs := new(sync.Map)
+	// sm := sync.Mutex{}
+	runLoop := true
+	for runLoop {
+		select {
+		case out := <-inputACLStream.SChannel:
+			temp := make(ACLMapping)
+			flag := false
+			for k, v := range out {
+				if _, present := (*findIn)[k]; present == presenceCheck {
+					if _, found := publishedACLs.LoadOrStore(k, v); !found {
+						temp[k] = v
+						flag = true
+					}
+				}
+			}
+			if flag {
+				outputACLStream.SChannel <- temp
+			}
+		case out := <-inputACLStream.FChannel:
+			outputACLStream.FChannel <- out
+		case out := <-inputACLStream.Finished:
+			runLoop = false
+			outputACLStream.Finished <- out
+		}
 	}
 }
 
@@ -81,25 +111,6 @@ func FindProvisionedACLsInCluster(in ACLMapping, providedAclType ACLOperationsIn
 	// 	}
 	// }
 	// return ret
-}
-
-func conditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping, presenceCheck bool, outputACLStream ACLStreamChannels) {
-	runLoop := true
-	for runLoop {
-		select {
-		case out := <-inputACLStream.SChannel:
-			for k := range out {
-				if _, present := (*findIn)[k]; present == presenceCheck {
-					outputACLStream.SChannel <- out
-				}
-			}
-		case out := <-inputACLStream.FChannel:
-			outputACLStream.FChannel <- out
-		case out := <-inputACLStream.Finished:
-			runLoop = false
-			outputACLStream.Finished <- out
-		}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
