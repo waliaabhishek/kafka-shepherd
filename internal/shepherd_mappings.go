@@ -15,7 +15,7 @@ func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigM
 		for _, tName := range v.Name {
 			v.Clients.addClientToUTM(utm, tName)
 		}
-		v.Clients.addHostnamesToUTM(&ConfMaps.UTM)
+		// v.Clients.addHostnamesToUTM(&ConfMaps.UTM)
 		tcm.addDataToTopicConfigMapping(sc, &v, v.Name)
 	}
 
@@ -50,7 +50,7 @@ func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigM
 					}
 				}
 			}
-			currClients.addHostnamesToUTM(&ConfMaps.UTM)
+			// currClients.addHostnamesToUTM(&ConfMaps.UTM)
 		}
 	}
 	// return utm, tcm
@@ -86,36 +86,49 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
 	for _, v := range c.Consumers {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
 		if v.Group != "" {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, "")
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, topic)
+			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, v.Hostnames)
 		}
 	}
 	for _, v := range c.Producers {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
-		if v.TransactionalID != "" {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, "")
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
+		if v.TransactionalID {
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
+			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, v.Hostnames)
 		}
 		if v.EnableIdempotence {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, "")
+			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
+			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, v.Hostnames)
 		}
 	}
 	for _, v := range c.Connectors {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, v.Hostnames)
 		// v.addClientToUTM(utm, topic)
 	}
 	for _, v := range c.Streams {
 		if v.getTypeValue() == ShepherdClientType_STREAM_READ {
 			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
+			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
 		} else {
 			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
+			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
 		}
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, v.Hostnames)
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, v.Hostnames)
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
 	}
 	for _, v := range c.KSQL {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, v.Hostnames)
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, topic)
+		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, v.Hostnames)
 	}
 }
 
@@ -157,23 +170,23 @@ func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType Sh
 	}
 }
 
-func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
-	for _, v := range c.Consumers {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
-	}
-	for _, v := range c.Producers {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
-	}
-	for _, v := range c.Connectors {
-		// TODO: COnnector Group Names ?????
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), "", v.Hostnames)
-	}
-	for _, v := range c.Streams {
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
-	}
+// func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
+// 	for _, v := range c.Consumers {
+// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
+// 	}
+// 	for _, v := range c.Producers {
+// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
+// 	}
+// 	for _, v := range c.Connectors {
+// 		// TODO: COnnector Group Names ?????
+// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), "", v.Hostnames)
+// 	}
+// 	for _, v := range c.Streams {
+// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
+// 	}
 
-	// TODO: KSQL Implementation is missing
-}
+// 	// TODO: KSQL Implementation is missing
+// }
 
 /*
 	This is the core function that implements addition to the USER to TOPIC Mapping.
@@ -273,6 +286,7 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol, ClusterSASLMechanism) {
 	var sp ClusterSecurityProtocol
 	// Figure Out the Security Protocol
+	// TODO: optimize the switch case with a map value set
 	switch sc.Configs[0]["security.protocol"] {
 	case "SASL_SSL":
 		logger.Debug("Inside the SASL_SSL switch statement")
