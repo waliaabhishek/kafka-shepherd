@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	aclMappings    ksinternal.ACLMapping = make(ksinternal.ACLMapping)
+	aclMappings    *ksinternal.ACLMapping
 	sca            *sarama.ClusterAdmin
 	logger         *zap.SugaredLogger
 	lastUpdateTime int64
@@ -28,6 +28,10 @@ func init() {
 }
 
 func RefreshClusterACLMetadata(forceRefresh bool) {
+	if aclMappings == nil {
+		temp := make(ksinternal.ACLMapping)
+		aclMappings = &temp
+	}
 	if time.Now().Unix()-lastUpdateTime > 30 || forceRefresh {
 		aclMappings = getACLListInKafkaACLFormat()
 	}
@@ -39,27 +43,35 @@ func ExecuteRequests(requestType ACLManagementType) {
 	case ACLManagementType_LIST_CLUSTER_ACL:
 		ksmisc.DottedLineOutput("List Cluster ACLs", "=", 80)
 		printClusterACLDetails()
-		ksmisc.DottedLineOutput("", "=", 80)
+		// ksmisc.DottedLineOutput("", "=", 80)
 		return
 	case ACLManagementType_LIST_CONFIG_ACL:
 		ksmisc.DottedLineOutput("List Config ACLs", "=", 80)
 		printConfigACLDetails()
-		ksmisc.DottedLineOutput("", "=", 80)
+		// ksmisc.DottedLineOutput("", "=", 80)
 		return
 	case ACLManagementType_CREATE_ACL:
-		createStream := ksinternal.FindNonExistentACLsInCluster(&aclMappings, ksinternal.KafkaACLOperation_ANY)
-		createACLs(createStream)
+		ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
+		createSet := ksinternal.FindNonExistentACLsInCluster(aclMappings, ksinternal.KafkaACLOperation_ANY)
+		createACLs(createSet)
+		// ksmisc.DottedLineOutput("", "=", 80)
 	case ACLManagementType_DELETE_UNKNOWN_ACL:
-		deleteStream := ksinternal.FindNonExistentACLsInConfig(&aclMappings, ksinternal.KafkaACLOperation_ANY)
-		deleteACLs(deleteStream)
+		ksmisc.DottedLineOutput("Delete Unknown ACLs", "=", 80)
+		deleteSet := ksinternal.FindNonExistentACLsInConfig(aclMappings, ksinternal.KafkaACLOperation_ANY)
+		deleteACLs(deleteSet)
+		ksmisc.DottedLineOutput("", "=", 80)
+	case ACLManagementType_DELETE_CONFIG_ACL:
+		ksmisc.DottedLineOutput("Delete Config ACLs", "=", 80)
+		deleteSet := ksinternal.FindProvisionedACLsInCluster(aclMappings, ksinternal.KafkaACLOperation_ANY)
+		deleteACLs(deleteSet)
+		ksmisc.DottedLineOutput("", "=", 80)
 	default:
 		logger.Errorw("Wrong Execution Mode selected.",
 			"Mode Provided", requestType.String())
 	}
 }
 
-func createACLs(in ksinternal.ACLStreamChannels) {
-	runLoop := true
+func createACLs(in *ksinternal.ACLMapping) {
 	var wg sync.WaitGroup
 	f := func(key ksinternal.ACLDetails, val interface{}) {
 		defer wg.Done()
@@ -89,36 +101,24 @@ func createACLs(in ksinternal.ACLStreamChannels) {
 			if err != nil {
 				logger.Warnw("Was not able to create the ACL.",
 					"Resource Details", r.ResourceName,
-					"ACL Type", a.Operation,
+					"ACL Type", a.Operation.String(),
 					"Error", err)
 			} else {
 				logger.Infow("Successfully created ACL.",
 					"Resource Details", r.ResourceName,
-					"ACL Type", a.Operation,
+					"ACL Type", a.Operation.String(),
 					"Error", err)
 			}
 		}
 	}
-	for runLoop {
-		select {
-		case out := <-in.SChannel:
-			for k, v := range out {
-				// Do what is need for acl execution
-				wg.Add(1)
-				go f(k, v)
-			}
-		case <-in.FChannel:
-			// Do Nothing
-		case <-in.Finished:
-			runLoop = false
-			wg.Wait()
-		}
+	for k, v := range *in {
+		wg.Add(1)
+		go f(k, v)
 	}
-
+	wg.Wait()
 }
 
-func deleteACLs(in ksinternal.ACLStreamChannels) {
-	runLoop := true
+func deleteACLs(in *ksinternal.ACLMapping) {
 	var wg sync.WaitGroup
 	f := func(key ksinternal.ACLDetails, val interface{}) {
 		defer wg.Done()
@@ -147,61 +147,50 @@ func deleteACLs(in ksinternal.ACLStreamChannels) {
 			if err != nil {
 				logger.Warnw("Was not able to create the ACL.",
 					"Resource Details", filter.ResourceName,
-					"ACL Operation Type", filter.Operation,
+					"ACL Operation Type", filter.Operation.String(),
 					"Error", err)
 			} else {
-				logger.Infow("Successfully created ACL.",
+				logger.Infow("Successfully deleted ACL.",
 					"Resource Details", filter.ResourceName,
-					"ACL Operation Type", filter.Operation,
+					"ACL Operation Type", filter.Operation.String(),
 					"Matched Object Resource Details", match)
 			}
 		}
 	}
-	for runLoop {
-		select {
-		case out := <-in.SChannel:
-			for k, v := range out {
-				// Do what is need for acl execution
-				wg.Add(1)
-				go f(k, v)
-			}
-		case <-in.FChannel:
-			// Do Nothing
-		case <-in.Finished:
-			runLoop = false
-			wg.Wait()
-		}
+	for k, v := range *in {
+		wg.Add(1)
+		go f(k, v)
 	}
-
+	wg.Wait()
 }
 
-func getACLListInKafkaACLFormat() ksinternal.ACLMapping {
+func getACLListInKafkaACLFormat() *ksinternal.ACLMapping {
 	acls := listKafkaACLs()
 	var wg sync.WaitGroup
-	wg.Add(len(*acls))
 	lock := &sync.Mutex{}
+	wg.Add(len(*acls))
 	for _, v := range *acls {
-		mapACLDetails(v, aclMappings, &wg, lock)
+		go mapACLDetails(v, aclMappings, &wg, lock)
 	}
 	wg.Wait()
 	return aclMappings
 }
 
-func mapACLDetails(in sarama.ResourceAcls, mapping ksinternal.ACLMapping, wg *sync.WaitGroup, lock *sync.Mutex) {
+func mapACLDetails(in sarama.ResourceAcls, mapping *ksinternal.ACLMapping, wg *sync.WaitGroup, mtx *sync.Mutex) {
 	defer wg.Done()
-
 	for _, v := range in.Acls {
 		if v.PermissionType == sarama.AclPermissionAllow {
-			lock.Lock()
+			mtx.Lock()
 			mapping.Append(ksinternal.ACLDetails{
 				ResourceType: sarama2KafkaResourceTypeConversion[in.Resource.ResourceType],
 				ResourceName: in.Resource.ResourceName,
-				PatternType:  correctResourcePatternType(in.Resource.ResourcePatternType, in.Resource.ResourceName),
-				Principal:    v.Principal,
-				Operation:    sarama2KafkaACLOperationConversion[v.Operation],
-				Hostname:     v.Host,
+				// PatternType:  correctResourcePatternType(in.Resource.ResourcePatternType, in.Resource.ResourceName),
+				PatternType: sarama2KafkaPatternTypeConversion[in.Resource.ResourcePatternType],
+				Principal:   v.Principal,
+				Operation:   sarama2KafkaACLOperationConversion[v.Operation],
+				Hostname:    v.Host,
 			}, nil)
-			lock.Unlock()
+			mtx.Unlock()
 		}
 	}
 }
@@ -211,7 +200,6 @@ func correctResourcePatternType(pat sarama.AclResourcePatternType, resourceName 
 		if resourceName == "*" {
 			return ksinternal.KafkaACLPatternType_LITERAL
 		}
-
 		if strings.HasSuffix(resourceName, "*") {
 			return ksinternal.KafkaACLPatternType_PREFIXED
 		}
@@ -222,8 +210,8 @@ func correctResourcePatternType(pat sarama.AclResourcePatternType, resourceName 
 
 func listKafkaACLs() *[]sarama.ResourceAcls {
 	filter := sarama.AclFilter{
-		ResourceType:              sarama.AclResourceAny,
 		ResourcePatternTypeFilter: sarama.AclPatternAny,
+		ResourceType:              sarama.AclResourceAny,
 		PermissionType:            sarama.AclPermissionAny,
 		Operation:                 sarama.AclOperationAny,
 		Version:                   1,
@@ -250,7 +238,7 @@ func printClusterACLDetails() {
 			)
 		}
 	}
-	for k := range aclMappings {
+	for k := range *aclMappings {
 		perm := ksinternal.KafkaACLPermissionType_ALLOW
 		logger.Infow("Mapped Kafka ACL Details (Only Alllow Mappings are filtered)",
 			"Resource Type", k.ResourceType.String(),
@@ -266,7 +254,7 @@ func printClusterACLDetails() {
 
 func printConfigACLDetails() {
 	perm := ksinternal.KafkaACLPermissionType_ALLOW
-	for k := range *ksinternal.ACLList {
+	for k := range *ksinternal.ShepherdACLList {
 		logger.Infow("Config ACL Mapping Details",
 			"Resource Type", k.ResourceType.String(),
 			"Resource Name", k.ResourceName,
