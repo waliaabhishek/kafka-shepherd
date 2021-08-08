@@ -88,6 +88,8 @@ func understandClusterTopology(sc *ksinternal.ShepherdCluster) (conf *sarama.Con
 	c := sarama.NewConfig()
 
 	c.ClientID = sc.ClientID
+	// This is the minimum version required to support prefixed ACLs.
+	c.Version = sarama.V2_0_0_0
 	// Figure Out the Security Protocol
 	switch sc.Configs[0]["security.protocol"] {
 	case "SASL_SSL":
