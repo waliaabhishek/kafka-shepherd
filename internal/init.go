@@ -21,8 +21,8 @@ var (
 		Blueprints:  ShepherdBlueprint{},
 		Definitions: ShepherdDefinition{},
 	}
-	ACLList *ACLMapping
-	DryRun  bool = false
+	ShepherdACLList *ACLMapping
+	DryRun          bool = false
 )
 
 // Internal variables for function
@@ -36,7 +36,7 @@ var (
 	blueprintMap         map[string]NVPairs
 	logger               *zap.SugaredLogger
 	topicsInConfig       mapset.Set
-	aclList              ACLMapping
+	shepherdACLList      ACLMapping
 )
 
 const (
@@ -67,10 +67,10 @@ func init() {
 	GenerateMappings(&SpdCore, &GetConfigMaps().UTM, &GetConfigMaps().TCM)
 	logger.Debug("Config File parse Result: ", ConfMaps)
 
-	topicsInConfig = ConfMaps.UTM.getTopicListFromUTMList()
+	topicsInConfig = ConfMaps.UTM.getTopicList()
 
-	aclList = ConfMaps.UTM.GenerateShepherdClientTypeMappings()
-	ACLList = &aclList
+	shepherdACLList = ConfMaps.UTM.getShepherdACLList()
+	ShepherdACLList = &shepherdACLList
 }
 
 func ResolveFlags() {
