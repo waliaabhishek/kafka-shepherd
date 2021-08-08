@@ -77,13 +77,12 @@ func (c KafkaACLOperation) GetValue(in string) (ACLOperationsInterface, error) {
 	return s, nil
 }
 
-func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel chan<- ACLMapping, fChannel chan<- ACLMapping, done chan<- bool) {
-	for k, v := range in {
-		temp := ACLMapping{}
+func (c KafkaACLOperation) generateACLMappingStructures(in *ACLMapping) *ACLMapping {
+	temp := ACLMapping{}
+	for k, v := range *in {
 		switch k.Operation.(type) {
 		case KafkaACLOperation:
 			temp[k] = v
-			sChannel <- temp
 		case ShepherdClientType:
 			switch k.Operation {
 			case ShepherdClientType_PRODUCER, ShepherdClientType_STREAM_WRITE:
@@ -93,19 +92,21 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 				// Enable Describe on Transactional ID
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-				sChannel <- temp
 			case ShepherdClientType_TRANSACTIONAL_PRODUCER:
 				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL,
+					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL,
+				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName,
+					KafkaACLPatternType_LITERAL,
+					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
 				// Enable Idempotent Writes with Transaction ID
-				sChannel <- temp
 			case ShepherdClientType_PRODUCER_IDEMPOTENCE:
 				// Repeat of above for the corner case where the customer wants idempotence but not the transactional behavior
-				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, k.ResourceName, KafkaACLPatternType_LITERAL,
+				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, k.ResourceName,
+					KafkaACLPatternType_LITERAL,
+					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
-				sChannel <- temp
 			case ShepherdClientType_CONSUMER, ShepherdClientType_STREAM_READ:
 				// Enable Topic Read
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
@@ -113,17 +114,16 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 				// Enable topic Describe
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-				sChannel <- temp
 			case ShepherdClientType_CONSUMER_GROUP:
 				// Enable Consumer Group Functionalities
-				temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName, KafkaACLPatternType_LITERAL,
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName,
+					KafkaACLPatternType_LITERAL,
+					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-				sChannel <- temp
 			case ShepherdClientType_SOURCE_CONNECTOR:
 				// Enable Topic Read
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
-				sChannel <- temp
 				if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
 					//  TODO : I am still debating if a connector should be allowed to create a topic or not.
 					// Personally i don't think topic creation should be allowed/tolerated at all via code bases
@@ -137,7 +137,9 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				// Enable the connector to use consumer groups if they would want to
-				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)[KafkaResourceType_GROUP.String()], KafkaACLPatternType_LITERAL,
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)[KafkaResourceType_GROUP.String()],
+					// KafkaACLPatternType_LITERAL,
+					KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				//  TODO : I am still debating if a Sink connector should be allowed to create a topic or not.
 				// Personally I don't think topic creation should be allowed/tolerated at all via code bases
@@ -145,12 +147,10 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 				// If topic name is literal then enable create on that topic name as well
 				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
 				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
-				sChannel <- temp
 			//  TODO: Implement use case for KSQL
 			// case ShepherdClientType_KSQL.String():
 			default:
-				temp[k] = nil
-				fChannel <- temp
+				// temp[k] = nil
 				logger.Warnw(" Could not generate Kafka ACL Mappings for the provided ACL Map. Sending back to the failure channel.",
 					"Principal", k.Principal,
 					"Resource Type", k.ResourceType.String(),
@@ -160,18 +160,18 @@ func (c KafkaACLOperation) generateACLMappingStructures(in ACLMapping, sChannel 
 			}
 		}
 	}
-	done <- true
-	close(sChannel)
-	close(fChannel)
-	close(done)
+	return &temp
 }
 
 func determinePatternType(topicName string) KafkaACLPatternType {
 	if topicName == "*" {
 		return KafkaACLPatternType_LITERAL
+		// return KafkaACLPatternType_UNKNOWN
 	}
 	if strings.HasSuffix(topicName, fmt.Sprintf("%s*", SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken)) {
 		return KafkaACLPatternType_PREFIXED
+		// return KafkaACLPatternType_UNKNOWN
 	}
+	// return KafkaACLPatternType_UNKNOWN
 	return KafkaACLPatternType_LITERAL
 }

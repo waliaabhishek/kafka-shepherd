@@ -2,7 +2,6 @@ package core
 
 import (
 	"strings"
-	"sync"
 
 	ksmisc "shepherd/misc"
 
@@ -18,7 +17,7 @@ import (
 	(.*) suffixed topics. Technically, this is the unique list of topics
 	that the conffiguration is expecting to be created.
 */
-func (utm *UserTopicMapping) getTopicListFromUTMList() mapset.Set {
+func (utm *UserTopicMapping) getTopicList() mapset.Set {
 	t := mapset.NewSet()
 	for _, v := range *utm {
 		for _, topic := range v.TopicList {
@@ -28,6 +27,61 @@ func (utm *UserTopicMapping) getTopicListFromUTMList() mapset.Set {
 		}
 	}
 	return t
+}
+
+func (utm *UserTopicMapping) getShepherdACLList() ACLMapping {
+	ret := make(ACLMapping)
+	var temp ShepherdClientType
+	for k, v := range *utm {
+		pairs := make([][]string, 0)
+		pairs = append(pairs, []string{k.Principal}, []string{k.GroupID}, []string{k.ClientType.String()}, v.Hostnames, v.TopicList)
+		// TODO: Add logic to convert the higher level constructs (PRODUCER, CONSUMER, etc to the lower level constructs (ClusterAclOperation)
+		pairs = ksmisc.GetPermutationsString(pairs)
+		for _, i := range pairs {
+			varType, _ := temp.GetValue(i[2])
+			switch varType {
+			case ShepherdClientType_PRODUCER:
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_TRANSACTIONAL_PRODUCER:
+				ret[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, i[1], determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_PRODUCER_IDEMPOTENCE:
+				ret[constructACLDetailsObject(KafkaResourceType_CLUSTER, "kafka-cluster", determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_CONSUMER:
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_CONSUMER_GROUP:
+				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[2], determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_SOURCE_CONNECTOR:
+				value := make(NVPairs)
+				value[KafkaResourceType_CLUSTER.String()] = "kafka-cluster"
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = value
+			case ShepherdClientType_SINK_CONNECTOR:
+				value := make(NVPairs)
+				value[KafkaResourceType_GROUP.String()] = i[1]
+				value[KafkaResourceType_CLUSTER.String()] = "kafka-cluster"
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = value
+			case ShepherdClientType_STREAM_READ:
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_STREAM_WRITE:
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = nil
+			case ShepherdClientType_KSQL:
+				// TODO: Implement KSQL Permission sets
+				ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
+					i[0], varType, i[3])] = nil
+			default:
+				// TODO: Error handling if the Client Type provided is unknown
+			}
+		}
+	}
+	return ret
 }
 
 func (utm *UserTopicMapping) PrintUTM() {
@@ -40,33 +94,16 @@ func (utm *UserTopicMapping) PrintUTM() {
 	}
 }
 
-func conditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping, presenceCheck bool, outputACLStream ACLStreamChannels) {
-	publishedACLs := new(sync.Map)
-	// sm := sync.Mutex{}
-	runLoop := true
-	for runLoop {
-		select {
-		case out := <-inputACLStream.SChannel:
-			temp := make(ACLMapping)
-			flag := false
-			for k, v := range out {
-				if _, present := (*findIn)[k]; present == presenceCheck {
-					if _, found := publishedACLs.LoadOrStore(k, v); !found {
-						temp[k] = v
-						flag = true
-					}
-				}
+func conditionalACLMapper(inputACLs *ACLMapping, findIn *ACLMapping, presenceCheck bool) *ACLMapping {
+	ret := make(ACLMapping)
+	for k, v := range *inputACLs {
+		if _, present := (*findIn)[k]; present == presenceCheck {
+			if _, found := ret[k]; !found {
+				ret[k] = v
 			}
-			if flag {
-				outputACLStream.SChannel <- temp
-			}
-		case out := <-inputACLStream.FChannel:
-			outputACLStream.FChannel <- out
-		case out := <-inputACLStream.Finished:
-			runLoop = false
-			outputACLStream.Finished <- out
 		}
 	}
+	return &ret
 }
 
 /*
@@ -74,43 +111,28 @@ func conditionalACLStreamer(inputACLStream ACLStreamChannels, findIn *ACLMapping
 	to the map of ACLMapping created by parsing the configurations. The response is the mapping
 	that the Kafka connection will need to create as a baseline.
 */
-func FindNonExistentACLsInCluster(in *ACLMapping, providedAclType ACLOperationsInterface) ACLStreamChannels {
-	// ret := make(ACLMapping)
-	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
-	outStream := getNewACLChannels()
-	go conditionalACLStreamer(inStream, in, false, outStream)
-	return outStream
+func FindNonExistentACLsInCluster(in *ACLMapping, providedAclType ACLOperationsInterface) *ACLMapping {
+	convertedList := ConfMaps.UTM.RenderACLMappings(&shepherdACLList, providedAclType)
+	return conditionalACLMapper(convertedList, in, false)
 }
 
 /*
 	Returns ACLMapping construct for the ACLs that are provisioned in the Kafka cluster, but are
 	not available as part of the configuration files.
 */
-func FindNonExistentACLsInConfig(in *ACLMapping, providedAclType ACLOperationsInterface) ACLStreamChannels {
-	// ret := make(ACLMapping)
-	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
-	outStream := getNewACLChannels()
-	go conditionalACLStreamer(inStream, &aclList, false, outStream)
-	return outStream
+func FindNonExistentACLsInConfig(in *ACLMapping, providedAclType ACLOperationsInterface) *ACLMapping {
+	convertedList := ConfMaps.UTM.RenderACLMappings(&shepherdACLList, providedAclType)
+	return conditionalACLMapper(in, convertedList, false)
 }
 
 /*
 	Compares the list of ACLMappings provided from the Kafka Cluster to the ACLMappings that are
-	part of the Configurations. It creates
+	part of the Configurations. It returns ACL Stream that is a part of the Shepherd Config and
+	is already provisioned in the Kafka Cluster
 */
-func FindProvisionedACLsInCluster(in ACLMapping, providedAclType ACLOperationsInterface) ACLStreamChannels {
-	inStream := ConfMaps.UTM.RenderACLMappings(aclList, providedAclType)
-	outStream := getNewACLChannels()
-	go conditionalACLStreamer(inStream, &aclList, true, outStream)
-	return outStream
-	// ret := make(ACLMapping)
-	// for key := range in {
-	// 	val := ACLDetails{ClientID: key.ClientID, GroupID: key.GroupID, Operation: key.Operation, TopicName: key.TopicName, Hostname: key.Hostname}
-	// 	if _, present := aclList[val]; present {
-	// 		ret[val] = nil
-	// 	}
-	// }
-	// return ret
+func FindProvisionedACLsInCluster(in *ACLMapping, providedAclType ACLOperationsInterface) *ACLMapping {
+	convertedList := ConfMaps.UTM.RenderACLMappings(&shepherdACLList, providedAclType)
+	return conditionalACLMapper(convertedList, in, true)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
