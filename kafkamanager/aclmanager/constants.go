@@ -1,7 +1,7 @@
 package aclmanager
 
 import (
-	ksinternal "shepherd/internal"
+	ksinternal "github.com/waliaabhishek/kafka-shepherd/internal"
 
 	"github.com/Shopify/sarama"
 )

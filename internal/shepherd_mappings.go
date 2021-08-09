@@ -1,8 +1,9 @@
 package core
 
 import (
-	ksmisc "shepherd/misc"
 	"strings"
+
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,24 +170,6 @@ func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType Sh
 		(*utm)[UserTopicMappingKey{Principal: clientId, ClientType: cType, GroupID: cGroup}] = UserTopicMappingValue{TopicList: []string{topicName}, Hostnames: []string{}}
 	}
 }
-
-// func (c ClientDefinition) addHostnamesToUTM(utm *UserTopicMapping) {
-// 	for _, v := range c.Consumers {
-// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
-// 	}
-// 	for _, v := range c.Producers {
-// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
-// 	}
-// 	for _, v := range c.Connectors {
-// 		// TODO: COnnector Group Names ?????
-// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), "", v.Hostnames)
-// 	}
-// 	for _, v := range c.Streams {
-// 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
-// 	}
-
-// 	// TODO: KSQL Implementation is missing
-// }
 
 /*
 	This is the core function that implements addition to the USER to TOPIC Mapping.

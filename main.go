@@ -1,35 +1,36 @@
 package main
 
 import (
-	km "shepherd/manager/aclmanager"
-	kstm "shepherd/manager/topicmanager"
-	ksmisc "shepherd/misc"
+	"flag"
 
-	"github.com/Shopify/sarama"
+	kscm "github.com/waliaabhishek/kafka-shepherd/kafkamanager"
+
+	ksam "github.com/waliaabhishek/kafka-shepherd/kafkamanager/aclmanager"
+
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 func main() {
-	ksmisc.DottedLineOutput("Starting New Run", "=", 100)
-	var sca *sarama.ClusterAdmin = kstm.GetKafkaClusterConnection()
-	defer (*sca).Close()
+	ksmisc.DottedLineOutput("Starting New Run", "=", 80)
+	flag.Parse()
+	defer kscm.CloseAdminConnection()
 
-	ksmisc.DottedLineOutput("Create Any Topics as necessary", "=", 100)
-	kstm.ExecuteRequests(sca, 10, kstm.CREATE_TOPIC)
+	// kstm.ExecuteRequests(1, kstm.TopicManagementType_CREATE_TOPIC)
 
-	// ksmisc.DottedLineOutput("Modify Any Topics as necessary", "=", 100)
-	// kstm.ExecuteRequests(sca, 10, kstm.MODIFY_TOPIC)
+	// kstm.ExecuteRequests(1, kstm.TopicManagementType_MODIFY_TOPIC)
 
-	// ksmisc.DottedLineOutput("Delete all topics executed by configs", "=", 100)
-	// kstm.ExecuteRequests(sca, 10, kstm.DELETE_TOPIC)
-	km.AclManager.GetACLListFromKafkaCluster()
-	km.AclManager.GetACLListFromKafkaCluster()
+	// kstm.ExecuteRequests(1, kstm.TopicManagementType_DELETE_CONFIG_TOPIC)
 
+	// kstm.ExecuteRequests(1, kstm.TopicManagementType_DELETE_UNKNOWN_TOPIC)
+
+	// ksam.ExecuteRequests(ksam.ACLManagementType_LIST_CLUSTER_ACL)
+	// ksam.ExecuteRequests(ksam.ACLManagementType_LIST_CONFIG_ACL)
+	// ksam.ExecuteRequests(ksam.ACLManagementType_CREATE_ACL)
+	ksam.ExecuteRequests(ksam.ACLManagementType_DELETE_UNKNOWN_ACL)
+	ksam.ExecuteRequests(ksam.ACLManagementType_DELETE_CONFIG_ACL)
 }
 
 // TODO: Get the list of ACL's from UTM List
-
-// TODO: Add Logging. Could possibly look into ZAP for logging.
-// https://github.com/uber-go/zap
 
 // TODO: Generate the Baseline YAML files from pre-existing clusters.
 

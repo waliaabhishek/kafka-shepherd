@@ -9,10 +9,11 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	ksinternal "shepherd/internal"
-	ksmisc "shepherd/misc"
 	"sync"
 	"syscall"
+
+	ksinternal "github.com/waliaabhishek/kafka-shepherd/internal"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 
 	"github.com/Shopify/sarama"
 	"github.com/xdg/scram"

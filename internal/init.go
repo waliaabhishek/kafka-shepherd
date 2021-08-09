@@ -2,8 +2,9 @@ package core
 
 import (
 	"flag"
-	ksmisc "shepherd/misc"
 	"strings"
+
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 
 	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"

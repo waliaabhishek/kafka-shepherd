@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	ksinternal "shepherd/internal"
-	kcm "shepherd/kafkamanager"
-	ksmisc "shepherd/misc"
+	ksinternal "github.com/waliaabhishek/kafka-shepherd/internal"
+	kcm "github.com/waliaabhishek/kafka-shepherd/kafkamanager"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"

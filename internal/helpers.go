@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	ksmisc "shepherd/misc"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 
 	mapset "github.com/deckarep/golang-set"
 )

@@ -1,12 +1,13 @@
 package aclmanager
 
 import (
-	ksinternal "shepherd/internal"
-	kafkamanager "shepherd/kafkamanager"
-	ksmisc "shepherd/misc"
 	"strings"
 	"sync"
 	"time"
+
+	ksinternal "github.com/waliaabhishek/kafka-shepherd/internal"
+	kafkamanager "github.com/waliaabhishek/kafka-shepherd/kafkamanager"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 
 	"github.com/Shopify/sarama"
 	"go.uber.org/zap"
