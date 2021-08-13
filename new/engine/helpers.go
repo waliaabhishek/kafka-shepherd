@@ -1,13 +1,11 @@
-package core
+package engine
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
-
-	mapset "github.com/deckarep/golang-set"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
 )
 
 // This function can be used to check if a specific string value begins with the ENV Var prefix or not.
@@ -77,22 +75,6 @@ func (snd *ScopeDefinition) prettyPrintSND(tabCounter int) {
 		fmt.Println(strings.Repeat("  ", tabCounter), "Child Node:")
 		snd.Child.prettyPrintSND(tabCounter + 1)
 	}
-}
-
-func GetStringSliceFromMapSet(in mapset.Set) []string {
-	result := make([]string, 0)
-	for item := range in.Iterator().C {
-		result = append(result, item.(string))
-	}
-	return result
-}
-
-func GetMapSetFromStringSlice(in []string) mapset.Set {
-	result := mapset.NewSet()
-	for _, v := range in {
-		result.Add(v)
-	}
-	return result
 }
 
 func (c *ACLMapping) prettyPrintACLMapping() {

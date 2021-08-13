@@ -1,4 +1,4 @@
-package core
+package engine
 
 type CustomParser interface {
 	readValuesFromENV()
@@ -75,6 +75,7 @@ type ShepherdCluster struct {
 	Name             string        `yaml:"name"`
 	IsEnabled        bool          `yaml:"isEnabled"`
 	BootstrapServers []string      `yaml:"bootstrapServers,flow"`
+	ACLType          string        `yaml:"aclType"`
 	ClientID         string        `yaml:"clientId"`
 	TLSDetails       ShepherdCerts `yaml:"tlsDetails,omitempty"`
 	Configs          []NVPairs     `yaml:"configOverrides,flow"`
@@ -485,15 +486,15 @@ type UserTopicMappingValue struct {
 */
 type ClusterConfigMapping map[ClusterConfigMappingKey]ClusterConfigMappingValue
 type ClusterConfigMappingKey struct {
-	IsEnabled               bool
-	Name                    string
-	ClusterSecurityProtocol ClusterSecurityProtocol
-	ClusterSASLMechanism    ClusterSASLMechanism
-	IsActive                bool
+	IsEnabled bool
+	Name      string
 }
 
 type ClusterConfigMappingValue struct {
-	ClientID       string
-	Configs        NVPairs
-	ClusterDetails NVPairs
+	IsActive                bool
+	ClusterSecurityProtocol ClusterSecurityProtocol
+	ClusterSASLMechanism    ClusterSASLMechanism
+	ClientID                string
+	Configs                 NVPairs
+	ClusterDetails          NVPairs
 }

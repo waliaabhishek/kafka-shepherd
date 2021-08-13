@@ -1,4 +1,4 @@
-package topicmanager
+package topicmanagers
 
 type (
 	/* 	Set up a new constant for possible topic management Function

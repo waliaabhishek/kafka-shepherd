@@ -6,21 +6,21 @@ configs:
         - localhost:9092
       clientId: "abhishektest1"
       isEnabled: false
-    - name: test_ssl_1WaySSL
-      bootstrapServers:
-        - localhost:9093
-      isEnabled: false
-      clientId: "abhishektest2"
-      tlsDetails:
-        enable2WaySSL: false
-        trustedCerts:
-          - "env::SHEPHERD_TRUSTCERT_1_PEM"
-          - "env::SHEPHERD_TRUSTCERT_2_PEM"
-        clientCert: "env::SHEPHERD_CLIENTCERT_PEM"
-        privateKey: "env::SHEPHERD_CLIENTKEY_KEY"
-        privateKeyPass: "env::SHEPHERD_CLIENTKEY_KEYPASS"
-      configOverrides:
-        - security.protocol: SSL
+    # - name: test_ssl_1WaySSL
+    #   bootstrapServers:
+    #     - localhost:9093
+    #   isEnabled: false
+    #   clientId: "abhishektest2"
+    #   tlsDetails:
+    #     enable2WaySSL: false
+    #     trustedCerts:
+    #       - "env::SHEPHERD_TRUSTCERT_1_PEM"
+    #       - "env::SHEPHERD_TRUSTCERT_2_PEM"
+    #     clientCert: "env::SHEPHERD_CLIENTCERT_PEM"
+    #     privateKey: "env::SHEPHERD_CLIENTKEY_KEY"
+    #     privateKeyPass: "env::SHEPHERD_CLIENTKEY_KEYPASS"
+    #   configOverrides:
+    #     - security.protocol: SSL
     - name: test2_sasl_plaintext
       bootstrapServers:
         - localhost:9093

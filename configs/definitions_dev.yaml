@@ -11,12 +11,16 @@ definitions:
           #   - id: "User:1111"
           #     group: "hello"
           producers:
-            - id: "User:1112"
+            - id: "User:1121"
+            - id: "User:1122"
               group: "hello"
-            - id: "User:1112"
+            - id: "User:1123"
               group: "hello"
-            - id: "User:1111"
+              enableIdempotence: true
+            - id: "User:1124"
               group: "hello"
+              enableIdempotence: true
+              enableTransactions: true
           # connectors:
           #   - id: "User:1113"
           #     type: "source"

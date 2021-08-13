@@ -247,3 +247,19 @@ func GetLogger(enableDebug bool, enableStructuredLogs bool) *zap.SugaredLogger {
 	zaplog = logger.Sugar()
 	return zaplog
 }
+
+func GetStringSliceFromMapSet(in mapset.Set) []string {
+	result := make([]string, 0)
+	for item := range in.Iterator().C {
+		result = append(result, item.(string))
+	}
+	return result
+}
+
+func GetMapSetFromStringSlice(in *[]string) *mapset.Set {
+	result := mapset.NewSet()
+	for _, v := range *in {
+		result.Add(v)
+	}
+	return &result
+}

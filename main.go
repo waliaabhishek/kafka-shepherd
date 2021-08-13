@@ -7,6 +7,8 @@ import (
 
 	ksam "github.com/waliaabhishek/kafka-shepherd/kafkamanager/aclmanager"
 
+	kstm "github.com/waliaabhishek/kafka-shepherd/kafkamanager/topicmanager"
+
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
@@ -15,17 +17,17 @@ func main() {
 	flag.Parse()
 	defer kscm.CloseAdminConnection()
 
-	// kstm.ExecuteRequests(1, kstm.TopicManagementType_CREATE_TOPIC)
+	kstm.ExecuteRequests(1, kstm.TopicManagementType_CREATE_TOPIC)
 
-	// kstm.ExecuteRequests(1, kstm.TopicManagementType_MODIFY_TOPIC)
+	kstm.ExecuteRequests(1, kstm.TopicManagementType_MODIFY_TOPIC)
 
-	// kstm.ExecuteRequests(1, kstm.TopicManagementType_DELETE_CONFIG_TOPIC)
+	kstm.ExecuteRequests(1, kstm.TopicManagementType_DELETE_CONFIG_TOPIC)
 
-	// kstm.ExecuteRequests(1, kstm.TopicManagementType_DELETE_UNKNOWN_TOPIC)
+	kstm.ExecuteRequests(1, kstm.TopicManagementType_DELETE_UNKNOWN_TOPIC)
 
-	// ksam.ExecuteRequests(ksam.ACLManagementType_LIST_CLUSTER_ACL)
-	// ksam.ExecuteRequests(ksam.ACLManagementType_LIST_CONFIG_ACL)
-	// ksam.ExecuteRequests(ksam.ACLManagementType_CREATE_ACL)
+	ksam.ExecuteRequests(ksam.ACLManagementType_LIST_CLUSTER_ACL)
+	ksam.ExecuteRequests(ksam.ACLManagementType_LIST_CONFIG_ACL)
+	ksam.ExecuteRequests(ksam.ACLManagementType_CREATE_ACL)
 	ksam.ExecuteRequests(ksam.ACLManagementType_DELETE_UNKNOWN_ACL)
 	ksam.ExecuteRequests(ksam.ACLManagementType_DELETE_CONFIG_ACL)
 }

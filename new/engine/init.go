@@ -1,10 +1,10 @@
-package core
+package engine
 
 import (
 	"flag"
 	"strings"
 
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
 
 	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"
@@ -65,7 +65,7 @@ func init() {
 	logger.Debug("Shepherd Definitions parse Result: ", SpdCore.Definitions)
 
 	// Understand the Blueprints & Definitions file and setup the External facing representation of the core files.
-	GenerateMappings(&SpdCore, &GetConfigMaps().UTM, &GetConfigMaps().TCM)
+	GenerateMappings()
 	logger.Debug("Config File parse Result: ", ConfMaps)
 
 	topicsInConfig = ConfMaps.UTM.getTopicList()

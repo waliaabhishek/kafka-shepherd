@@ -1,35 +1,35 @@
-package core
+package engine
 
 import (
 	"strings"
 
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////// User Topic Maping and Topic Configuration Mapping Generator /////////
 ///////////////////////////////////////////////////////////////////////////////
 
-func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigMapping) {
+func GenerateMappings() {
 	// Adhoc Topic Structure Parsing and table setup
-	for _, v := range sc.Definitions.DefinitionRoot.AdhocConfigs.Topics {
+	for _, v := range SpdCore.Definitions.DefinitionRoot.AdhocConfigs.Topics {
 		for _, tName := range v.Name {
-			v.Clients.addClientToUTM(utm, tName)
+			v.Clients.addClientToUTM(tName)
 		}
 		// v.Clients.addHostnamesToUTM(&ConfMaps.UTM)
-		tcm.addDataToTopicConfigMapping(sc, &v, v.Name)
+		ConfMaps.TCM.addDataToTopicConfigMapping(&SpdCore, &v, v.Name)
 	}
 
-	for _, v := range sc.Definitions.DefinitionRoot.ScopeFlow {
+	for _, v := range SpdCore.Definitions.DefinitionRoot.ScopeFlow {
 		iter := 0
 		values := [][]string{}
 		val1, cont, snd := []string{}, true, &v
-		sep := sc.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken
+		sep := SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken
 		for cont {
 			currTopics := append(snd.Topics.Name, "*")
 			currClients := snd.Clients
 			currFilters := snd.Topics.IgnoreScope
-			val1, cont, snd = snd.getTokensForThisLevel(iter, &sc.Blueprints.Blueprint)
+			val1, cont, snd = snd.getTokensForThisLevel(iter, &SpdCore.Blueprints.Blueprint)
 			if !ksmisc.IsZero1DSlice(val1) {
 				values = append(values, val1)
 			}
@@ -45,16 +45,15 @@ func GenerateMappings(sc *ShepherdCore, utm *UserTopicMapping, tcm *TopicConfigM
 				// Ignore topic combinations with the filterscope at that level from being added to the UTM list
 				if !ksmisc.ExistsInString(temp, currFilters, ksmisc.RemoveValuesFromSlice(currTopics, "*"), sep) {
 					// fmt.Println("Inside the filter for *. Topic Name:", temp)
-					currClients.addClientToUTM(utm, temp)
+					currClients.addClientToUTM(temp)
 					if !strings.HasSuffix(temp, ".*") {
-						tcm.addDataToTopicConfigMapping(sc, &v.Topics, []string{temp})
+						ConfMaps.TCM.addDataToTopicConfigMapping(&SpdCore, &v.Topics, []string{temp})
 					}
 				}
 			}
-			// currClients.addHostnamesToUTM(&ConfMaps.UTM)
 		}
 	}
-	// return utm, tcm
+	SpdCore.addDataToClusterConfigMapping(&ConfMaps.CCM)
 }
 
 func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]string, bool, *ScopeDefinition) {
@@ -84,7 +83,7 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 	return ret, sd.Child != nil, sd.Child
 }
 
-func (c ClientDefinition) addClientToUTM(utm *UserTopicMapping, topic string) {
+func (c ClientDefinition) addClientToUTM(topic string) {
 	for _, v := range c.Consumers {
 		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
 		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
@@ -247,15 +246,14 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 		if cluster.IsEnabled {
 			sp, sc := cluster.understandClusterTopology()
 			value := ClusterConfigMappingValue{
-				ClientID:       cluster.ClientID,
-				Configs:        cluster.Configs[0],
-				ClusterDetails: cluster.ClusterDetails[0],
-			}
-			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled,
-				Name:                    cluster.Name,
+				ClientID:                cluster.ClientID,
+				Configs:                 cluster.Configs[0],
+				ClusterDetails:          cluster.ClusterDetails[0],
 				ClusterSecurityProtocol: sp,
 				ClusterSASLMechanism:    sc,
-				IsActive:                false}] = value
+				IsActive:                false,
+			}
+			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled, Name: cluster.Name}] = value
 		}
 	}
 }
