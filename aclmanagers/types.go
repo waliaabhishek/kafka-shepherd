@@ -1,7 +1,7 @@
 package aclmanagers
 
 import (
-	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
 )
 
 var (

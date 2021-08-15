@@ -3,7 +3,7 @@ package kafkamanagers
 import (
 	"sync"
 
-	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
 )
 
 type KafkaConnections map[KafkaConnectionsKey]KafkaConnectionsValue

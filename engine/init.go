@@ -4,7 +4,7 @@ import (
 	"flag"
 	"strings"
 
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 
 	mapset "github.com/deckarep/golang-set"
 	"go.uber.org/zap"

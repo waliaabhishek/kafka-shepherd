@@ -4,8 +4,8 @@ import (
 	"sort"
 
 	mapset "github.com/deckarep/golang-set"
-	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 var (

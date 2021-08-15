@@ -4,9 +4,9 @@ import (
 	"sync"
 
 	"github.com/Shopify/sarama"
-	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
-	"github.com/waliaabhishek/kafka-shepherd/new/kafkamanagers"
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
+	"github.com/waliaabhishek/kafka-shepherd/kafkamanagers"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 type SaramaACLManagerImpl struct {

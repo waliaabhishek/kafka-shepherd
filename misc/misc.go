@@ -36,8 +36,8 @@ var zaplog *zap.SugaredLogger
 // 	fmt.Fprintln(TW, " ")
 // }
 
-func Find(slice []string, val string) (int, bool) {
-	for i, item := range slice {
+func Find(sl *[]string, val string) (int, bool) {
+	for i, item := range *sl {
 		if strings.ToLower(strings.TrimSpace(item)) == strings.ToLower(strings.TrimSpace(val)) {
 			return i, true
 		}
@@ -54,10 +54,10 @@ func FindSASLValues(s string, sep string) string {
 	removes it from the slice and return the new slice.
 */
 func RemoveValuesFromSlice(s []string, val string) []string {
-	if pos, present := Find(s, val); present {
+	if pos, present := Find(&s, val); present {
 		for present {
 			s = RemovePositionFromSlice(s, pos)
-			pos, present = Find(s, val)
+			pos, present = Find(&s, val)
 		}
 	}
 	return s

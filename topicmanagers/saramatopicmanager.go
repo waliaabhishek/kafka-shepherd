@@ -7,9 +7,9 @@ import (
 
 	"github.com/Shopify/sarama"
 	mapset "github.com/deckarep/golang-set"
-	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
-	kafkamanagers "github.com/waliaabhishek/kafka-shepherd/new/kafkamanagers"
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
+	kafkamanagers "github.com/waliaabhishek/kafka-shepherd/kafkamanagers"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 type SaramaTopicManagerImpl struct {
@@ -30,6 +30,14 @@ func (t SaramaTopicManagerImpl) getSaramaConnectionObject(clusterName string) *s
 	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].Connection.(*kafkamanagers.SaramaConnection).SCA
 }
 
+func (t SaramaTopicManagerImpl) GetTopicsAsSet(clusterName string) *mapset.Set {
+	tSet := mapset.NewSet()
+	for k := range *t.getTopicListFromKafkaCluster(clusterName) {
+		tSet.Add(string(k))
+	}
+	return &tSet
+}
+
 /*
 	This function returns the list of topics from Kafka Cluster.
 */
@@ -40,14 +48,6 @@ func (t SaramaTopicManagerImpl) getTopicListFromKafkaCluster(clusterName string)
 			"Error Details", err)
 	}
 	return &topics
-}
-
-func (t SaramaTopicManagerImpl) GetTopicsAsSet(clusterName string) *mapset.Set {
-	tSet := mapset.NewSet()
-	for k := range *t.getTopicListFromKafkaCluster(clusterName) {
-		tSet.Add(string(k))
-	}
-	return &tSet
 }
 
 func (t SaramaTopicManagerImpl) CreateTopics(clusterName string, topics mapset.Set, dryRun bool) {
@@ -289,60 +289,3 @@ func (t SaramaTopicManagerImpl) generateTopicConfigMappings(ctcm *ksengine.Topic
 		(*ctcm)[topicName] = value
 	}
 }
-
-// func waitForMetadataSync(requestType string) {
-// 	i := 0
-// 	switch requestType {
-// 	case "create":
-// 		for {
-// 			if
-// 			if ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()).Cardinality() != 0 && i <= 5 {
-// 				time.Sleep(2 * time.Second)
-// 				fmt.Println("The Topics Have not been created yet. Waiting for Metadata to sync")
-// 				i += 1
-// 			} else {
-// 				if i >= 5 {
-// 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
-// 					fmt.Println("Topics Listed in the config that the tool was not able to create: ")
-// 					ksmisc.PrettyPrintMapSet(ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()))
-// 				}
-// 				break
-// 			}
-// 		}
-// 	case "modify":
-// 		for {
-// 			refreshTopicList(true)
-// 			ts, ps := findMismatchedConfigTopics()
-// 			if ts.Cardinality() != 0 && ps.Cardinality() != 0 && i <= 5 {
-// 				time.Sleep(2 * time.Second)
-// 				fmt.Println("The Topics Have not been modified yet. Waiting for Metadata to sync")
-// 				i += 1
-// 			} else {
-// 				if i >= 5 {
-// 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
-// 					fmt.Println("Topics Listed in the config that the tool was not able to modify: ")
-// 					ksmisc.PrettyPrintMapSet(ts)
-// 					fmt.Println("Topics Listed in the config that the tool was not able alter partitions for: ")
-// 					ksmisc.PrettyPrintMapSet(ps)
-// 				}
-// 				break
-// 			}
-// 		}
-// 	case "delete":
-// 		for {
-// 			refreshTopicList(true)
-// 			if !ksinternal.FindNonExistentTopicsInClusterMapSet(getTopicListFromKafkaCluster()).Equal(ksinternal.GetConfigTopicsAsMapSet()) && i <= 5 {
-// 				time.Sleep(2 * time.Second)
-// 				fmt.Println("The Topics Have not been deleted yet. Waiting for Metadata to sync")
-// 				i += 1
-// 			} else {
-// 				if i >= 5 {
-// 					fmt.Println("Retried 5 Times. The sync seems to be failing.")
-// 					fmt.Println("Topics Listed in the config that the tool was not able to delete: ")
-// 					ksmisc.PrettyPrintMapSet(ksinternal.FindProvisionedTopicsMapSet(getTopicListFromKafkaCluster()))
-// 				}
-// 				break
-// 			}
-// 		}
-// 	}
-// }

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 // This function can be used to check if a specific string value begins with the ENV Var prefix or not.

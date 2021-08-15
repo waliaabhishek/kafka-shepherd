@@ -13,8 +13,8 @@ import (
 	"syscall"
 
 	"github.com/Shopify/sarama"
-	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 	"github.com/xdg/scram"
 )
 

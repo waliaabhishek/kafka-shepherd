@@ -3,7 +3,7 @@ package engine
 import (
 	"strings"
 
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/new/misc"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 			temp = append(temp, v.Name)
 		}
 		if len(sd.CustomEnumRef) != 0 {
-			if loc, ok := ksmisc.Find(temp, sd.CustomEnumRef); ok {
+			if loc, ok := ksmisc.Find(&temp, sd.CustomEnumRef); ok {
 				for _, v := range b.CustomEnums[loc].Values {
 					if v != "" {
 						ret = append(ret, v)
@@ -161,7 +161,7 @@ func (c KSQLDefinition) getTypeValue() ShepherdClientType {
 */
 func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType ShepherdClientType, cGroup string, topicName string) {
 	if val, present := (*utm)[UserTopicMappingKey{Principal: clientId, ClientType: cType, GroupID: cGroup}]; present {
-		if _, ok := ksmisc.Find(val.TopicList, topicName); !ok {
+		if _, ok := ksmisc.Find(&val.TopicList, topicName); !ok {
 			val.TopicList = append(val.TopicList, topicName)
 		}
 		(*utm)[UserTopicMappingKey{Principal: clientId, ClientType: cType, GroupID: cGroup}] = val
@@ -176,7 +176,7 @@ func (utm *UserTopicMapping) addDataToUserTopicMapping(clientId string, cType Sh
 func (utm *UserTopicMapping) addHostnamesToUserTopicMapping(clientId string, cType ShepherdClientType, cGroup string, hostnames []string) {
 	if val, present := (*utm)[UserTopicMappingKey{Principal: clientId, ClientType: cType, GroupID: cGroup}]; present {
 		for _, v := range hostnames {
-			if _, found := ksmisc.Find(val.Hostnames, v); !found {
+			if _, found := ksmisc.Find(&val.Hostnames, v); !found {
 				val.Hostnames = append(val.Hostnames, v)
 			}
 		}
@@ -208,8 +208,8 @@ func (tcm *TopicConfigMapping) addDataToTopicConfigMapping(sc *ShepherdCore, td 
 func (in *NVPairs) overrideMergeMaps(temp []NVPairs, whitelist []string, blacklist []string) {
 	for _, v1 := range temp {
 		for k, v := range v1 {
-			_, wPresent := ksmisc.Find(whitelist, k)
-			_, bPresent := ksmisc.Find(blacklist, k)
+			_, wPresent := ksmisc.Find(&whitelist, k)
+			_, bPresent := ksmisc.Find(&blacklist, k)
 			//  The Property is either present in the whitelist or the whitelist is empty
 			//  and it is not present the blacklist
 			if (wPresent || ksmisc.IsZero1DSlice(whitelist)) && !bPresent {
