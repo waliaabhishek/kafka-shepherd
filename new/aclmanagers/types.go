@@ -4,17 +4,22 @@ import (
 	ksengine "github.com/waliaabhishek/kafka-shepherd/new/engine"
 )
 
+var (
+	logger = ksengine.GetLogger()
+)
+
 // Any ACL Manager will need to implement this interface.
 type ACLManager interface {
-	CreateACL(in *ksengine.ACLMapping, dryRun bool)
-	DeleteProvisionedACL(in *ksengine.ACLMapping, dryRun bool)
-	DeleteUnknownACL(in *ksengine.ACLMapping, dryRun bool)
-	ListACL()
+	CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
+	DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
+	DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
+	ListClusterACL(clusterName string)
+	ListConfigACL()
 }
 
 type ACLManagerBaseImpl struct{}
 
-func (a ACLManagerBaseImpl) ListEngineACLs() {
+func (a ACLManagerBaseImpl) ListConfigACL() {
 	perm := ksengine.KafkaACLPermissionType_ALLOW
 	for k := range *ksengine.ShepherdACLList {
 		logger.Infow("Config ACL Mapping Details",
