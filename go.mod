@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	github.com/Shopify/sarama v1.29.1
-	github.com/cweill/gotests v1.6.0 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
