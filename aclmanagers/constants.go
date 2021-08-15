@@ -1,7 +1,7 @@
 package aclmanagers
 
 import (
-	ksinternal "github.com/waliaabhishek/kafka-shepherd/engine"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
 
 	"github.com/Shopify/sarama"
 )
@@ -35,84 +35,84 @@ func (a *ACLManagementType) String() string {
 	return s
 }
 
-var sarama2KafkaResourceTypeConversion map[sarama.AclResourceType]ksinternal.ACLResourceInterface = map[sarama.AclResourceType]ksinternal.ACLResourceInterface{
-	sarama.AclResourceUnknown:         ksinternal.KafkaResourceType_UNKNOWN,
-	sarama.AclResourceAny:             ksinternal.KafkaResourceType_ANY,
-	sarama.AclResourceTopic:           ksinternal.KafkaResourceType_TOPIC,
-	sarama.AclResourceGroup:           ksinternal.KafkaResourceType_GROUP,
-	sarama.AclResourceCluster:         ksinternal.KafkaResourceType_CLUSTER,
-	sarama.AclResourceTransactionalID: ksinternal.KafkaResourceType_TRANSACTIONALID,
-	sarama.AclResourceDelegationToken: ksinternal.KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
+var sarama2KafkaResourceTypeConversion map[sarama.AclResourceType]ksengine.ACLResourceInterface = map[sarama.AclResourceType]ksengine.ACLResourceInterface{
+	sarama.AclResourceUnknown:         ksengine.KafkaResourceType_UNKNOWN,
+	sarama.AclResourceAny:             ksengine.KafkaResourceType_ANY,
+	sarama.AclResourceTopic:           ksengine.KafkaResourceType_TOPIC,
+	sarama.AclResourceGroup:           ksengine.KafkaResourceType_GROUP,
+	sarama.AclResourceCluster:         ksengine.KafkaResourceType_CLUSTER,
+	sarama.AclResourceTransactionalID: ksengine.KafkaResourceType_TRANSACTIONALID,
+	sarama.AclResourceDelegationToken: ksengine.KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
 }
 
-var kafka2SaramaResourceTypeConversion map[ksinternal.ACLResourceInterface]sarama.AclResourceType = map[ksinternal.ACLResourceInterface]sarama.AclResourceType{
-	ksinternal.KafkaResourceType_UNKNOWN:                   sarama.AclResourceUnknown,
-	ksinternal.KafkaResourceType_ANY:                       sarama.AclResourceAny,
-	ksinternal.KafkaResourceType_TOPIC:                     sarama.AclResourceTopic,
-	ksinternal.KafkaResourceType_GROUP:                     sarama.AclResourceGroup,
-	ksinternal.KafkaResourceType_CLUSTER:                   sarama.AclResourceCluster,
-	ksinternal.KafkaResourceType_TRANSACTIONALID:           sarama.AclResourceTransactionalID,
-	ksinternal.KafkaResourceType_RESOURCE_DELEGATION_TOKEN: sarama.AclResourceDelegationToken,
+var kafka2SaramaResourceTypeConversion map[ksengine.ACLResourceInterface]sarama.AclResourceType = map[ksengine.ACLResourceInterface]sarama.AclResourceType{
+	ksengine.KafkaResourceType_UNKNOWN:                   sarama.AclResourceUnknown,
+	ksengine.KafkaResourceType_ANY:                       sarama.AclResourceAny,
+	ksengine.KafkaResourceType_TOPIC:                     sarama.AclResourceTopic,
+	ksengine.KafkaResourceType_GROUP:                     sarama.AclResourceGroup,
+	ksengine.KafkaResourceType_CLUSTER:                   sarama.AclResourceCluster,
+	ksengine.KafkaResourceType_TRANSACTIONALID:           sarama.AclResourceTransactionalID,
+	ksengine.KafkaResourceType_RESOURCE_DELEGATION_TOKEN: sarama.AclResourceDelegationToken,
 }
 
-var sarama2KafkaPatternTypeConversion map[sarama.AclResourcePatternType]ksinternal.KafkaACLPatternType = map[sarama.AclResourcePatternType]ksinternal.KafkaACLPatternType{
-	sarama.AclPatternUnknown:  ksinternal.KafkaACLPatternType_UNKNOWN,
-	sarama.AclPatternAny:      ksinternal.KafkaACLPatternType_ANY,
-	sarama.AclPatternMatch:    ksinternal.KafkaACLPatternType_MATCH,
-	sarama.AclPatternLiteral:  ksinternal.KafkaACLPatternType_LITERAL,
-	sarama.AclPatternPrefixed: ksinternal.KafkaACLPatternType_PREFIXED,
+var sarama2KafkaPatternTypeConversion map[sarama.AclResourcePatternType]ksengine.KafkaACLPatternType = map[sarama.AclResourcePatternType]ksengine.KafkaACLPatternType{
+	sarama.AclPatternUnknown:  ksengine.KafkaACLPatternType_UNKNOWN,
+	sarama.AclPatternAny:      ksengine.KafkaACLPatternType_ANY,
+	sarama.AclPatternMatch:    ksengine.KafkaACLPatternType_MATCH,
+	sarama.AclPatternLiteral:  ksengine.KafkaACLPatternType_LITERAL,
+	sarama.AclPatternPrefixed: ksengine.KafkaACLPatternType_PREFIXED,
 }
 
-var kafka2SaramaPatternTypeConversion map[ksinternal.KafkaACLPatternType]sarama.AclResourcePatternType = map[ksinternal.KafkaACLPatternType]sarama.AclResourcePatternType{
-	ksinternal.KafkaACLPatternType_UNKNOWN:  sarama.AclPatternUnknown,
-	ksinternal.KafkaACLPatternType_ANY:      sarama.AclPatternAny,
-	ksinternal.KafkaACLPatternType_MATCH:    sarama.AclPatternMatch,
-	ksinternal.KafkaACLPatternType_LITERAL:  sarama.AclPatternLiteral,
-	ksinternal.KafkaACLPatternType_PREFIXED: sarama.AclPatternPrefixed,
+var kafka2SaramaPatternTypeConversion map[ksengine.KafkaACLPatternType]sarama.AclResourcePatternType = map[ksengine.KafkaACLPatternType]sarama.AclResourcePatternType{
+	ksengine.KafkaACLPatternType_UNKNOWN:  sarama.AclPatternUnknown,
+	ksengine.KafkaACLPatternType_ANY:      sarama.AclPatternAny,
+	ksengine.KafkaACLPatternType_MATCH:    sarama.AclPatternMatch,
+	ksengine.KafkaACLPatternType_LITERAL:  sarama.AclPatternLiteral,
+	ksengine.KafkaACLPatternType_PREFIXED: sarama.AclPatternPrefixed,
 }
 
-var sarama2KafkaACLOperationConversion map[sarama.AclOperation]ksinternal.KafkaACLOperation = map[sarama.AclOperation]ksinternal.KafkaACLOperation{
-	sarama.AclOperationUnknown:         ksinternal.KafkaACLOperation_UNKNOWN,
-	sarama.AclOperationAny:             ksinternal.KafkaACLOperation_ANY,
-	sarama.AclOperationAll:             ksinternal.KafkaACLOperation_ALL,
-	sarama.AclOperationRead:            ksinternal.KafkaACLOperation_READ,
-	sarama.AclOperationWrite:           ksinternal.KafkaACLOperation_WRITE,
-	sarama.AclOperationCreate:          ksinternal.KafkaACLOperation_CREATE,
-	sarama.AclOperationDelete:          ksinternal.KafkaACLOperation_DELETE,
-	sarama.AclOperationAlter:           ksinternal.KafkaACLOperation_ALTER,
-	sarama.AclOperationDescribe:        ksinternal.KafkaACLOperation_DESCRIBE,
-	sarama.AclOperationClusterAction:   ksinternal.KafkaACLOperation_CLUSTERACTION,
-	sarama.AclOperationDescribeConfigs: ksinternal.KafkaACLOperation_DESCRIBECONFIGS,
-	sarama.AclOperationAlterConfigs:    ksinternal.KafkaACLOperation_ALTERCONFIGS,
-	sarama.AclOperationIdempotentWrite: ksinternal.KafkaACLOperation_IDEMPOTENTWRITE,
+var sarama2KafkaACLOperationConversion map[sarama.AclOperation]ksengine.KafkaACLOperation = map[sarama.AclOperation]ksengine.KafkaACLOperation{
+	sarama.AclOperationUnknown:         ksengine.KafkaACLOperation_UNKNOWN,
+	sarama.AclOperationAny:             ksengine.KafkaACLOperation_ANY,
+	sarama.AclOperationAll:             ksengine.KafkaACLOperation_ALL,
+	sarama.AclOperationRead:            ksengine.KafkaACLOperation_READ,
+	sarama.AclOperationWrite:           ksengine.KafkaACLOperation_WRITE,
+	sarama.AclOperationCreate:          ksengine.KafkaACLOperation_CREATE,
+	sarama.AclOperationDelete:          ksengine.KafkaACLOperation_DELETE,
+	sarama.AclOperationAlter:           ksengine.KafkaACLOperation_ALTER,
+	sarama.AclOperationDescribe:        ksengine.KafkaACLOperation_DESCRIBE,
+	sarama.AclOperationClusterAction:   ksengine.KafkaACLOperation_CLUSTERACTION,
+	sarama.AclOperationDescribeConfigs: ksengine.KafkaACLOperation_DESCRIBECONFIGS,
+	sarama.AclOperationAlterConfigs:    ksengine.KafkaACLOperation_ALTERCONFIGS,
+	sarama.AclOperationIdempotentWrite: ksengine.KafkaACLOperation_IDEMPOTENTWRITE,
 }
 
-var kafka2SaramaACLOperationConversion map[ksinternal.ACLOperationsInterface]sarama.AclOperation = map[ksinternal.ACLOperationsInterface]sarama.AclOperation{
-	ksinternal.KafkaACLOperation_UNKNOWN:         sarama.AclOperationUnknown,
-	ksinternal.KafkaACLOperation_ANY:             sarama.AclOperationAny,
-	ksinternal.KafkaACLOperation_ALL:             sarama.AclOperationAll,
-	ksinternal.KafkaACLOperation_READ:            sarama.AclOperationRead,
-	ksinternal.KafkaACLOperation_WRITE:           sarama.AclOperationWrite,
-	ksinternal.KafkaACLOperation_CREATE:          sarama.AclOperationCreate,
-	ksinternal.KafkaACLOperation_DELETE:          sarama.AclOperationDelete,
-	ksinternal.KafkaACLOperation_ALTER:           sarama.AclOperationAlter,
-	ksinternal.KafkaACLOperation_DESCRIBE:        sarama.AclOperationDescribe,
-	ksinternal.KafkaACLOperation_CLUSTERACTION:   sarama.AclOperationClusterAction,
-	ksinternal.KafkaACLOperation_DESCRIBECONFIGS: sarama.AclOperationDescribeConfigs,
-	ksinternal.KafkaACLOperation_ALTERCONFIGS:    sarama.AclOperationAlterConfigs,
-	ksinternal.KafkaACLOperation_IDEMPOTENTWRITE: sarama.AclOperationIdempotentWrite,
+var kafka2SaramaACLOperationConversion map[ksengine.ACLOperationsInterface]sarama.AclOperation = map[ksengine.ACLOperationsInterface]sarama.AclOperation{
+	ksengine.KafkaACLOperation_UNKNOWN:         sarama.AclOperationUnknown,
+	ksengine.KafkaACLOperation_ANY:             sarama.AclOperationAny,
+	ksengine.KafkaACLOperation_ALL:             sarama.AclOperationAll,
+	ksengine.KafkaACLOperation_READ:            sarama.AclOperationRead,
+	ksengine.KafkaACLOperation_WRITE:           sarama.AclOperationWrite,
+	ksengine.KafkaACLOperation_CREATE:          sarama.AclOperationCreate,
+	ksengine.KafkaACLOperation_DELETE:          sarama.AclOperationDelete,
+	ksengine.KafkaACLOperation_ALTER:           sarama.AclOperationAlter,
+	ksengine.KafkaACLOperation_DESCRIBE:        sarama.AclOperationDescribe,
+	ksengine.KafkaACLOperation_CLUSTERACTION:   sarama.AclOperationClusterAction,
+	ksengine.KafkaACLOperation_DESCRIBECONFIGS: sarama.AclOperationDescribeConfigs,
+	ksengine.KafkaACLOperation_ALTERCONFIGS:    sarama.AclOperationAlterConfigs,
+	ksengine.KafkaACLOperation_IDEMPOTENTWRITE: sarama.AclOperationIdempotentWrite,
 }
 
-var sarama2KafkaPermissionTypeConversion map[sarama.AclPermissionType]ksinternal.KafkaACLPermissionType = map[sarama.AclPermissionType]ksinternal.KafkaACLPermissionType{
-	sarama.AclPermissionUnknown: ksinternal.KafkaACLPermissionType_UNKNOWN,
-	sarama.AclPermissionAny:     ksinternal.KafkaACLPermissionType_ANY,
-	sarama.AclPermissionDeny:    ksinternal.KafkaACLPermissionType_DENY,
-	sarama.AclPermissionAllow:   ksinternal.KafkaACLPermissionType_ALLOW,
+var sarama2KafkaPermissionTypeConversion map[sarama.AclPermissionType]ksengine.KafkaACLPermissionType = map[sarama.AclPermissionType]ksengine.KafkaACLPermissionType{
+	sarama.AclPermissionUnknown: ksengine.KafkaACLPermissionType_UNKNOWN,
+	sarama.AclPermissionAny:     ksengine.KafkaACLPermissionType_ANY,
+	sarama.AclPermissionDeny:    ksengine.KafkaACLPermissionType_DENY,
+	sarama.AclPermissionAllow:   ksengine.KafkaACLPermissionType_ALLOW,
 }
 
-var kafka2SaramaPermissionTypeConversion map[ksinternal.KafkaACLPermissionType]sarama.AclPermissionType = map[ksinternal.KafkaACLPermissionType]sarama.AclPermissionType{
-	ksinternal.KafkaACLPermissionType_UNKNOWN: sarama.AclPermissionUnknown,
-	ksinternal.KafkaACLPermissionType_ANY:     sarama.AclPermissionAny,
-	ksinternal.KafkaACLPermissionType_DENY:    sarama.AclPermissionDeny,
-	ksinternal.KafkaACLPermissionType_ALLOW:   sarama.AclPermissionAllow,
+var kafka2SaramaPermissionTypeConversion map[ksengine.KafkaACLPermissionType]sarama.AclPermissionType = map[ksengine.KafkaACLPermissionType]sarama.AclPermissionType{
+	ksengine.KafkaACLPermissionType_UNKNOWN: sarama.AclPermissionUnknown,
+	ksengine.KafkaACLPermissionType_ANY:     sarama.AclPermissionAny,
+	ksengine.KafkaACLPermissionType_DENY:    sarama.AclPermissionDeny,
+	ksengine.KafkaACLPermissionType_ALLOW:   sarama.AclPermissionAllow,
 }
