@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var SACLManager ShepherdACLManager = ShepherdACLEngineImpl{}
+var ShepherdEngineACLManager ShepherdACLManager = ShepherdACLEngineImpl{}
 
 type ShepherdACLEngineImpl struct {
 	ShepherdACLManagerBaseImpl
