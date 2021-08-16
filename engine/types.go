@@ -10,10 +10,9 @@ const (
 	ENVVAR_PREFIX string = "env::"
 )
 
-var ()
-
 var (
-	topicsInConfig mapset.Set = mapset.NewSet()
+	topicsInConfig mapset.Set              = mapset.NewSet()
+	Shepherd       ShepherdManagerBaseImpl = ShepherdManagerBaseImpl{}
 )
 
 type (

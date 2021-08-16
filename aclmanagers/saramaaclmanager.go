@@ -9,12 +9,12 @@ import (
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
-type SaramaACLManagerImpl struct {
-	ACLManagerBaseImpl
+type SaramaACLExecutionManagerImpl struct {
+	ACLExecutionManagerBaseImpl
 }
 
 var (
-	SaramaACLManager ACLManager = SaramaACLManagerImpl{}
+	SaramaACLManager ACLExecutionManager = SaramaACLExecutionManagerImpl{}
 )
 
 var (
@@ -27,17 +27,17 @@ var (
 	to find the ConnectionObject and type cast it as a Sarama Cluster Admin connection and use
 	it to execute any functionality in this module.
 */
-func (t SaramaACLManagerImpl) getSaramaConnectionObject(clusterName string) *sarama.ClusterAdmin {
+func (t SaramaACLExecutionManagerImpl) getSaramaConnectionObject(clusterName string) *sarama.ClusterAdmin {
 	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].Connection.(*kafkamanagers.SaramaConnection).SCA
 }
 
-func (s SaramaACLManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
+func (s SaramaACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
 	createSet := s.FindNonExistentACLsInCluster(aclMappings, ksengine.KafkaACLOperation_ANY)
 	s.createACLs(clusterName, createSet, dryRun)
 }
 
-func (s SaramaACLManagerImpl) createACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
+func (s SaramaACLExecutionManagerImpl) createACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	var wg sync.WaitGroup
 
 	f := func(key ksengine.ACLDetails, val interface{}) {
@@ -86,19 +86,19 @@ func (s SaramaACLManagerImpl) createACLs(clusterName string, in *ksengine.ACLMap
 	wg.Wait()
 }
 
-func (s SaramaACLManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
+func (s SaramaACLExecutionManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Delete Config ACLs", "=", 80)
 	deleteSet := s.FindProvisionedACLsInCluster(aclMappings, ksengine.KafkaACLOperation_ANY)
 	s.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
-func (s SaramaACLManagerImpl) DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
+func (s SaramaACLExecutionManagerImpl) DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Delete Unknown ACLs", "=", 80)
 	deleteSet := s.FindNonExistentACLsInConfig(aclMappings, ksengine.KafkaACLOperation_ANY)
 	s.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
-func (s SaramaACLManagerImpl) deleteACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
+func (s SaramaACLExecutionManagerImpl) deleteACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	var wg sync.WaitGroup
 	f := func(key ksengine.ACLDetails, val interface{}) {
 		defer wg.Done()
@@ -144,7 +144,7 @@ func (s SaramaACLManagerImpl) deleteACLs(clusterName string, in *ksengine.ACLMap
 	wg.Wait()
 }
 
-func (s SaramaACLManagerImpl) ListClusterACL(clusterName string) {
+func (s SaramaACLExecutionManagerImpl) ListClusterACL(clusterName string) {
 	acls := s.gatherClusterACLs(clusterName)
 	var wg sync.WaitGroup
 	lock := &sync.Mutex{}
@@ -181,7 +181,7 @@ func (s SaramaACLManagerImpl) ListClusterACL(clusterName string) {
 	}
 }
 
-func (s SaramaACLManagerImpl) mapSaramaToKafkaACL(in sarama.ResourceAcls, mapping *ksengine.ACLMapping, wg *sync.WaitGroup, mtx *sync.Mutex) {
+func (s SaramaACLExecutionManagerImpl) mapSaramaToKafkaACL(in sarama.ResourceAcls, mapping *ksengine.ACLMapping, wg *sync.WaitGroup, mtx *sync.Mutex) {
 	defer wg.Done()
 
 	for _, v := range in.Acls {
@@ -200,7 +200,7 @@ func (s SaramaACLManagerImpl) mapSaramaToKafkaACL(in sarama.ResourceAcls, mappin
 	}
 }
 
-func (s SaramaACLManagerImpl) gatherClusterACLs(clusterName string) *[]sarama.ResourceAcls {
+func (s SaramaACLExecutionManagerImpl) gatherClusterACLs(clusterName string) *[]sarama.ResourceAcls {
 	filter := sarama.AclFilter{
 		ResourcePatternTypeFilter: sarama.AclPatternAny,
 		ResourceType:              sarama.AclResourceAny,

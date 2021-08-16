@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// var KACLManager ShepherdACLManager = KafkaCoreACLEngineImpl{}
+var KACLManager ShepherdACLManager = KafkaCoreACLEngineImpl{}
 
 type KafkaCoreACLEngineImpl struct {
 	ShepherdACLManagerBaseImpl

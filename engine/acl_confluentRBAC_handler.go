@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// var ConfACLManager ShepherdACLManager = ConfluentRBACACLEngineImpl{}
+var ConfACLManager ShepherdACLManager = ConfluentRBACACLEngineImpl{}
 
 type ConfluentRBACACLEngineImpl struct {
 	ShepherdACLManagerBaseImpl
