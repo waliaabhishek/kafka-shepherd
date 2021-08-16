@@ -170,9 +170,9 @@ func (s SaramaACLManagerImpl) ListClusterACL(clusterName string) {
 	for k := range *aclMappings {
 		perm := ksengine.KafkaACLPermissionType_ALLOW
 		logger.Infow("Mapped Kafka ACL Details (Only Alllow Mappings are filtered)",
-			"Resource Type", k.ResourceType.String(),
+			"Resource Type", k.ResourceType.GetACLResourceString(),
 			"Resource Name", k.ResourceName,
-			"Resource Pattern Type", k.PatternType.String(),
+			"Resource Pattern Type", k.PatternType.GetACLPatternString(),
 			"Principal Name", k.Principal,
 			"Host", k.Hostname,
 			"ACL Operation", k.Operation.String(),

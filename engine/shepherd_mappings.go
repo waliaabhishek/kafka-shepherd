@@ -16,7 +16,7 @@ func GenerateMappings() {
 		for _, tName := range v.Name {
 			v.Clients.addClientToUTM(tName)
 		}
-		// v.Clients.addHostnamesToUTM(&ConfMaps.UTM)
+		// v.Clients.addHostnamesToUTM(&ConfMaps.utm)
 		ConfMaps.TCM.addDataToTopicConfigMapping(&SpdCore, &v, v.Name)
 	}
 
@@ -42,7 +42,7 @@ func GenerateMappings() {
 			for _, v2 := range currPerms {
 				// Get current Topic Name for the current scope
 				temp := strings.Join(v2, sep)
-				// Ignore topic combinations with the filterscope at that level from being added to the UTM list
+				// Ignore topic combinations with the filterscope at that level from being added to the utm list
 				if !ksmisc.ExistsInString(temp, currFilters, ksmisc.RemoveValuesFromSlice(currTopics, "*"), sep) {
 					// fmt.Println("Inside the filter for *. Topic Name:", temp)
 					currClients.addClientToUTM(temp)
@@ -85,50 +85,50 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 
 func (c ClientDefinition) addClientToUTM(topic string) {
 	for _, v := range c.Consumers {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
 		if v.Group != "" {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, topic)
-			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, v.Hostnames)
+			ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, topic)
+			ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, v.Hostnames)
 		}
 	}
 	for _, v := range c.Producers {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
 		if v.TransactionalID {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
-			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, v.Hostnames)
+			ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
+			ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, v.Hostnames)
 		}
 		if v.EnableIdempotence {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
-			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, v.Hostnames)
+			ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
+			ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, v.Hostnames)
 		}
 	}
 	for _, v := range c.Connectors {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, v.Hostnames)
 		// v.addClientToUTM(utm, topic)
 	}
 	for _, v := range c.Streams {
 		if v.getTypeValue() == ShepherdClientType_STREAM_READ {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
-			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
+			ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic)
+			ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, v.Hostnames)
 		} else {
-			ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
-			ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
+			ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic)
+			ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, v.Hostnames)
 		}
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, v.Hostnames)
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, v.Hostnames)
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, v.Hostnames)
 	}
 	for _, v := range c.KSQL {
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, v.Hostnames)
-		ConfMaps.UTM.addDataToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, topic)
-		ConfMaps.UTM.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, v.Hostnames)
+		ConfMaps.utm.addDataToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, topic)
+		ConfMaps.utm.addHostnamesToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, v.Hostnames)
 	}
 }
 
@@ -189,7 +189,7 @@ func (utm *UserTopicMapping) addHostnamesToUserTopicMapping(clientId string, cTy
 func (tcm *TopicConfigMapping) addDataToTopicConfigMapping(sc *ShepherdCore, td *TopicDefinition, topicName []string) {
 	props := make(NVPairs)
 	// Get the default values from the blueprints and merge it to the currently applied values.
-	props.mergeMaps(sc.Blueprints.Blueprint.Policy.TopicPolicy.Defaults)
+	props.merge(sc.Blueprints.Blueprint.Policy.TopicPolicy.Defaults)
 	// If Blueprint reference exists in the topic Config, fetch the NV Pairs for that Blueprint and add those props here.
 	if td.TopicBlueprintEnumRef != "" {
 		props.overrideMergeMaps([]NVPairs{sc.getBlueprintProps((*td).TopicBlueprintEnumRef)},
@@ -229,7 +229,7 @@ func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 		for _, v := range sc.Blueprints.Blueprint.Topic.TopicConfigs {
 			temp := NVPairs{}
 			// Get the default values configured in Topic Blueprints Defaults as those act as our baseline
-			temp.mergeMaps(sc.Blueprints.Blueprint.Policy.TopicPolicy.Defaults)
+			temp.merge(sc.Blueprints.Blueprint.Policy.TopicPolicy.Defaults)
 			// Get the Base Config Override Values from Topic Blueprint Configuration
 			temp.overrideMergeMaps(v.Overrides,
 				sc.Blueprints.Blueprint.Policy.TopicPolicy.Overrides.Whitelist,

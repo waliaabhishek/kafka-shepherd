@@ -63,7 +63,7 @@ var sarama2KafkaPatternTypeConversion map[sarama.AclResourcePatternType]ksengine
 	sarama.AclPatternPrefixed: ksengine.KafkaACLPatternType_PREFIXED,
 }
 
-var kafka2SaramaPatternTypeConversion map[ksengine.KafkaACLPatternType]sarama.AclResourcePatternType = map[ksengine.KafkaACLPatternType]sarama.AclResourcePatternType{
+var kafka2SaramaPatternTypeConversion map[ksengine.ACLPatternInterface]sarama.AclResourcePatternType = map[ksengine.ACLPatternInterface]sarama.AclResourcePatternType{
 	ksengine.KafkaACLPatternType_UNKNOWN:  sarama.AclPatternUnknown,
 	ksengine.KafkaACLPatternType_ANY:      sarama.AclPatternAny,
 	ksengine.KafkaACLPatternType_MATCH:    sarama.AclPatternMatch,

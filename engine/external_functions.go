@@ -4,32 +4,13 @@ import (
 	"strings"
 
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
-
-	mapset "github.com/deckarep/golang-set"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////// User Topic Mapping Managers ///////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/*
-	This method generates a Set of Topic Names that does not include the
-	(.*) suffixed topics. Technically, this is the unique list of topics
-	that the conffiguration is expecting to be created.
-*/
-func (utm *UserTopicMapping) getTopicList() mapset.Set {
-	t := mapset.NewSet()
-	for _, v := range *utm {
-		for _, topic := range v.TopicList {
-			if ksmisc.IsTopicName(topic, SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken) {
-				t.Add(topic)
-			}
-		}
-	}
-	return t
-}
-
-func (utm *UserTopicMapping) getShepherdACLList() ACLMapping {
+func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 	ret := make(ACLMapping)
 	var temp ShepherdClientType
 	for k, v := range *utm {
@@ -57,13 +38,13 @@ func (utm *UserTopicMapping) getShepherdACLList() ACLMapping {
 					i[0], varType, i[3])] = nil
 			case ShepherdClientType_SOURCE_CONNECTOR:
 				value := make(NVPairs)
-				value[KafkaResourceType_CLUSTER.String()] = "kafka-cluster"
+				value[KafkaResourceType_CLUSTER.GetACLResourceString()] = "kafka-cluster"
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value
 			case ShepherdClientType_SINK_CONNECTOR:
 				value := make(NVPairs)
-				value[KafkaResourceType_GROUP.String()] = i[1]
-				value[KafkaResourceType_CLUSTER.String()] = "kafka-cluster"
+				value[KafkaResourceType_GROUP.GetACLResourceString()] = i[1]
+				value[KafkaResourceType_CLUSTER.GetACLResourceString()] = "kafka-cluster"
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value
 			case ShepherdClientType_STREAM_READ:
@@ -81,7 +62,7 @@ func (utm *UserTopicMapping) getShepherdACLList() ACLMapping {
 			}
 		}
 	}
-	return ret
+	return &ret
 }
 
 func (utm *UserTopicMapping) PrintUTM() {

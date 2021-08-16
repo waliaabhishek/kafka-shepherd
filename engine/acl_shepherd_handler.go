@@ -5,6 +5,13 @@ import (
 	"strings"
 )
 
+// var SACLManager ShepherdACLManager = ShepherdACLEngineImpl{}
+
+type ShepherdACLEngineImpl struct {
+	ShepherdACLManagerBaseImpl
+	ShepherdClientType
+}
+
 type (
 	ShepherdClientType int
 )

@@ -5,6 +5,13 @@ import (
 	"strings"
 )
 
+// var KACLManager ShepherdACLManager = KafkaCoreACLEngineImpl{}
+
+type KafkaCoreACLEngineImpl struct {
+	ShepherdACLManagerBaseImpl
+	KafkaACLOperation
+}
+
 type (
 	KafkaACLOperation int
 )
@@ -137,7 +144,7 @@ func (c KafkaACLOperation) generateACLMappingStructures(in *ACLMapping) *ACLMapp
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				// Enable the connector to use consumer groups if they would want to
-				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)[KafkaResourceType_GROUP.String()],
+				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)[KafkaResourceType_GROUP.GetACLResourceString()],
 					// KafkaACLPatternType_LITERAL,
 					KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
@@ -153,7 +160,7 @@ func (c KafkaACLOperation) generateACLMappingStructures(in *ACLMapping) *ACLMapp
 				// temp[k] = nil
 				logger.Warnw(" Could not generate Kafka ACL Mappings for the provided ACL Map. Sending back to the failure channel.",
 					"Principal", k.Principal,
-					"Resource Type", k.ResourceType.String(),
+					"Resource Type", k.ResourceType.GetACLResourceString(),
 					"Resource Value", k.ResourceName,
 					"Hostname", k.Hostname,
 					"ACL Operation Wanted", k.Operation.String())

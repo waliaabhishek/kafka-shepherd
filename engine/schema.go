@@ -21,7 +21,7 @@ func (nv *NVPairs) readValuesFromENV() {
 */
 type ConfigurationMaps struct {
 	TCM TopicConfigMapping
-	UTM UserTopicMapping
+	utm UserTopicMapping
 	CCM ClusterConfigMapping
 }
 
