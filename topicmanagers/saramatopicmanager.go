@@ -12,12 +12,12 @@ import (
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
-type SaramaTopicManagerImpl struct {
-	TopicManagerBaseImpl
+type SaramaTopicExecutionManagerImpl struct {
+	TopicExecutionManagerBaseImpl
 }
 
 var (
-	SaramaTopicManager TopicManager = SaramaTopicManagerImpl{}
+	SaramaTopicManager TopicExecutionManager = SaramaTopicExecutionManagerImpl{}
 )
 
 /*
@@ -26,11 +26,11 @@ var (
 	to find the ConnectionObject and type cast it as a Sarama Cluster Admin connection and use
 	it to execute any functionality in this module.
 */
-func (t SaramaTopicManagerImpl) getSaramaConnectionObject(clusterName string) *sarama.ClusterAdmin {
+func (t SaramaTopicExecutionManagerImpl) getSaramaConnectionObject(clusterName string) *sarama.ClusterAdmin {
 	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].Connection.(*kafkamanagers.SaramaConnection).SCA
 }
 
-func (t SaramaTopicManagerImpl) GetTopicsAsSet(clusterName string) *mapset.Set {
+func (t SaramaTopicExecutionManagerImpl) GetTopicsAsSet(clusterName string) *mapset.Set {
 	tSet := mapset.NewSet()
 	for k := range *t.getTopicListFromKafkaCluster(clusterName) {
 		tSet.Add(string(k))
@@ -41,7 +41,7 @@ func (t SaramaTopicManagerImpl) GetTopicsAsSet(clusterName string) *mapset.Set {
 /*
 	This function returns the list of topics from Kafka Cluster.
 */
-func (t SaramaTopicManagerImpl) getTopicListFromKafkaCluster(clusterName string) (list *map[string]sarama.TopicDetail) {
+func (t SaramaTopicExecutionManagerImpl) getTopicListFromKafkaCluster(clusterName string) (list *map[string]sarama.TopicDetail) {
 	topics, err := (*t.getSaramaConnectionObject(clusterName)).ListTopics()
 	if err != nil {
 		logger.Fatalw("Something Went Wrong while Listing Topics.",
@@ -50,7 +50,7 @@ func (t SaramaTopicManagerImpl) getTopicListFromKafkaCluster(clusterName string)
 	return &topics
 }
 
-func (t SaramaTopicManagerImpl) CreateTopics(clusterName string, topics mapset.Set, dryRun bool) {
+func (t SaramaTopicExecutionManagerImpl) CreateTopics(clusterName string, topics mapset.Set, dryRun bool) {
 	tSet := topics.Difference(*t.GetTopicsAsSet(clusterName))
 	logger.Info("Topic List that will be executed")
 	t.ListTopics(tSet)
@@ -65,7 +65,7 @@ func (t SaramaTopicManagerImpl) CreateTopics(clusterName string, topics mapset.S
 	}
 }
 
-func (t SaramaTopicManagerImpl) createTopic(conn *sarama.ClusterAdmin, wg *sync.WaitGroup, topicName string) {
+func (t SaramaTopicExecutionManagerImpl) createTopic(conn *sarama.ClusterAdmin, wg *sync.WaitGroup, topicName string) {
 	defer wg.Done()
 	retry := true
 	retryCount := 0
@@ -88,17 +88,17 @@ func (t SaramaTopicManagerImpl) createTopic(conn *sarama.ClusterAdmin, wg *sync.
 	}
 }
 
-func (t SaramaTopicManagerImpl) DeleteProvisionedTopics(clusterName string, topics mapset.Set, dryRun bool) {
+func (t SaramaTopicExecutionManagerImpl) DeleteProvisionedTopics(clusterName string, topics mapset.Set, dryRun bool) {
 	tSet := topics.Intersect(*t.GetTopicsAsSet(clusterName))
 	t.deleteTopics(clusterName, &tSet, dryRun)
 }
 
-func (t SaramaTopicManagerImpl) DeleteUnknownTopics(clusterName string, topics mapset.Set, dryRun bool) {
+func (t SaramaTopicExecutionManagerImpl) DeleteUnknownTopics(clusterName string, topics mapset.Set, dryRun bool) {
 	tSet := (*t.GetTopicsAsSet(clusterName)).Difference(topics)
 	t.deleteTopics(clusterName, &tSet, dryRun)
 }
 
-func (t SaramaTopicManagerImpl) deleteTopics(clusterName string, tSet *mapset.Set, dryRun bool) {
+func (t SaramaTopicExecutionManagerImpl) deleteTopics(clusterName string, tSet *mapset.Set, dryRun bool) {
 	logger.Info("Topic List eligible for Deletion")
 	t.ListTopics(*tSet)
 	if !dryRun {
@@ -112,7 +112,7 @@ func (t SaramaTopicManagerImpl) deleteTopics(clusterName string, tSet *mapset.Se
 	}
 }
 
-func (t SaramaTopicManagerImpl) deleteTopic(conn *sarama.ClusterAdmin, wg *sync.WaitGroup, topicName string) {
+func (t SaramaTopicExecutionManagerImpl) deleteTopic(conn *sarama.ClusterAdmin, wg *sync.WaitGroup, topicName string) {
 	defer wg.Done()
 	retry := true
 	retryCount := 0
@@ -135,7 +135,7 @@ func (t SaramaTopicManagerImpl) deleteTopic(conn *sarama.ClusterAdmin, wg *sync.
 	}
 }
 
-func (t SaramaTopicManagerImpl) ModifyTopics(clusterName string, dryRun bool) {
+func (t SaramaTopicExecutionManagerImpl) ModifyTopics(clusterName string, dryRun bool) {
 	cDiff, pDiff := t.findMismatchedConfigTopics(clusterName)
 	logger.Info("Configurations will be updated for the following topics")
 	t.ListTopics(cDiff)
@@ -243,7 +243,7 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 	return &td
 }
 
-func (t SaramaTopicManagerImpl) findMismatchedConfigTopics(clusterName string) (configDiff mapset.Set, partitionDiff mapset.Set) {
+func (t SaramaTopicExecutionManagerImpl) findMismatchedConfigTopics(clusterName string) (configDiff mapset.Set, partitionDiff mapset.Set) {
 	clusterTCM := make(ksengine.TopicConfigMapping)
 	for tName, configs := range *t.getTopicListFromKafkaCluster(clusterName) {
 		t.generateTopicConfigMappings(&clusterTCM, tName, &configs)
@@ -268,7 +268,7 @@ func (t SaramaTopicManagerImpl) findMismatchedConfigTopics(clusterName string) (
 	return
 }
 
-func (t SaramaTopicManagerImpl) generateTopicConfigMappings(ctcm *ksengine.TopicConfigMapping, topicName string, topicDetails *sarama.TopicDetail) {
+func (t SaramaTopicExecutionManagerImpl) generateTopicConfigMappings(ctcm *ksengine.TopicConfigMapping, topicName string, topicDetails *sarama.TopicDetail) {
 	// Anon Function
 	assignment := func(v *ksengine.NVPairs) {
 		(*v)["num.partitions"] = strconv.FormatInt(int64(topicDetails.NumPartitions), 10)

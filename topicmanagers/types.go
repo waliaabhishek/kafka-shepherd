@@ -12,7 +12,7 @@ var (
 	logger = ksengine.GetLogger()
 )
 
-type TopicManager interface {
+type TopicExecutionManager interface {
 	GetTopicsAsSet(clusterName string) *mapset.Set
 	CreateTopics(clusterName string, topics mapset.Set, dryRun bool)
 	ModifyTopics(clusterName string, dryRun bool)
@@ -20,13 +20,13 @@ type TopicManager interface {
 	DeleteUnknownTopics(clusterName string, topics mapset.Set, dryRun bool)
 }
 
-type TopicManagerBaseImpl struct{}
+type TopicExecutionManagerBaseImpl struct{}
 
 /*
 	This is a default implementation dependent on the mapset returns by the
 	GetTopicsAsSet implemented by your actual implementation.
 */
-func (t TopicManagerBaseImpl) GetTopicsAsSlice(in mapset.Set) []string {
+func (t TopicExecutionManagerBaseImpl) GetTopicsAsSlice(in mapset.Set) []string {
 	ret := ksmisc.GetStringSliceFromMapSet(in)
 	sort.Strings(ret)
 	return ret
@@ -35,7 +35,7 @@ func (t TopicManagerBaseImpl) GetTopicsAsSlice(in mapset.Set) []string {
 /*
 	List all the topic names provided in the mapset as a formatted output.
 */
-func (t TopicManagerBaseImpl) ListTopics(in mapset.Set) {
+func (t TopicExecutionManagerBaseImpl) ListTopics(in mapset.Set) {
 	ksmisc.DottedLineOutput("Topic List", "=", 80)
 	for idx, item := range t.GetTopicsAsSlice(in) {
 		logger.Infof("%04d# : %s", idx+1, item)
