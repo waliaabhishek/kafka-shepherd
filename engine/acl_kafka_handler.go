@@ -84,7 +84,7 @@ func (c KafkaACLOperation) GetValue(in string) (ACLOperationsInterface, error) {
 	return s, nil
 }
 
-func (c KafkaACLOperation) generateACLMappingStructures(in *ACLMapping) *ACLMapping {
+func (c KafkaACLOperation) generateACLMappingStructures(clusterName string, in *ACLMapping) *ACLMapping {
 	temp := ACLMapping{}
 	for k, v := range *in {
 		switch k.Operation.(type) {

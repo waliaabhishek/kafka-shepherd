@@ -48,7 +48,7 @@ type (
 	ACLOperationsInterface interface {
 		String() string
 		GetValue(in string) (ACLOperationsInterface, error)
-		generateACLMappingStructures(pack *ACLMapping) *ACLMapping
+		generateACLMappingStructures(clusterName string, pack *ACLMapping) *ACLMapping
 	}
 
 	ShepherdACLManagerBaseImpl struct {
