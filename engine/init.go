@@ -25,6 +25,7 @@ var (
 		Definitions: ShepherdDefinition{},
 	}
 	ShepherdACLList *ACLMapping
+	DryRun          bool
 )
 
 // Internal variables for function
@@ -38,7 +39,6 @@ var (
 	blueprintMap         map[string]NVPairs
 	logger               *zap.SugaredLogger
 	shepherdACLList      *ACLMapping
-	dryRun               bool
 )
 
 // func InitializeShepherdCore(enableDebug bool, enableConsoleLogs bool, shepherdConfigFilePath string,
@@ -70,7 +70,7 @@ func init() {
 }
 
 func ResolveFlags() {
-	flag.BoolVar(&dryRun, "dryRun", false, "Does not execute anything but lists what will be executed.")
+	flag.BoolVar(&DryRun, "dryRun", false, "Does not execute anything but lists what will be executed.")
 	flag.BoolVar(&enableDebug, "debug", false, "Turns on Debug mode log")
 	flag.BoolVar(&enableStructuredLogs, "enableStructuredLogs", false, "Turns off unstructured mode logging features and use Structured logging instead.")
 	flag.StringVar(&configFile, "configPath", "./configs/shepherd.yaml", "Absolute file Path for Core Configuration file. Please note that this might still be overwritten by the SHEPHERD_CONFIG_FILE_LOCATION for additional flexibility.")
