@@ -11,24 +11,24 @@ const (
 )
 
 var (
-	topicsInConfig mapset.Set              = mapset.NewSet()
-	Shepherd       ShepherdManagerBaseImpl = ShepherdManagerBaseImpl{}
+	topicsInConfig mapset.Set      = mapset.NewSet()
+	Shepherd       ShepherdManager = ShepherdManagerBaseImpl{}
 )
 
 type (
 	ShepherdManager interface {
-		GetTopicList() *mapset.Set
+		GetTopicList() mapset.Set
 		// GetShepherdACLList() *ACLMapping
 		RenderACLMappings(clusterName string, mappings *ACLMapping, inputACLType ACLOperationsInterface) *ACLMapping
-		GetLogger() ShepherdLogger
+		GetLogger() *ShepherdLogger
 	}
 
 	ShepherdManagerBaseImpl struct {
-		ShepherdTopicManagerBaseImpl
-		ShepherdACLManagerBaseImpl
+		ShepherdTopicManagerImpl
+		ShepherdACLManager
 	}
 
-	ShepherdTopicManagerBaseImpl struct{}
+	ShepherdTopicManagerImpl struct{}
 
 	ShepherdLogger struct {
 		*zap.SugaredLogger
@@ -43,8 +43,8 @@ type (
 	The finished Channel only produces a boolean value once (true) for you to understand that the ACL emission is completed and you can logically
 	close your select loops (if any).
 */
-func (s *ShepherdManagerBaseImpl) RenderACLMappings(in *ACLMapping, needType ACLOperationsInterface) *ACLMapping {
-	return needType.generateACLMappingStructures(in)
+func (s ShepherdManagerBaseImpl) RenderACLMappings(clusterName string, in *ACLMapping, needType ACLOperationsInterface) *ACLMapping {
+	return needType.generateACLMappingStructures(clusterName, in)
 }
 
 /*
@@ -52,7 +52,7 @@ func (s *ShepherdManagerBaseImpl) RenderACLMappings(in *ACLMapping, needType ACL
 	(.*) suffixed topics. Technically, this is the unique list of topics
 	that the configuration is expecting to be created.
 */
-func (s *ShepherdTopicManagerBaseImpl) GetTopicList() mapset.Set {
+func (s ShepherdTopicManagerImpl) GetTopicList() mapset.Set {
 	if topicsInConfig.Cardinality() == 0 {
 		for _, v := range ConfMaps.utm {
 			for _, topic := range v.TopicList {
@@ -65,7 +65,7 @@ func (s *ShepherdTopicManagerBaseImpl) GetTopicList() mapset.Set {
 	return topicsInConfig
 }
 
-func GetLogger() (lg *ShepherdLogger) {
+func (s ShepherdManagerBaseImpl) GetLogger() (lg *ShepherdLogger) {
 	return &ShepherdLogger{
 		logger,
 	}
