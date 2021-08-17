@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	logger = ksengine.GetLogger()
+	logger = ksengine.Shepherd.GetLogger()
 )
 
 type TopicExecutionManager interface {

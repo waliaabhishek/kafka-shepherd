@@ -57,3 +57,11 @@ func InitiateAllKafkaConnections(clusters ksengine.ConfigRoot) {
 		}
 	}
 }
+
+func CloseAllKafkaConnections() {
+	wg := new(sync.WaitGroup)
+	for _, v := range Connections {
+		go v.Connection.CloseAdminConnection()
+	}
+	wg.Wait()
+}

@@ -23,7 +23,7 @@ var (
 	SHA256 scram.HashGeneratorFcn = sha256.New
 	SHA512 scram.HashGeneratorFcn = sha512.New
 	term                          = make(chan os.Signal)
-	logger                        = ksengine.GetLogger()
+	logger                        = ksengine.Shepherd.GetLogger()
 )
 
 type SaramaConnection struct {
