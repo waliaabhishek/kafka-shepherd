@@ -1,5 +1,9 @@
 ---
 configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: false
   clusters:
     - name: dev_plaintext
       bootstrapServers:

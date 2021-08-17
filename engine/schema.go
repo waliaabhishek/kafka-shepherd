@@ -63,8 +63,9 @@ func (c *ConfigRoot) readValuesFromENV() {
 }
 
 type ShepherdCoreConfig struct {
-	SeperatorToken string `yaml:"separatorToken"`
-	DeleteUnknown  bool   `yaml:"deleteUnknownTopics"`
+	SeperatorToken      string `yaml:"separatorToken"`
+	DeleteUnknownTopics bool   `yaml:"deleteUnknownTopics"`
+	DeleteUnknownACLs   bool   `yaml:"deleteUnknownACLs"`
 }
 
 func (c *ShepherdCoreConfig) readValuesFromENV() {
