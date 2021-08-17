@@ -1,4 +1,4 @@
-package kafkamanager
+package kafkamanagers
 
 import (
 	"crypto/sha256"
@@ -12,80 +12,43 @@ import (
 	"sync"
 	"syscall"
 
-	ksinternal "github.com/waliaabhishek/kafka-shepherd/internal"
-	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
-
 	"github.com/Shopify/sarama"
+	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
+	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 	"github.com/xdg/scram"
 )
 
 var (
-	sca    *sarama.ClusterAdmin
 	wg     sync.WaitGroup
 	SHA256 scram.HashGeneratorFcn = sha256.New
 	SHA512 scram.HashGeneratorFcn = sha512.New
 	term                          = make(chan os.Signal)
-	logger                        = ksinternal.GetLogger()
+	logger                        = ksengine.Shepherd.GetLogger()
 )
 
-func GetAdminConnection() ConnectionObject {
-	if sca == nil {
-		temp := setupAdminConnection().(sarama.ClusterAdmin)
-		sca = &temp
-	}
-	return *sca
+type SaramaConnection struct {
+	SCA *sarama.ClusterAdmin
 }
 
-func setupAdminConnection() ConnectionObject {
-
-	for _, cluster := range ksinternal.SpdCore.Configs.ConfigRoot.Clusters {
-		if cluster.IsEnabled {
-			conf := understandClusterTopology(&cluster)
-			ca, err := sarama.NewClusterAdmin(cluster.BootstrapServers, conf)
-			if err != nil {
-				logger.Fatalw("Cannot set up the connection to Kafka Cluster. ",
-					"Bootstrap Server", cluster.BootstrapServers,
-					"Error", err)
-			}
-			addShutdownHook()
-			return ca
-		}
+func (c *SaramaConnection) InitiateAdminConnection(cConfig ksengine.ShepherdCluster) {
+	conf := understandClusterTopology(&cConfig)
+	ca, err := sarama.NewClusterAdmin(cConfig.BootstrapServers, conf)
+	if err != nil {
+		logger.Fatalw("Cannot set up the connection to Kafka Cluster. ",
+			"Bootstrap Server", cConfig.BootstrapServers,
+			"Error", err)
 	}
-	return nil
+	addShutdownHook(&ca)
+	c.SCA = &ca
 }
 
-func CloseAdminConnection() {
+func (c *SaramaConnection) CloseAdminConnection() {
 	wg.Add(1)
 	term <- syscall.SIGQUIT
 	wg.Wait()
 }
 
-func addShutdownHook() {
-	var err error = nil
-	signal.Notify(term, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	go func() {
-		defer wg.Done()
-		s := <-term
-		logger.Infof("%s received. Shutdown Process Initiated", s.String())
-		logger.Info("Trying to Close Kafka Cluster connection. Initial Try")
-		err = (*sca).Close()
-		for i := 2; i <= 5 && err != nil; i++ {
-			logger.Errorw("Failed to Close Kafka Cluster connection.", "Error", err)
-			logger.Warnw("Trying to Close Kafka Cluster connection again.", "Try", i)
-			err = (*sca).Close()
-			if err != nil {
-				logger.Errorw("Failed to Close Kafka Cluster connection.", "Error", err)
-			}
-		}
-		if err != nil {
-			logger.Fatalf("Aborting retries as I was still not able to close the connection even after 5 retries. Will exit ungracefully.")
-		} else {
-			logger.Info("Kafka Cluster Connection Successfully closed")
-		}
-	}()
-}
-
-func understandClusterTopology(sc *ksinternal.ShepherdCluster) (conf *sarama.Config) {
+func understandClusterTopology(sc *ksengine.ShepherdCluster) (conf *sarama.Config) {
 	c := sarama.NewConfig()
 
 	c.ClientID = sc.ClientID
@@ -125,10 +88,10 @@ func understandClusterTopology(sc *ksinternal.ShepherdCluster) (conf *sarama.Con
 		c.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	case "SCRAM-SHA-256":
 		logger.Debug("Inside SCRAM SSL switch statement")
-		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
+		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &xdgSCRAMClient{HashGeneratorFcn: SHA256} }
 		c.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
 	case "SCRAM-SHA-512":
-		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA512} }
+		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &xdgSCRAMClient{HashGeneratorFcn: SHA512} }
 		c.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
 	case "OAUTHBEARER":
 		logger.Debug("Inside the OAUTHBEARER switch statement")
@@ -142,7 +105,32 @@ func understandClusterTopology(sc *ksinternal.ShepherdCluster) (conf *sarama.Con
 	return c
 }
 
-func createTLSConfig(sc *ksinternal.ShepherdCluster) *tls.Config {
+func addShutdownHook(sca *sarama.ClusterAdmin) {
+	var err error = nil
+	signal.Notify(term, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	go func() {
+		defer wg.Done()
+		s := <-term
+		logger.Infof("%s received. Shutdown Process Initiated", s.String())
+		logger.Info("Trying to Close Kafka Cluster connection. Initial Try")
+		err = (*sca).Close()
+		for i := 2; i <= 5 && err != nil; i++ {
+			logger.Errorw("Failed to Close Kafka Cluster connection.", "Error", err)
+			logger.Warnw("Trying to Close Kafka Cluster connection again.", "Try", i)
+			err = (*sca).Close()
+			if err != nil {
+				logger.Errorw("Failed to Close Kafka Cluster connection.", "Error", err)
+			}
+		}
+		if err != nil {
+			logger.Fatalf("Aborting retries as I was still not able to close the connection even after 5 retries. Will exit ungracefully.")
+		} else {
+			logger.Info("Kafka Cluster Connection Successfully closed")
+		}
+	}()
+}
+
+func createTLSConfig(sc *ksengine.ShepherdCluster) *tls.Config {
 	var t *tls.Config
 
 	// Generate the CACertPool from the SystemCertPool.
@@ -258,13 +246,13 @@ func createTLSConfig(sc *ksinternal.ShepherdCluster) *tls.Config {
 	return t
 }
 
-type XDGSCRAMClient struct {
+type xdgSCRAMClient struct {
 	*scram.Client
 	*scram.ClientConversation
 	scram.HashGeneratorFcn
 }
 
-func (x *XDGSCRAMClient) Begin(userName, password, authzID string) (err error) {
+func (x *xdgSCRAMClient) Begin(userName, password, authzID string) (err error) {
 	x.Client, err = x.HashGeneratorFcn.NewClient(userName, password, authzID)
 	if err != nil {
 		return err
@@ -273,11 +261,11 @@ func (x *XDGSCRAMClient) Begin(userName, password, authzID string) (err error) {
 	return nil
 }
 
-func (x *XDGSCRAMClient) Step(challenge string) (response string, err error) {
+func (x *xdgSCRAMClient) Step(challenge string) (response string, err error) {
 	response, err = x.ClientConversation.Step(challenge)
 	return
 }
 
-func (x *XDGSCRAMClient) Done() bool {
+func (x *xdgSCRAMClient) Done() bool {
 	return x.ClientConversation.Done()
 }
