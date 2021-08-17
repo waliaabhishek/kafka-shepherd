@@ -2,11 +2,31 @@ package aclmanagers
 
 import (
 	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
+	"github.com/waliaabhishek/kafka-shepherd/kafkamanagers"
 )
 
 var (
-	logger = ksengine.GetLogger()
+	logger = ksengine.Shepherd.GetLogger()
 )
+
+var (
+	aclController map[kafkamanagers.ACLType]ACLExecutionManager = map[kafkamanagers.ACLType]ACLExecutionManager{
+		kafkamanagers.ConnectionType_KAFKA_ACLS:     SaramaACLManager,
+		kafkamanagers.ConnectionType_CONFLUENT_RBAC: SaramaACLManager,
+	}
+
+	aclInterface map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface = map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface{
+		kafkamanagers.ConnectionType_KAFKA_ACLS:     ksengine.KafkaACLOperation_UNKNOWN,
+		kafkamanagers.ConnectionType_CONFLUENT_RBAC: ksengine.ConfRBACType_UNKNOWN,
+	}
+)
+
+func GetACLControllerDetails(clusterName string) (ACLExecutionManager, ksengine.ACLOperationsInterface) {
+	aclType := kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].ACLType
+	execMgr := aclController[aclType]
+	execInterface := aclInterface[aclType]
+	return execMgr, execInterface
+}
 
 // Any ACL Manager will need to implement this interface.
 type ACLExecutionManager interface {
@@ -39,8 +59,8 @@ func (a ACLExecutionManagerBaseImpl) ListConfigACL() {
 	to the map of ACLMapping created by parsing the configurations. The response is the mapping
 	that the Kafka connection will need to create as a baseline.
 */
-func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInCluster(in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
-	convertedList := ksengine.Shepherd.RenderACLMappings(ksengine.ShepherdACLList, providedAclType)
+func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInCluster(clusterName string, in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
+	convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
 	return a.conditionalACLMapper(convertedList, in, false)
 }
 
@@ -48,8 +68,8 @@ func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInCluster(in *ksengine.A
 	Returns ACLMapping construct for the ACLs that are provisioned in the Kafka cluster, but are
 	not available as part of the configuration files.
 */
-func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInConfig(in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
-	convertedList := ksengine.Shepherd.RenderACLMappings(ksengine.ShepherdACLList, providedAclType)
+func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInConfig(clusterName string, in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
+	convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
 	return a.conditionalACLMapper(in, convertedList, false)
 }
 
@@ -58,8 +78,8 @@ func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInConfig(in *ksengine.AC
 	part of the Configurations. It returns ACL Stream that is a part of the Shepherd Config and
 	is already provisioned in the Kafka Cluster
 */
-func (a ACLExecutionManagerBaseImpl) FindProvisionedACLsInCluster(in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
-	convertedList := ksengine.Shepherd.RenderACLMappings(ksengine.ShepherdACLList, providedAclType)
+func (a ACLExecutionManagerBaseImpl) FindProvisionedACLsInCluster(clusterName string, in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
+	convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
 	return a.conditionalACLMapper(convertedList, in, true)
 }
 

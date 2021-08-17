@@ -33,7 +33,7 @@ func (t SaramaACLExecutionManagerImpl) getSaramaConnectionObject(clusterName str
 
 func (s SaramaACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
-	createSet := s.FindNonExistentACLsInCluster(aclMappings, ksengine.KafkaACLOperation_ANY)
+	createSet := s.FindNonExistentACLsInCluster(clusterName, aclMappings, ksengine.KafkaACLOperation_ANY)
 	s.createACLs(clusterName, createSet, dryRun)
 }
 
@@ -88,13 +88,13 @@ func (s SaramaACLExecutionManagerImpl) createACLs(clusterName string, in *ksengi
 
 func (s SaramaACLExecutionManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Delete Config ACLs", "=", 80)
-	deleteSet := s.FindProvisionedACLsInCluster(aclMappings, ksengine.KafkaACLOperation_ANY)
+	deleteSet := s.FindProvisionedACLsInCluster(clusterName, aclMappings, ksengine.KafkaACLOperation_ANY)
 	s.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
 func (s SaramaACLExecutionManagerImpl) DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Delete Unknown ACLs", "=", 80)
-	deleteSet := s.FindNonExistentACLsInConfig(aclMappings, ksengine.KafkaACLOperation_ANY)
+	deleteSet := s.FindNonExistentACLsInConfig(clusterName, aclMappings, ksengine.KafkaACLOperation_ANY)
 	s.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
