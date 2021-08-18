@@ -88,6 +88,7 @@ func (c *ShepherdCluster) readValuesFromENV() {
 	for i, v := range c.BootstrapServers {
 		c.BootstrapServers[i] = envVarCheckNReplace(v, "")
 	}
+	c.ACLType = envVarCheckNReplace(c.ACLType, "")
 	c.ClientID = envVarCheckNReplace(c.ClientID, "")
 	c.TLSDetails.readValuesFromENV()
 	c.Configs = streamlineNVPairs(c.Configs)
