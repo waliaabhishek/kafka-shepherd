@@ -53,22 +53,6 @@ func (c *SaramaConnection) validateInputProps(cConfig ksengine.ShepherdCluster) 
 
 }
 
-func generateCustomError(isFatal bool, attrName string, errMsg string) {
-	errVal := "Cannot set up connection without the attribute. Exiting process."
-	if errMsg != "" {
-		errVal = errMsg
-	}
-	if isFatal {
-		logger.Fatalw("Attribute missing but is required to prepare proper connection",
-			"Attribute Name", attrName,
-			"Error Details", errVal)
-	}
-	logger.Errorw("Attribute missing but is required to prepare proper connection",
-		"Attribute Name", attrName,
-		"Error Details", errVal)
-
-}
-
 func (c *SaramaConnection) CloseAdminConnection() {
 	wg.Add(1)
 	term <- syscall.SIGQUIT
