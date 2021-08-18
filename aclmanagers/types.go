@@ -9,18 +9,26 @@ var (
 	logger = ksengine.Shepherd.GetLogger()
 )
 
+/*
+	The two maps below control which manager will be used for what kind of ACL's. It provides the appropriate
+	ACL Manager Object as well as the ACLOperationInterface used for execution.
+*/
 var (
 	aclController map[kafkamanagers.ACLType]ACLExecutionManager = map[kafkamanagers.ACLType]ACLExecutionManager{
-		kafkamanagers.ConnectionType_KAFKA_ACLS:     SaramaACLManager,
-		kafkamanagers.ConnectionType_CONFLUENT_RBAC: SaramaACLManager,
+		kafkamanagers.ACLType_KAFKA_ACLS:     SaramaACLManager,
+		kafkamanagers.ACLType_CONFLUENT_RBAC: SaramaACLManager,
 	}
 
 	aclInterface map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface = map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface{
-		kafkamanagers.ConnectionType_KAFKA_ACLS:     ksengine.KafkaACLOperation_UNKNOWN,
-		kafkamanagers.ConnectionType_CONFLUENT_RBAC: ksengine.ConfRBACType_UNKNOWN,
+		kafkamanagers.ACLType_KAFKA_ACLS:     ksengine.KafkaACLOperation_UNKNOWN,
+		kafkamanagers.ACLType_CONFLUENT_RBAC: ksengine.ConfRBACType_UNKNOWN,
 	}
 )
 
+/*
+	The user can logically derive these values themselves but the convenience method below provides the implemented
+	values as an output. If its a forked repo, this is the method and the maps above are the ones to be changed.
+*/
 func GetACLControllerDetails(clusterName string) (ACLExecutionManager, ksengine.ACLOperationsInterface) {
 	aclType := kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].ACLType
 	execMgr := aclController[aclType]
