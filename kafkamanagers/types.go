@@ -20,6 +20,7 @@ type KafkaConnectionsValue struct {
 
 type ConnectionObject interface {
 	InitiateAdminConnection(ksengine.ShepherdCluster)
+	validateInputDetails(ksengine.ShepherdCluster)
 	CloseAdminConnection()
 }
 
@@ -39,18 +40,18 @@ func InitiateAllKafkaConnections(clusters ksengine.ConfigRoot) {
 				"Expected Types", temp.stringJoin())
 		}
 		if cluster.IsEnabled {
-			if v == ConnectionType_KAFKA_ACLS {
+			if v == ACLType_KAFKA_ACLS {
 				wg := new(sync.WaitGroup)
 				k := KafkaConnectionsKey{ClusterName: cluster.Name}
 				v := KafkaConnectionsValue{
 					Connection:   &SaramaConnection{},
-					ACLType:      ConnectionType_KAFKA_ACLS,
+					ACLType:      ACLType_KAFKA_ACLS,
 					WaitGroupRef: wg,
 				}
 				v.Connection.InitiateAdminConnection(cluster)
 				Connections[k] = v
 			}
-			if v == ConnectionType_CONFLUENT_RBAC {
+			if v == ACLType_CONFLUENT_RBAC {
 				logger.Fatal("Confluent RBAC implementation is not available yet.")
 				// TODO : Implement Confluent GO Client Handler
 			}
