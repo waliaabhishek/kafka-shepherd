@@ -42,6 +42,33 @@ func (c *SaramaConnection) InitiateAdminConnection(cConfig ksengine.ShepherdClus
 	c.SCA = &ca
 }
 
+func (c *SaramaConnection) validateInputProps(cConfig ksengine.ShepherdCluster) {
+	if len(cConfig.BootstrapServers) == 0 {
+		generateCustomError(true, "BootstrapServers", "")
+	}
+
+	if cConfig.Configs[0]["security.protocol"] == "" {
+		generateCustomError(true, "security.protocol", "")
+	}
+
+}
+
+func generateCustomError(isFatal bool, attrName string, errMsg string) {
+	errVal := "Cannot set up connection without the attribute. Exiting process."
+	if errMsg != "" {
+		errVal = errMsg
+	}
+	if isFatal {
+		logger.Fatalw("Attribute missing but is required to prepare proper connection",
+			"Attribute Name", attrName,
+			"Error Details", errVal)
+	}
+	logger.Errorw("Attribute missing but is required to prepare proper connection",
+		"Attribute Name", attrName,
+		"Error Details", errVal)
+
+}
+
 func (c *SaramaConnection) CloseAdminConnection() {
 	wg.Add(1)
 	term <- syscall.SIGQUIT
@@ -58,6 +85,17 @@ func understandClusterTopology(sc *ksengine.ShepherdCluster) (conf *sarama.Confi
 	switch sc.Configs[0]["security.protocol"] {
 	case "SASL_SSL":
 		logger.Debug("Inside the SASL_SSL switch statement")
+		if sc.Configs[0]["sasl.jaas.config"] == "" {
+			generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jass.config to be configured. Exiting process.")
+		}
+		if sc.TLSDetails.Enable2WaySSL {
+			if sc.TLSDetails.ClientCert == "" {
+				generateCustomError(true, "cluster.tlsDetails.clientCert", "2 Way SSL is enabled. Need Keystore.")
+			}
+			if sc.TLSDetails.PrivateKey == "" {
+				generateCustomError(true, "cluster.tlsDetails.clientCert", "2 Way SSL is enabled. Need Keystore Password.")
+			}
+		}
 		c.Net.SASL.Enable = true
 		c.Net.SASL.User = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "username")
 		c.Net.SASL.Password = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "password")
@@ -66,6 +104,9 @@ func understandClusterTopology(sc *ksengine.ShepherdCluster) (conf *sarama.Confi
 		c.Net.TLS.Config = createTLSConfig(sc)
 	case "SASL_PLAINTEXT":
 		logger.Debug("Inside the SASL_PLAINTEXT switch statement")
+		if sc.Configs[0]["sasl.jaas.config"] == "" {
+			generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jass.config to be configured. Exiting process.")
+		}
 		c.Net.SASL.Enable = true
 		c.Net.SASL.User = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "username")
 		c.Net.SASL.Password = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "password")
@@ -73,6 +114,16 @@ func understandClusterTopology(sc *ksengine.ShepherdCluster) (conf *sarama.Confi
 		c.Net.TLS.Enable = false
 	case "SSL":
 		logger.Debug("Inside the SSL switch statement")
+		// Note here that no check is performed for Trusted certs as the system owned certs will be use by default.
+		// So the connection might work even if the Trusted Certs are not provided.
+		if sc.TLSDetails.Enable2WaySSL {
+			if sc.TLSDetails.ClientCert == "" {
+				generateCustomError(true, "cluster.tlsDetails.clientCert", "2 Way SSL is enabled. Need Keystore.")
+			}
+			if sc.TLSDetails.PrivateKey == "" {
+				generateCustomError(true, "cluster.tlsDetails.clientCert", "2 Way SSL is enabled. Need Keystore Password.")
+			}
+		}
 		c.Net.TLS.Enable = true
 		c.Net.TLS.Config = createTLSConfig(sc)
 	default:
