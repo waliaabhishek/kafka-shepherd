@@ -42,7 +42,7 @@ func (c *SaramaConnection) InitiateAdminConnection(cConfig ksengine.ShepherdClus
 	c.SCA = &ca
 }
 
-func (c *SaramaConnection) validateInputProps(cConfig ksengine.ShepherdCluster) {
+func (c *SaramaConnection) validateInputDetails(cConfig ksengine.ShepherdCluster) {
 	if len(cConfig.BootstrapServers) == 0 {
 		generateCustomError(true, "BootstrapServers", "")
 	}
@@ -70,7 +70,7 @@ func understandClusterTopology(sc *ksengine.ShepherdCluster) (conf *sarama.Confi
 	case "SASL_SSL":
 		logger.Debug("Inside the SASL_SSL switch statement")
 		if sc.Configs[0]["sasl.jaas.config"] == "" {
-			generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jass.config to be configured. Exiting process.")
+			generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jaas.config to be configured. Exiting process.")
 		}
 		if sc.TLSDetails.Enable2WaySSL {
 			if sc.TLSDetails.ClientCert == "" {
@@ -89,7 +89,7 @@ func understandClusterTopology(sc *ksengine.ShepherdCluster) (conf *sarama.Confi
 	case "SASL_PLAINTEXT":
 		logger.Debug("Inside the SASL_PLAINTEXT switch statement")
 		if sc.Configs[0]["sasl.jaas.config"] == "" {
-			generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jass.config to be configured. Exiting process.")
+			generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jaas.config to be configured. Exiting process.")
 		}
 		c.Net.SASL.Enable = true
 		c.Net.SASL.User = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "username")

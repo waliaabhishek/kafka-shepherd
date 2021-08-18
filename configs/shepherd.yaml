@@ -6,14 +6,14 @@ configs:
     deleteUnknownACLs: false
   clusters:
     - name: dev_plaintext
+      isEnabled: false
       bootstrapServers:
         - localhost:9092
       clientId: "abhishektest1"
-      isEnabled: false
     # - name: test_ssl_1WaySSL
+    #   isEnabled: false
     #   bootstrapServers:
     #     - localhost:9093
-    #   isEnabled: false
     #   clientId: "abhishektest2"
     #   tlsDetails:
     #     enable2WaySSL: false
@@ -26,23 +26,37 @@ configs:
     #   configOverrides:
     #     - security.protocol: SSL
     - name: test2_sasl_plaintext
+      isEnabled: false
       bootstrapServers:
         - localhost:9093
-      isEnabled: false
-      aclType: "confluent_rbac"
+      aclType: "kafka_acl"
       clientId: "abhishektest3"
       configOverrides:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: PLAIN
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'
     - name: test3_sasl_plaintext_scram
+      isEnabled: true
       bootstrapServers:
         - localhost:9093
         - localhost:9094
-      isEnabled: true
       aclType: "kafka_acl"
       clientId: "abhishektest4"
       configOverrides:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: SCRAM-SHA-256
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-pass"'
+    - name: test4_confluent_rbac
+      isEnabled: false
+      bootstrapServers:
+        - localhost:9093
+      aclType: "confluent_rbac"
+      clientId: "abhishektest3"
+      configOverrides:
+        - cluster.id: "sadfhdskalfhdjkf"
+        - mds.url: "https://0.0.0.0:8090"
+        - mds.username: "superUser"
+        - mds.password: "superUser"
+        # - connect.url: "https://0.0.0.0:8083"
+        # - schema.registry.url: "https://0.0.0.0:8081"
+        # - ksql.cluster.url: "https://0.0.0.0:443"
