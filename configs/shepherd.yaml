@@ -29,6 +29,7 @@ configs:
       bootstrapServers:
         - localhost:9093
       isEnabled: false
+      aclType: "confluent_rbac"
       clientId: "abhishektest3"
       configOverrides:
         - security.protocol: SASL_PLAINTEXT
@@ -39,6 +40,7 @@ configs:
         - localhost:9093
         - localhost:9094
       isEnabled: true
+      aclType: "kafka_acl"
       clientId: "abhishektest4"
       configOverrides:
         - security.protocol: SASL_PLAINTEXT
