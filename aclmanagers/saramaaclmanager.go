@@ -15,10 +15,7 @@ type SaramaACLExecutionManagerImpl struct {
 
 var (
 	SaramaACLManager ACLExecutionManager = SaramaACLExecutionManagerImpl{}
-)
-
-var (
-	aclMappings *ksengine.ACLMapping
+	aclMappings      *ksengine.ACLMapping
 )
 
 /*
