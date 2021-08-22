@@ -24,6 +24,8 @@ type ConnectionObject interface {
 	CloseAdminConnection()
 }
 
+type ConnectionObjectBaseImpl struct{}
+
 var (
 	Connections KafkaConnections = make(KafkaConnections)
 )
@@ -52,8 +54,13 @@ func InitiateAllKafkaConnections(clusters ksengine.ConfigRoot) {
 				Connections[k] = v
 			}
 			if v == ACLType_CONFLUENT_RBAC {
-				logger.Fatal("Confluent RBAC implementation is not available yet.")
-				// TODO : Implement Confluent GO Client Handler
+				k := KafkaConnectionsKey{ClusterName: cluster.Name}
+				v := KafkaConnectionsValue{
+					Connection: &ConfluentMDSConnection{},
+					ACLType:    ACLType_CONFLUENT_RBAC,
+				}
+				v.Connection.InitiateAdminConnection(cluster)
+				Connections[k] = v
 			}
 		}
 	}
@@ -67,7 +74,7 @@ func CloseAllKafkaConnections() {
 	wg.Wait()
 }
 
-func generateCustomError(isFatal bool, attrName string, errMsg string) {
+func (c *ConnectionObjectBaseImpl) generateCustomError(isFatal bool, attrName string, errMsg string) {
 	errVal := "Cannot set up connection without the attribute. Exiting process."
 	if errMsg != "" {
 		errVal = errMsg
@@ -80,4 +87,15 @@ func generateCustomError(isFatal bool, attrName string, errMsg string) {
 	logger.Errorw("Attribute missing but is required to prepare proper connection",
 		"Attribute Name", attrName,
 		"Error Details", errVal)
+}
+
+func (c *ConnectionObjectBaseImpl) executeBaseValidations(cConfig *ksengine.ShepherdCluster) {
+	if cConfig.TLSDetails.Enable2WaySSL {
+		if cConfig.TLSDetails.ClientCert == "" {
+			c.generateCustomError(true, "cluster.tlsDetails.clientCert", "2 Way SSL is enabled. Need Keystore.")
+		}
+		if cConfig.TLSDetails.PrivateKey == "" {
+			c.generateCustomError(true, "cluster.tlsDetails.privateKey", "2 Way SSL is enabled. Need Keystore Password.")
+		}
+	}
 }

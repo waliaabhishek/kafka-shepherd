@@ -11,11 +11,8 @@ import ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 	different types of Security Implementations.
 */
 type (
-	ACLMapping             map[ACLDetails]interface{}
-	KafkaResourceType      int
-	KafkaACLPatternType    int
-	KafkaACLPermissionType int
-	ACLDetails             struct {
+	ACLMapping map[ACLDetails]interface{}
+	ACLDetails struct {
 		ResourceType ACLResourceInterface
 		ResourceName string
 		PatternType  ACLPatternInterface
@@ -30,7 +27,10 @@ type (
 ///////////////////////////////////////////////////////////////////////////////
 
 type (
-	ShepherdACLManager interface {
+	KafkaResourceType      int
+	KafkaACLPatternType    int
+	KafkaACLPermissionType int
+	ShepherdACLManager     interface {
 		ACLResourceInterface
 		ACLPatternInterface
 		ACLOperationsInterface

@@ -41,7 +41,7 @@ type ACLExecutionManager interface {
 	CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
 	DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
 	DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
-	ListClusterACL(clusterName string)
+	ListClusterACL(clusterName string, printOutput bool)
 	ListConfigACL()
 }
 

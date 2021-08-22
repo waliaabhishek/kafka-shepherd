@@ -1,7 +1,11 @@
 package engine
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -54,6 +58,67 @@ func (in *NVPairs) merge(temp []NVPairs) (out *NVPairs) {
 		}
 	}
 	return in
+}
+
+func GetClientCertificateFromCertNKey(pathToClientCert string, pathToPrivateKey string, privateKeyPassword string) (*tls.Certificate, error) {
+
+	var v *pem.Block
+	var pKey []byte
+	var clientCert tls.Certificate
+	failFlag := false
+
+	cCert, err := ioutil.ReadFile(pathToClientCert)
+	if err != nil {
+		logger.Warnw("Cannot read the Client Cert file provided in config. Skipping setting up the client certificate.",
+			"Client Certificate Path", pathToClientCert,
+			"Error Details", err)
+		failFlag = true
+	}
+	b, err := ioutil.ReadFile(pathToPrivateKey)
+	if err != nil {
+		logger.Warnw("Cannot read the Private Key file provided in config. Skipping setting up the client certificate.",
+			"Private Key Path", pathToPrivateKey,
+			"Error Details", err)
+		failFlag = true
+	} else {
+		if !failFlag {
+			for {
+				v, b = pem.Decode(b)
+				logger.Debug("Private Key Decoded.")
+				if v == nil {
+					logger.Debug("inside the circuit Breaker for Decoder.")
+					break
+				}
+				if v.Type == "PRIVATE KEY" || v.Type == "RSA PRIVATE KEY" {
+					logger.Debug("Triggered Private Key Encryption Check")
+					if x509.IsEncryptedPEMBlock(v) {
+						logger.Debug("Private Key is Encrypted. Will need the Private Key Password")
+						pKey, err = x509.DecryptPEMBlock(v, []byte(privateKeyPassword))
+						if err != nil {
+							logger.Warnw("Cannot decrypt the Private Key file provided in config. Skipping setting up the client certificate.",
+								"Client Certificate Path", pathToClientCert,
+								"Private Key Path", pathToPrivateKey,
+								"Error Details", err)
+							break
+						}
+						pKey = pem.EncodeToMemory(&pem.Block{
+							Type:  v.Type,
+							Bytes: pKey,
+						})
+					} else {
+						pKey = pem.EncodeToMemory(v)
+					}
+				}
+			}
+		}
+	}
+
+	if !failFlag {
+		logger.Debug("Private Certificate & Key Loaded")
+		clientCert, err = tls.X509KeyPair(cCert, pKey)
+	}
+
+	return &clientCert, err
 }
 
 func (sc *DefinitionRoot) PrettyPrintScope() {

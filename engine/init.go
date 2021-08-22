@@ -90,6 +90,10 @@ func GetConfigTopicsAsMapSet() mapset.Set {
 	return topicsInConfig
 }
 
+func IsDebugEnabled() bool {
+	return enableDebug
+}
+
 func assertRunMode(mode *string) RunMode {
 	switch strings.ToUpper(strings.TrimSpace(*mode)) {
 	case RunMode_SINGLE_CLUSTER.String():

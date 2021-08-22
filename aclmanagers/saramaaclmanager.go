@@ -14,8 +14,8 @@ type SaramaACLExecutionManagerImpl struct {
 }
 
 var (
-	SaramaACLManager ACLExecutionManager = SaramaACLExecutionManagerImpl{}
-	aclMappings      *ksengine.ACLMapping
+	SaramaACLManager  ACLExecutionManager = SaramaACLExecutionManagerImpl{}
+	saramaAclMappings *ksengine.ACLMapping
 )
 
 /*
@@ -24,13 +24,14 @@ var (
 	to find the ConnectionObject and type cast it as a Sarama Cluster Admin connection and use
 	it to execute any functionality in this module.
 */
-func (t SaramaACLExecutionManagerImpl) getSaramaConnectionObject(clusterName string) *sarama.ClusterAdmin {
+func (t SaramaACLExecutionManagerImpl) getConnectionObject(clusterName string) *sarama.ClusterAdmin {
 	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].Connection.(*kafkamanagers.SaramaConnection).SCA
 }
 
 func (s SaramaACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
-	createSet := s.FindNonExistentACLsInCluster(clusterName, aclMappings, ksengine.KafkaACLOperation_ANY)
+	s.ListClusterACL(clusterName, false)
+	createSet := s.FindNonExistentACLsInCluster(clusterName, saramaAclMappings, ksengine.KafkaACLOperation_ANY)
 	s.createACLs(clusterName, createSet, dryRun)
 }
 
@@ -61,7 +62,7 @@ func (s SaramaACLExecutionManagerImpl) createACLs(clusterName string, in *ksengi
 				"Permission Type", a.PermissionType.String(),
 			)
 		} else {
-			err := (*s.getSaramaConnectionObject(clusterName)).CreateACL(r, a)
+			err := (*s.getConnectionObject(clusterName)).CreateACL(r, a)
 			if err != nil {
 				logger.Warnw("Was not able to create the ACL.",
 					"Resource Details", r.ResourceName,
@@ -85,13 +86,15 @@ func (s SaramaACLExecutionManagerImpl) createACLs(clusterName string, in *ksengi
 
 func (s SaramaACLExecutionManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Delete Config ACLs", "=", 80)
-	deleteSet := s.FindProvisionedACLsInCluster(clusterName, aclMappings, ksengine.KafkaACLOperation_ANY)
+	s.ListClusterACL(clusterName, false)
+	deleteSet := s.FindProvisionedACLsInCluster(clusterName, saramaAclMappings, ksengine.KafkaACLOperation_ANY)
 	s.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
 func (s SaramaACLExecutionManagerImpl) DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Delete Unknown ACLs", "=", 80)
-	deleteSet := s.FindNonExistentACLsInConfig(clusterName, aclMappings, ksengine.KafkaACLOperation_ANY)
+	s.ListClusterACL(clusterName, false)
+	deleteSet := s.FindNonExistentACLsInConfig(clusterName, saramaAclMappings, ksengine.KafkaACLOperation_ANY)
 	s.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
@@ -120,7 +123,7 @@ func (s SaramaACLExecutionManagerImpl) deleteACLs(clusterName string, in *ksengi
 				"Permission Type", filter.PermissionType.String(),
 			)
 		} else {
-			match, err := (*s.getSaramaConnectionObject(clusterName)).DeleteACL(filter, false)
+			match, err := (*s.getConnectionObject(clusterName)).DeleteACL(filter, false)
 			if err != nil {
 				logger.Warnw("Was not able to create the ACL.",
 					"Resource Details", filter.ResourceName,
@@ -141,40 +144,42 @@ func (s SaramaACLExecutionManagerImpl) deleteACLs(clusterName string, in *ksengi
 	wg.Wait()
 }
 
-func (s SaramaACLExecutionManagerImpl) ListClusterACL(clusterName string) {
+func (s SaramaACLExecutionManagerImpl) ListClusterACL(clusterName string, printOutput bool) {
 	acls := s.gatherClusterACLs(clusterName)
 	var wg sync.WaitGroup
 	lock := &sync.Mutex{}
 	wg.Add(len(*acls))
-	aclMappings = &ksengine.ACLMapping{}
+	saramaAclMappings = &ksengine.ACLMapping{}
 	for _, v := range *acls {
-		go s.mapSaramaToKafkaACL(v, aclMappings, &wg, lock)
+		go s.mapSaramaToKafkaACL(v, saramaAclMappings, &wg, lock)
 	}
 	wg.Wait()
-	for _, in := range *acls {
-		for _, v := range in.Acls {
-			logger.Infow("Sarama ACL Details",
-				"Resource Type", in.Resource.ResourceType.String(),
-				"Resource Name", in.Resource.ResourceName,
-				"Resource Pattern Type", in.Resource.ResourcePatternType.String(),
-				"Principal Name", v.Principal,
-				"Host", v.Host,
-				"ACL Operation", v.Operation.String(),
-				"Permission Type", v.PermissionType.String(),
+	if printOutput {
+		for _, in := range *acls {
+			for _, v := range in.Acls {
+				logger.Infow("Sarama ACL Details",
+					"Resource Type", in.Resource.ResourceType.String(),
+					"Resource Name", in.Resource.ResourceName,
+					"Resource Pattern Type", in.Resource.ResourcePatternType.String(),
+					"Principal Name", v.Principal,
+					"Host", v.Host,
+					"ACL Operation", v.Operation.String(),
+					"Permission Type", v.PermissionType.String(),
+				)
+			}
+		}
+		for k := range *saramaAclMappings {
+			perm := ksengine.KafkaACLPermissionType_ALLOW
+			logger.Infow("Mapped Kafka ACL Details (Only Alllow Mappings are filtered)",
+				"Resource Type", k.ResourceType.GetACLResourceString(),
+				"Resource Name", k.ResourceName,
+				"Resource Pattern Type", k.PatternType.GetACLPatternString(),
+				"Principal Name", k.Principal,
+				"Host", k.Hostname,
+				"ACL Operation", k.Operation.String(),
+				"Permission Type", perm.String(),
 			)
 		}
-	}
-	for k := range *aclMappings {
-		perm := ksengine.KafkaACLPermissionType_ALLOW
-		logger.Infow("Mapped Kafka ACL Details (Only Alllow Mappings are filtered)",
-			"Resource Type", k.ResourceType.GetACLResourceString(),
-			"Resource Name", k.ResourceName,
-			"Resource Pattern Type", k.PatternType.GetACLPatternString(),
-			"Principal Name", k.Principal,
-			"Host", k.Hostname,
-			"ACL Operation", k.Operation.String(),
-			"Permission Type", perm.String(),
-		)
 	}
 }
 
@@ -205,7 +210,7 @@ func (s SaramaACLExecutionManagerImpl) gatherClusterACLs(clusterName string) *[]
 		Operation:                 sarama.AclOperationAny,
 		Version:                   1,
 	}
-	acls, err := (*s.getSaramaConnectionObject(clusterName)).ListAcls(filter)
+	acls, err := (*s.getConnectionObject(clusterName)).ListAcls(filter)
 	if err != nil {
 		logger.Fatalw("Failed to list Kafka Cluster ACLs. Cannot proceed without the correct ACLs.")
 	}
