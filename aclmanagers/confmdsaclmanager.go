@@ -17,7 +17,8 @@ var (
 )
 
 const (
-	mds_ListRoles = "/security/1.0/roles"
+	mds_ListRoles             = "/security/1.0/roles"
+	mds_GetPrincipalsForRoles = "/security/1.0/lookup/role/{roleName}"
 )
 
 /*
@@ -68,9 +69,15 @@ func (c ConfuentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string, 
 	r := []listRolesResp{}
 	conn.JSONUnmarshal(resp.Body(), &r)
 
-
+	var userList map[string]interface{}
 	for i, lrr := range r {
-		conn.R().
+		resp, err = conn.R().SetPathParam("roleName", lrr.Name).Get(mds_GetPrincipalsForRoles)
+		if err != nil {
+			logger.Fatalw("Tried Multiple Times to get Principals for RoleName. Cannot Proceed Without MDS Connectivity.",
+				"Principal Name", lrr.Name,
+				"Error", err)
+		}
+
 	}
 	panic("not implemented") // TODO: Implement
 }
