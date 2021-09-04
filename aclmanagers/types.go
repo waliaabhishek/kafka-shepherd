@@ -16,12 +16,12 @@ var (
 var (
 	aclController map[kafkamanagers.ACLType]ACLExecutionManager = map[kafkamanagers.ACLType]ACLExecutionManager{
 		kafkamanagers.ACLType_KAFKA_ACLS:     SaramaACLManager,
-		kafkamanagers.ACLType_CONFLUENT_RBAC: SaramaACLManager,
+		kafkamanagers.ACLType_CONFLUENT_RBAC: ConfluentRbacACLManager,
 	}
 
 	aclInterface map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface = map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface{
 		kafkamanagers.ACLType_KAFKA_ACLS:     ksengine.KafkaACLOperation_UNKNOWN,
-		kafkamanagers.ACLType_CONFLUENT_RBAC: ksengine.ConfRBACType_UNKNOWN,
+		kafkamanagers.ACLType_CONFLUENT_RBAC: ksengine.ConfRBACType("Unknown"),
 	}
 )
 
