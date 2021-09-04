@@ -19,6 +19,7 @@ const (
 	KafkaResourceType_RESOURCE_DELEGATION_TOKEN
 	KafkaResourceType_CONNECTOR
 	KafkaResourceType_SUBJECT
+	KafkaResourceType_KAFKA_CLUSTER
 	KafkaResourceType_KSQL_CLUSTER
 	KafkaResourceType_SCHEMA_REGISTRY_CLUSTER
 	KafkaResourceType_CONNECT_CLUSTER
@@ -28,16 +29,17 @@ func (in KafkaResourceType) GetACLResourceString() string {
 	m := map[KafkaResourceType]string{
 		KafkaResourceType_UNKNOWN:                   "KafkaResourceType_UNKNOWN",
 		KafkaResourceType_ANY:                       "ANY",
-		KafkaResourceType_TOPIC:                     "Topic",
-		KafkaResourceType_CLUSTER:                   "Cluster",
-		KafkaResourceType_GROUP:                     "Group",
-		KafkaResourceType_TRANSACTIONALID:           "TransactionalId",
-		KafkaResourceType_CONNECTOR:                 "Connector",
-		KafkaResourceType_SUBJECT:                   "Subject",
-		KafkaResourceType_KSQL_CLUSTER:              "KsqlCluster",
-		KafkaResourceType_SCHEMA_REGISTRY_CLUSTER:   "SchemaRegistryCluster",
-		KafkaResourceType_CONNECT_CLUSTER:           "ConnectCluster",
-		KafkaResourceType_RESOURCE_DELEGATION_TOKEN: "ResourceDelegationToken",
+		KafkaResourceType_TOPIC:                     "TOPIC",
+		KafkaResourceType_CLUSTER:                   "CLUSTER",
+		KafkaResourceType_GROUP:                     "GROUP",
+		KafkaResourceType_TRANSACTIONALID:           "TRANSACTIONALID",
+		KafkaResourceType_CONNECTOR:                 "CONNECTOR",
+		KafkaResourceType_SUBJECT:                   "SUBJECT",
+		KafkaResourceType_KAFKA_CLUSTER:             "KAFKACLUSTER",
+		KafkaResourceType_KSQL_CLUSTER:              "KSQLCLUSTER",
+		KafkaResourceType_SCHEMA_REGISTRY_CLUSTER:   "SCHEMAREGISTRYCLUSTER",
+		KafkaResourceType_CONNECT_CLUSTER:           "CONNECTCLUSTER",
+		KafkaResourceType_RESOURCE_DELEGATION_TOKEN: "RESOURCEDELEGATIONTOKEN",
 	}
 	s, ok := m[in]
 	if !ok {
@@ -50,16 +52,17 @@ func (c KafkaResourceType) GetACLResourceValue(in string) (ACLResourceInterface,
 	m := map[string]KafkaResourceType{
 		"KafkaResourceType_UNKNOWN": KafkaResourceType_UNKNOWN,
 		"ANY":                       KafkaResourceType_ANY,
-		"Topic":                     KafkaResourceType_TOPIC,
-		"Cluster":                   KafkaResourceType_CLUSTER,
-		"Group":                     KafkaResourceType_GROUP,
-		"TransactionalId":           KafkaResourceType_TRANSACTIONALID,
-		"Connector":                 KafkaResourceType_CONNECTOR,
-		"Subject":                   KafkaResourceType_SUBJECT,
-		"KsqlCluster":               KafkaResourceType_KSQL_CLUSTER,
-		"SchemaRegistryCluster":     KafkaResourceType_SCHEMA_REGISTRY_CLUSTER,
-		"ConnectCluster":            KafkaResourceType_CONNECT_CLUSTER,
-		"ResourceDelegationToken":   KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
+		"TOPIC":                     KafkaResourceType_TOPIC,
+		"CLUSTER":                   KafkaResourceType_CLUSTER,
+		"GROUP":                     KafkaResourceType_GROUP,
+		"TRANSACTIONALID":           KafkaResourceType_TRANSACTIONALID,
+		"CONNECTOR":                 KafkaResourceType_CONNECTOR,
+		"SUBJECT":                   KafkaResourceType_SUBJECT,
+		"KAFKACLUSTER":              KafkaResourceType_KAFKA_CLUSTER,
+		"KSQLCLUSTER":               KafkaResourceType_KSQL_CLUSTER,
+		"SCHEMAREGISTRYCLUSTER":     KafkaResourceType_SCHEMA_REGISTRY_CLUSTER,
+		"CONNECTCLUSTER":            KafkaResourceType_CONNECT_CLUSTER,
+		"RESOURCEDELEGATIONTOKEN":   KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
 	}
 	s, ok := m[strings.ToUpper(strings.TrimSpace(in))]
 	if !ok {
