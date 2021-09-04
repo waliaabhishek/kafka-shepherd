@@ -14,24 +14,24 @@ type ConfluentRbacACLExecutionManagerImpl struct {
 }
 
 var (
-	ConfluentRbacACLManager ACLExecutionManager = ConfluentRbacACLExecutionManagerImpl{}
-	confRbacAclMappings     *ksengine.ACLMapping
-	confluentRBAC2KafkaResourceTypeConversion map[string]ksengine.ACLResourceInterface = map[string]ksengine.ACLResourceInterface{
-		"UNKNOWN":         ksengine.KafkaResourceType_UNKNOWN,
-		"ANY":             ksengine.KafkaResourceType_ANY,
-		"TOPIC":           ksengine.KafkaResourceType_TOPIC,
-		"GROUP":           ksengine.KafkaResourceType_GROUP,
-		"CLUSTER":         ksengine.KafkaResourceType_CLUSTER,
-		"TRANSACTIONALID": ksengine.KafkaResourceType_TRANSACTIONALID,
-		"ResourceDelegationToken": ksengine.KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
-	}
+	ConfluentRbacACLManager                  ACLExecutionManager                     = ConfluentRbacACLExecutionManagerImpl{}
+	confRbacAclMappings                      *ksengine.ACLMapping                    = &ksengine.ACLMapping{}
 	confluentRBAC2KafkaPatternTypeConversion map[string]ksengine.KafkaACLPatternType = map[string]ksengine.KafkaACLPatternType{
-		"UNKNOWN":  ksengine.KafkaACLPatternType_UNKNOWN,
+		"UNKNOWN": ksengine.KafkaACLPatternType_UNKNOWN,
 		// "ANY":      ksengine.KafkaACLPatternType_ANY,
 		// "MATCH":    ksengine.KafkaACLPatternType_MATCH,
 		"LITERAL":  ksengine.KafkaACLPatternType_LITERAL,
 		"PREFIXED": ksengine.KafkaACLPatternType_PREFIXED,
 	}
+	// confluentRBAC2KafkaResourceTypeConversion map[string]ksengine.ACLResourceInterface = map[string]ksengine.ACLResourceInterface{
+	// 	"UNKNOWN":                 ksengine.KafkaResourceType_UNKNOWN,
+	// 	"ANY":                     ksengine.KafkaResourceType_ANY,
+	// 	"TOPIC":                   ksengine.KafkaResourceType_TOPIC,
+	// 	"GROUP":                   ksengine.KafkaResourceType_GROUP,
+	// 	"CLUSTER":                 ksengine.KafkaResourceType_CLUSTER,
+	// 	"TRANSACTIONALID":         ksengine.KafkaResourceType_TRANSACTIONALID,
+	// 	"ResourceDelegationToken": ksengine.KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
+	// }
 )
 
 const (
@@ -57,12 +57,12 @@ func (c ConfluentRbacACLExecutionManagerImpl) getConnectionObject(clusterName st
 func (c ConfluentRbacACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
 	c.ListClusterACL(clusterName, false)
-	createSet := c.FindNonExistentACLsInCluster(clusterName, confRbacAclMappings, ksengine.ConfRBACType_UNKNOWN)
+	createSet := c.FindNonExistentACLsInCluster(clusterName, confRbacAclMappings, ksengine.ConfRBACType("UNKNOWN"))
 	c.createACLs(clusterName, createSet, dryRun)
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) createACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
-	panic("not implemented") // TODO: Implement
+
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
@@ -143,7 +143,6 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 		}
 	)
 	r3 := []rbResp{}
-	rbacAclMappings := &ksengine.ACLMapping{}
 	var wg sync.WaitGroup
 	lock := &sync.Mutex{}
 	f3 := func(pName string) {
@@ -156,12 +155,13 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 		connObj.MDS.JSONUnmarshal(resp.Body(), &r3)
 		wg.Add(len(r3))
 		for _, v := range r3 {
-			go c.mapRBACToKafkaACL(v.Scope.Clusters, v.Rb, rbacAclMappings, &wg, lock)
+			go c.mapRBACToKafkaACL(v.Scope.Clusters, v.Rb, confRbacAclMappings, &wg, lock)
 		}
 	}
 	for item := range r2.Iter() {
 		f3(item.(string))
 	}
+	wg.Wait()
 
 	panic("not implemented") // TODO: Implement
 
@@ -173,18 +173,29 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapRBACToKafkaACL(cluster, rb map[
 		for operation, resMap := range perms {
 			acl := resMap.(map[string]interface{})
 			value := make(map[string]string)
-			value[]
+			for k := range acl {
+				switch k {
+				case kCluster:
+					value[kCluster] = cluster[kCluster].(string)
+				case cCluster:
+					value[cCluster] = cluster[cCluster].(string)
+				case ksqlCluster:
+					value[ksqlCluster] = cluster[ksqlCluster].(string)
+				case srCluster:
+					value[srCluster] = cluster[srCluster].(string)
+				}
+			}
+			resType, _ := ksengine.KafkaResourceType_ANY.GetACLResourceValue(acl["resourceType"].(string))
 			mtx.Lock()
 			mapping.Append(ksengine.ACLDetails{
-				ResourceType: ksengine.KafkaResourceType.GetACLResourceValue(acl["resourceType"]),
-				ResourceName: acl["name"],
-				PatternType: confluentRBAC2KafkaPatternTypeConversion[acl["patternType"]],
-				Principal: user,
-				Operation: ksengine.ConfRBACType(operation),
-				Hostname: "*",
-			}, )
-			}
+				ResourceType: resType,
+				ResourceName: acl["name"].(string),
+				PatternType:  confluentRBAC2KafkaPatternTypeConversion[acl["patternType"].(string)],
+				Principal:    user,
+				Operation:    ksengine.ConfRBACType(operation),
+				Hostname:     "*",
+			}, value)
+			mtx.Unlock()
 		}
 	}
 }
-
