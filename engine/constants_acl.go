@@ -35,11 +35,11 @@ func (in KafkaResourceType) GetACLResourceString() string {
 		KafkaResourceType_TRANSACTIONALID:           "TRANSACTIONALID",
 		KafkaResourceType_CONNECTOR:                 "CONNECTOR",
 		KafkaResourceType_SUBJECT:                   "SUBJECT",
-		KafkaResourceType_KAFKA_CLUSTER:             "KAFKACLUSTER",
-		KafkaResourceType_KSQL_CLUSTER:              "KSQLCLUSTER",
-		KafkaResourceType_SCHEMA_REGISTRY_CLUSTER:   "SCHEMAREGISTRYCLUSTER",
-		KafkaResourceType_CONNECT_CLUSTER:           "CONNECTCLUSTER",
-		KafkaResourceType_RESOURCE_DELEGATION_TOKEN: "RESOURCEDELEGATIONTOKEN",
+		KafkaResourceType_KAFKA_CLUSTER:             "KAFKA-CLUSTER",
+		KafkaResourceType_KSQL_CLUSTER:              "KSQL-CLUSTER",
+		KafkaResourceType_SCHEMA_REGISTRY_CLUSTER:   "SCHEMA-REGISTRY-CLUSTER",
+		KafkaResourceType_CONNECT_CLUSTER:           "CONNECT-CLUSTER",
+		KafkaResourceType_RESOURCE_DELEGATION_TOKEN: "RESOURCE-DELEGATION-TOKEN",
 	}
 	s, ok := m[in]
 	if !ok {
@@ -58,11 +58,11 @@ func (c KafkaResourceType) GetACLResourceValue(in string) (ACLResourceInterface,
 		"TRANSACTIONALID":           KafkaResourceType_TRANSACTIONALID,
 		"CONNECTOR":                 KafkaResourceType_CONNECTOR,
 		"SUBJECT":                   KafkaResourceType_SUBJECT,
-		"KAFKACLUSTER":              KafkaResourceType_KAFKA_CLUSTER,
-		"KSQLCLUSTER":               KafkaResourceType_KSQL_CLUSTER,
-		"SCHEMAREGISTRYCLUSTER":     KafkaResourceType_SCHEMA_REGISTRY_CLUSTER,
-		"CONNECTCLUSTER":            KafkaResourceType_CONNECT_CLUSTER,
-		"RESOURCEDELEGATIONTOKEN":   KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
+		"KAFKA-CLUSTER":             KafkaResourceType_KAFKA_CLUSTER,
+		"KSQL-CLUSTER":              KafkaResourceType_KSQL_CLUSTER,
+		"SCHEMA-REGISTRY-CLUSTER":   KafkaResourceType_SCHEMA_REGISTRY_CLUSTER,
+		"CONNECT-CLUSTER":           KafkaResourceType_CONNECT_CLUSTER,
+		"RESOURCE-DELEGATION-TOKEN": KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
 	}
 	s, ok := m[strings.ToUpper(strings.TrimSpace(in))]
 	if !ok {
