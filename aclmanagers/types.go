@@ -1,6 +1,9 @@
 package aclmanagers
 
 import (
+	"fmt"
+	"strings"
+
 	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
 	"github.com/waliaabhishek/kafka-shepherd/kafkamanagers"
 )
@@ -21,7 +24,7 @@ var (
 
 	aclInterface map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface = map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface{
 		kafkamanagers.ACLType_KAFKA_ACLS:     ksengine.KafkaACLOperation_UNKNOWN,
-		kafkamanagers.ACLType_CONFLUENT_RBAC: ksengine.ConfRBACType("Unknown"),
+		kafkamanagers.ACLType_CONFLUENT_RBAC: ConfluentRBACOperation("Unknown"),
 	}
 )
 
@@ -42,14 +45,22 @@ type ACLExecutionManager interface {
 	DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
 	DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
 	ListClusterACL(clusterName string, printOutput bool)
-	ListConfigACL()
+	ListConfigACL(useProvidedInput bool, in *ksengine.ACLMapping)
+	mapFromShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
+	mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
 }
 
 type ACLExecutionManagerBaseImpl struct{}
 
-func (a ACLExecutionManagerBaseImpl) ListConfigACL() {
+func (a ACLExecutionManagerBaseImpl) ListConfigACL(useProvidedInput bool, in *ksengine.ACLMapping) {
 	perm := ksengine.KafkaACLPermissionType_ALLOW
-	for k := range *ksengine.ShepherdACLList {
+	var temp *ksengine.ACLMapping
+	if useProvidedInput {
+		temp = in
+	} else {
+		temp = ksengine.ShepherdACLList
+	}
+	for k := range *temp {
 		logger.Infow("Config ACL Mapping Details",
 			"Resource Type", k.ResourceType.GetACLResourceString(),
 			"Resource Name", k.ResourceName,
@@ -60,6 +71,30 @@ func (a ACLExecutionManagerBaseImpl) ListConfigACL() {
 			"Permission Type", perm.String(),
 		)
 	}
+}
+
+func (a ACLExecutionManagerBaseImpl) constructACLDetailsObject(resType ksengine.ACLResourceInterface, resName string, patType ksengine.ACLPatternInterface,
+	prin string, op ksengine.ACLOperationsInterface, host string) ksengine.ACLDetails {
+	return ksengine.ACLDetails{
+		ResourceType: resType,
+		ResourceName: resName,
+		PatternType:  patType,
+		Principal:    prin,
+		Operation:    op,
+		Hostname:     host,
+	}
+}
+
+func (a ACLExecutionManagerBaseImpl) determinePatternType(topicName string) ksengine.KafkaACLPatternType {
+	if topicName == "*" {
+		return ksengine.KafkaACLPatternType_LITERAL
+		// return KafkaACLPatternType_UNKNOWN
+	}
+	if strings.HasSuffix(topicName, fmt.Sprintf("%s*", ksengine.SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken)) {
+		return ksengine.KafkaACLPatternType_PREFIXED
+	}
+	// return KafkaACLPatternType_UNKNOWN
+	return ksengine.KafkaACLPatternType_LITERAL
 }
 
 /*
