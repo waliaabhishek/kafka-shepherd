@@ -1,6 +1,8 @@
 package aclmanagers
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
@@ -9,29 +11,13 @@ import (
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
-type ConfluentRbacACLExecutionManagerImpl struct {
-	ACLExecutionManagerBaseImpl
-}
-
-var (
-	ConfluentRbacACLManager                  ACLExecutionManager                     = ConfluentRbacACLExecutionManagerImpl{}
-	confRbacAclMappings                      *ksengine.ACLMapping                    = &ksengine.ACLMapping{}
-	confluentRBAC2KafkaPatternTypeConversion map[string]ksengine.KafkaACLPatternType = map[string]ksengine.KafkaACLPatternType{
-		"UNKNOWN": ksengine.KafkaACLPatternType_UNKNOWN,
-		// "ANY":      ksengine.KafkaACLPatternType_ANY,
-		// "MATCH":    ksengine.KafkaACLPatternType_MATCH,
-		"LITERAL":  ksengine.KafkaACLPatternType_LITERAL,
-		"PREFIXED": ksengine.KafkaACLPatternType_PREFIXED,
+type (
+	ConfluentRBACOperation               string
+	ConfluentRbacACLExecutionManagerImpl struct {
+		ACLExecutionManagerBaseImpl
+		ksengine.ShepherdACLConfigManagerBaseImpl
+		ConfluentRBACOperation
 	}
-	// confluentRBAC2KafkaResourceTypeConversion map[string]ksengine.ACLResourceInterface = map[string]ksengine.ACLResourceInterface{
-	// 	"UNKNOWN":                 ksengine.KafkaResourceType_UNKNOWN,
-	// 	"ANY":                     ksengine.KafkaResourceType_ANY,
-	// 	"TOPIC":                   ksengine.KafkaResourceType_TOPIC,
-	// 	"GROUP":                   ksengine.KafkaResourceType_GROUP,
-	// 	"CLUSTER":                 ksengine.KafkaResourceType_CLUSTER,
-	// 	"TRANSACTIONALID":         ksengine.KafkaResourceType_TRANSACTIONALID,
-	// 	"ResourceDelegationToken": ksengine.KafkaResourceType_RESOURCE_DELEGATION_TOKEN,
-	// }
 )
 
 const (
@@ -42,6 +28,18 @@ const (
 	mds_ListRoles                = "/security/1.0/roles"
 	mds_GetPrincipalsForRoles    = "/security/1.0/lookup/role/{roleName}"
 	mds_GetPrincipalRoleBindings = "/security/1.0/lookup/rolebindings/principal/{pName}"
+	mds_CreateRoleBindings       = "/security/1.0/principals/{pName}/roles/{roleName}/bindings"
+)
+
+var (
+	ConfluentRbacACLManager                  ACLExecutionManager                     = ConfluentRbacACLExecutionManagerImpl{}
+	ConfACLManager                           ksengine.ShepherdACLConfigManager       = ConfluentRbacACLExecutionManagerImpl{}
+	confRbacAclMappings                      *ksengine.ACLMapping                    = &ksengine.ACLMapping{}
+	confluentRBAC2KafkaPatternTypeConversion map[string]ksengine.KafkaACLPatternType = map[string]ksengine.KafkaACLPatternType{
+		"UNKNOWN":  ksengine.KafkaACLPatternType_UNKNOWN,
+		"LITERAL":  ksengine.KafkaACLPatternType_LITERAL,
+		"PREFIXED": ksengine.KafkaACLPatternType_PREFIXED,
+	}
 )
 
 /*
@@ -57,7 +55,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) getConnectionObject(clusterName st
 func (c ConfluentRbacACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
 	c.ListClusterACL(clusterName, false)
-	createSet := c.FindNonExistentACLsInCluster(clusterName, confRbacAclMappings, ksengine.ConfRBACType("UNKNOWN"))
+	createSet := c.FindNonExistentACLsInCluster(clusterName, confRbacAclMappings, ConfluentRBACOperation("UNKNOWN"))
 	c.createACLs(clusterName, createSet, dryRun)
 }
 
@@ -162,40 +160,142 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 		f3(item.(string))
 	}
 	wg.Wait()
-
-	panic("not implemented") // TODO: Implement
-
 }
+
 func (c ConfluentRbacACLExecutionManagerImpl) mapRBACToKafkaACL(cluster, rb map[string]interface{}, mapping *ksengine.ACLMapping, wg *sync.WaitGroup, mtx *sync.Mutex) {
 	defer wg.Done()
-	for user, permMap := range rb {
-		perms := permMap.(map[string]interface{})
-		for operation, resMap := range perms {
-			acl := resMap.(map[string]interface{})
-			value := make(map[string]string)
-			for k := range acl {
-				switch k {
-				case kCluster:
-					value[kCluster] = cluster[kCluster].(string)
-				case cCluster:
-					value[cCluster] = cluster[cCluster].(string)
-				case ksqlCluster:
-					value[ksqlCluster] = cluster[ksqlCluster].(string)
-				case srCluster:
-					value[srCluster] = cluster[srCluster].(string)
-				}
-			}
-			resType, _ := ksengine.KafkaResourceType_ANY.GetACLResourceValue(acl["resourceType"].(string))
-			mtx.Lock()
-			mapping.Append(ksengine.ACLDetails{
-				ResourceType: resType,
-				ResourceName: acl["name"].(string),
-				PatternType:  confluentRBAC2KafkaPatternTypeConversion[acl["patternType"].(string)],
-				Principal:    user,
-				Operation:    ksengine.ConfRBACType(operation),
-				Hostname:     "*",
-			}, value)
-			mtx.Unlock()
+	value := make(map[string]string)
+	for k, v := range cluster {
+		v := v.(string)
+		switch k {
+		case kCluster:
+			value[kCluster] = v
+		case cCluster:
+			value[cCluster] = v
+		case ksqlCluster:
+			value[ksqlCluster] = v
+		case srCluster:
+			value[srCluster] = v
 		}
 	}
+	for user, permMap := range rb {
+		for perm, resMap := range permMap.(map[string]interface{}) {
+			for _, acl := range resMap.([]map[string]string) {
+				resType, _ := ksengine.KafkaResourceType_ANY.GetACLResourceValue(acl["resourceType"])
+				mtx.Lock()
+				mapping.Append(ksengine.ACLDetails{
+					ResourceType: resType,
+					ResourceName: acl["name"],
+					PatternType:  confluentRBAC2KafkaPatternTypeConversion[acl["patternType"]],
+					Principal:    user,
+					Operation:    ConfluentRBACOperation(perm),
+					Hostname:     "*",
+				}, value)
+				mtx.Unlock()
+			}
+		}
+	}
+}
+
+func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping) {
+	connObj := c.getConnectionObject(clusterName)
+	for k, v := range *in {
+		value := make(ksengine.NVPairs)
+		value[kCluster] = connObj.KafkaClusterID
+		switch k.Operation {
+		case ksengine.ShepherdClientType_PRODUCER:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
+				k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname)] = value
+			if c.determinePatternType(k.ResourceName) == ksengine.KafkaACLPatternType_LITERAL && connObj.SRClusterID != "" {
+				value[srCluster] = connObj.SRClusterID
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-key", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-value", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+			}
+		case ksengine.ShepherdClientType_PRODUCER_IDEMPOTENCE:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_CLUSTER, "kafka-cluster", ksengine.KafkaACLPatternType_LITERAL,
+				k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname)] = value
+		case ksengine.ShepherdClientType_TRANSACTIONAL_PRODUCER:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TRANSACTIONALID, k.ResourceName, ksengine.KafkaACLPatternType_LITERAL,
+				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+		case ksengine.ShepherdClientType_CONSUMER:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
+				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname)] = value
+			if c.determinePatternType(k.ResourceName) == ksengine.KafkaACLPatternType_LITERAL && connObj.SRClusterID != "" {
+				value[srCluster] = connObj.SRClusterID
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-key", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname)] = value
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-value", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname)] = value
+			}
+		case ksengine.ShepherdClientType_CONSUMER_GROUP:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname)] = value
+		case ksengine.ShepherdClientType_SOURCE_CONNECTOR, ksengine.ShepherdClientType_SINK_CONNECTOR:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
+				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+			if c.determinePatternType(k.ResourceName) == ksengine.KafkaACLPatternType_LITERAL && connObj.SRClusterID != "" {
+				value[srCluster] = connObj.SRClusterID
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-key", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-value", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+			}
+		case ksengine.ShepherdClientType_STREAM_READ, ksengine.ShepherdClientType_STREAM_WRITE:
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+			if connObj.SRClusterID != "" {
+				value[srCluster] = connObj.SRClusterID
+				(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+			}
+		case ksengine.ShepherdClientType_KSQL:
+			value[ksqlCluster] = connObj.KSQLClusterID
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_KSQL_CLUSTER, "ksql-cluster", ksengine.KafkaACLPatternType_LITERAL,
+				k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname)] = value
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, fmt.Sprintf("_confluent-ksql-%s", k.ResourceName), ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname)] = value
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, fmt.Sprintf("%sksql_processing_log", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
+				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname)] = value
+			(*out)[c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%stransient", k.ResourceName), ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname)] = value
+		default:
+			logger.Warnf("Conversion from %T type to %T type is not supported yet. The ACL mapping will be added to the Failed list.", k.Operation, c)
+			(*failed)[k] = v
+		}
+	}
+}
+
+func (c ConfluentRbacACLExecutionManagerImpl) mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping) {
+	// TODO: Convert Confluent ACL's back to the Shepherd ACL format for interconversion support
+}
+
+func (in ConfluentRBACOperation) String() string {
+	return strings.ToUpper(strings.TrimSpace(in.String()))
+}
+
+func (c ConfluentRBACOperation) GetValue(in string) (ksengine.ACLOperationsInterface, error) {
+	return ConfluentRBACOperation(strings.ToUpper(strings.TrimSpace(in))), nil
+}
+
+func (c ConfluentRBACOperation) GenerateACLMappingStructures(clusterName string, in *ksengine.ACLMapping) *ksengine.ACLMapping {
+	out, temp, failed := ksengine.ACLMapping{}, ksengine.ACLMapping{}, ksengine.ACLMapping{}
+	for k, v := range *in {
+		switch k.Operation.(type) {
+		case ConfluentRBACOperation:
+			out[k] = v
+		case ksengine.ShepherdClientType:
+			temp[k] = v
+		default:
+			logger.Warnf("Conversion is only supported Between Shepherd Config Type and %T. The ACL mapping will be added to the Failed list", c)
+			failed[k] = v
+		}
+	}
+	ConfluentRbacACLManager.mapFromShepherdACL(clusterName, &temp, &out, &failed)
+	ksmisc.DottedLineOutput("Failed ACLs", "=", 80)
+	ConfluentRbacACLManager.ListConfigACL(true, &failed)
+	return &out
 }
