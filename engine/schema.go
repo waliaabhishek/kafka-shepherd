@@ -353,8 +353,8 @@ func (c *ProducerDefinition) readValuesFromENV() {
 type ConnectorDefinition struct {
 	Principal      string   `yaml:"id,omitempty"`
 	Type           string   `yaml:"type,omitempty"`
+	ClusterNameRef string   `yaml:"clusterName,omitempty"`
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
-	ClusterNameRef string   `yaml:"connect.cluster.name,omitempty"`
 }
 
 func (c *ConnectorDefinition) readValuesFromENV() {
@@ -408,7 +408,7 @@ func (c *StreamDefinition) readValuesFromENV() {
 type KSQLDefinition struct {
 	Principal      string   `yaml:"id,omitempty"`
 	Type           string   `yaml:"type,omitempty"`
-	ClusterNameRef string   `yaml:"group,omitempty"`
+	ClusterNameRef string   `yaml:"clusterName,omitempty"`
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
 }
 

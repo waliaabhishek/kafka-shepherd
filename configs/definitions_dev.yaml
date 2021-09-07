@@ -22,12 +22,22 @@ definitions:
               enableIdempotence: true
               enableTransactions: true
           # connectors:
-          #   - id: "User:1113"
+          #   - id: "User:1131"
           #     type: "source"
-          #   - id: "User:1112"
+          #     clusterName: "connect-cluster"
+          #   - id: "User:1132"
           #     type: "sink"
-          #   - id: "User:1115"
+          #     clusterName: "connect-cluster"
+          #   - id: "User:1133"
           #     type: "sink"
+          #     clusterName: "connect-cluster"
+          # ksql:
+          #   - id: "User:1141"
+          #     type: "read"
+          #     clusterName: "ksql-cluster"
+          #   - id: "User:1142"
+          #     type: "write"
+          #     clusterName: "ksql-cluster"
         blueprintEnum: "platinum"
         configOverrides:
           # - min.insync.replicas: 5
@@ -42,7 +52,7 @@ definitions:
         - "int"
         - "bss"
         - "oss"
-      addToTopicName: true
+      addToTopicName: false
       child:
         blueprintEnum: zones
         addToTopicName: true
