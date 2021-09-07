@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-var ConfACLManager ShepherdACLManager = ConfluentRBACACLEngineImpl{}
+var ConfACLManager ShepherdACLConfigManager = ConfluentRBACACLEngineImpl{}
 
 type ConfluentRBACACLEngineImpl struct {
-	ShepherdACLManagerBaseImpl
+	ShepherdACLConfigManagerBaseImpl
 	ConfRBACType
 }
 
@@ -27,7 +27,7 @@ func (c ConfRBACType) GetValue(in string) (ACLOperationsInterface, error) {
 // This function will generate the mappings in the ConfRBACType internal structure type for all the mappings provided
 // as the input `in` value. Whatever it is able to properly convert, those mappings will be added to the success
 // map and the rest will be added to the failed map.
-func (c ConfRBACType) generateACLMappingStructures(clusterName string, in *ACLMapping) *ACLMapping {
+func (c ConfRBACType) GenerateACLMappingStructures(clusterName string, in *ACLMapping) *ACLMapping {
 	temp := ACLMapping{}
 	for k, v := range *in {
 		value := make(NVPairs)

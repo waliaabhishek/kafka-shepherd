@@ -27,10 +27,10 @@ type (
 ///////////////////////////////////////////////////////////////////////////////
 
 type (
-	KafkaResourceType      int
-	KafkaACLPatternType    int
-	KafkaACLPermissionType int
-	ShepherdACLManager     interface {
+	KafkaResourceType        int
+	KafkaACLPatternType      int
+	KafkaACLPermissionType   int
+	ShepherdACLConfigManager interface {
 		ACLResourceInterface
 		ACLPatternInterface
 		ACLOperationsInterface
@@ -48,10 +48,10 @@ type (
 	ACLOperationsInterface interface {
 		String() string
 		GetValue(in string) (ACLOperationsInterface, error)
-		generateACLMappingStructures(clusterName string, pack *ACLMapping) *ACLMapping
+		GenerateACLMappingStructures(clusterName string, pack *ACLMapping) *ACLMapping
 	}
 
-	ShepherdACLManagerBaseImpl struct {
+	ShepherdACLConfigManagerBaseImpl struct {
 		KafkaResourceType
 		KafkaACLPatternType
 	}

@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-var ShepherdEngineACLManager ShepherdACLManager = ShepherdACLEngineImpl{}
+var ShepherdEngineACLManager ShepherdACLConfigManager = ShepherdACLEngineImpl{}
 
 type ShepherdACLEngineImpl struct {
-	ShepherdACLManagerBaseImpl
+	ShepherdACLConfigManagerBaseImpl
 	ShepherdClientType
 }
 
@@ -81,7 +81,7 @@ func (c ShepherdClientType) GetValue(in string) (ACLOperationsInterface, error) 
 // This function will generate the mappings in the ShepherdClientType internal structure type for all the mappings provided
 // as the input `in` value. Whatever it is able to properly convert, those mappings will be added to the success
 // map and the rest will be added to the failed map.
-func (c ShepherdClientType) generateACLMappingStructures(clusterName string, in *ACLMapping) *ACLMapping {
+func (c ShepherdClientType) GenerateACLMappingStructures(clusterName string, in *ACLMapping) *ACLMapping {
 	temp := make(ACLMapping)
 	for k := range *in {
 		switch k.Operation.(type) {

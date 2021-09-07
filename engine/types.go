@@ -25,7 +25,7 @@ type (
 
 	ShepherdManagerBaseImpl struct {
 		ShepherdTopicManagerImpl
-		ShepherdACLManager
+		ShepherdACLConfigManager
 	}
 
 	ShepherdTopicManagerImpl struct{}
@@ -44,7 +44,7 @@ type (
 	close your select loops (if any).
 */
 func (s ShepherdManagerBaseImpl) RenderACLMappings(clusterName string, in *ACLMapping, needType ACLOperationsInterface) *ACLMapping {
-	return needType.generateACLMappingStructures(clusterName, in)
+	return needType.GenerateACLMappingStructures(clusterName, in)
 }
 
 /*
