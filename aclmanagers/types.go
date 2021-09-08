@@ -103,7 +103,8 @@ func (a ACLExecutionManagerBaseImpl) determinePatternType(topicName string) ksen
 	that the Kafka connection will need to create as a baseline.
 */
 func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInCluster(clusterName string, in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
-	convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
+	// convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
+	convertedList := providedAclType.GenerateACLMappingStructures(clusterName, ksengine.ShepherdACLList)
 	return a.conditionalACLMapper(convertedList, in, false)
 }
 
@@ -112,7 +113,8 @@ func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInCluster(clusterName st
 	not available as part of the configuration files.
 */
 func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInConfig(clusterName string, in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
-	convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
+	// convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
+	convertedList := providedAclType.GenerateACLMappingStructures(clusterName, ksengine.ShepherdACLList)
 	return a.conditionalACLMapper(in, convertedList, false)
 }
 
@@ -122,7 +124,8 @@ func (a ACLExecutionManagerBaseImpl) FindNonExistentACLsInConfig(clusterName str
 	is already provisioned in the Kafka Cluster
 */
 func (a ACLExecutionManagerBaseImpl) FindProvisionedACLsInCluster(clusterName string, in *ksengine.ACLMapping, providedAclType ksengine.ACLOperationsInterface) *ksengine.ACLMapping {
-	convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
+	// convertedList := ksengine.Shepherd.RenderACLMappings(clusterName, ksengine.ShepherdACLList, providedAclType)
+	convertedList := providedAclType.GenerateACLMappingStructures(clusterName, ksengine.ShepherdACLList)
 	return a.conditionalACLMapper(convertedList, in, true)
 }
 
