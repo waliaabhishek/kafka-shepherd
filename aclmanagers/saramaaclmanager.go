@@ -36,7 +36,7 @@ func (s SaramaACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengin
 }
 
 func (s SaramaACLExecutionManagerImpl) createACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
 
 	f := func(key ksengine.ACLDetails, val interface{}) {
 		defer wg.Done()
@@ -99,7 +99,7 @@ func (s SaramaACLExecutionManagerImpl) DeleteUnknownACL(clusterName string, in *
 }
 
 func (s SaramaACLExecutionManagerImpl) deleteACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
 	f := func(key ksengine.ACLDetails, val interface{}) {
 		defer wg.Done()
 		filter := sarama.AclFilter{
@@ -146,12 +146,12 @@ func (s SaramaACLExecutionManagerImpl) deleteACLs(clusterName string, in *ksengi
 
 func (s SaramaACLExecutionManagerImpl) ListClusterACL(clusterName string, printOutput bool) {
 	acls := s.gatherClusterACLs(clusterName)
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
 	lock := &sync.Mutex{}
 	wg.Add(len(*acls))
 	saramaAclMappings = &ksengine.ACLMapping{}
 	for _, v := range *acls {
-		go s.mapSaramaToKafkaACL(v, saramaAclMappings, &wg, lock)
+		go s.mapSaramaToKafkaACL(v, saramaAclMappings, wg, lock)
 	}
 	wg.Wait()
 	if printOutput {
