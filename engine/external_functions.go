@@ -16,7 +16,6 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 	for k, v := range *utm {
 		pairs := make([][]string, 0)
 		pairs = append(pairs, []string{k.Principal}, []string{k.GroupID}, []string{k.ClientType.String()}, v.Hostnames, v.TopicList)
-		// TODO: Add logic to convert the higher level constructs (PRODUCER, CONSUMER, etc to the lower level constructs (ClusterAclOperation)
 		pairs = ksmisc.GetPermutationsString(pairs)
 		for _, i := range pairs {
 			varType, _ := temp.GetValue(i[2])
