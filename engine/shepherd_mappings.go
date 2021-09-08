@@ -259,7 +259,6 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol, ClusterSASLMechanism) {
 	var sp ClusterSecurityProtocol
 	// Figure Out the Security Protocol
-	// TODO: optimize the switch case with a map value set
 	switch sc.Configs[0]["security.protocol"] {
 	case "SASL_SSL":
 		logger.Debug("Inside the SASL_SSL switch statement")
