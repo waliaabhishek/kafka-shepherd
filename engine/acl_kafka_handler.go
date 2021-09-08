@@ -137,7 +137,6 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 				// so that they are centrally managed in a toolkit like this
 				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
 				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
-				// sChannel <- temp
 				// }
 			case ShepherdClientType_SINK_CONNECTOR:
 				// Enable Topic Read
