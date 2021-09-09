@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/go-resty/resty/v2"
 	ksengine "github.com/waliaabhishek/kafka-shepherd/engine"
 	"github.com/waliaabhishek/kafka-shepherd/kafkamanagers"
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
@@ -18,6 +19,28 @@ type (
 		ksengine.ShepherdACLConfigManagerBaseImpl
 		ConfluentRBACOperation
 	}
+	mappingKey struct {
+		principal         string
+		role              ksengine.ACLOperationsInterface
+		kafkaCluster      string
+		otherClusterName  string
+		otherClusterValue string
+	}
+	resources struct {
+		resourceType string
+		name         string
+		patternType  string
+	}
+	mappingTable map[mappingKey][]resources
+
+	Clusters map[string]interface{}
+	Scope    struct {
+		Clusters Clusters `json:"clusters"`
+	}
+	rbReq struct {
+		scope Scope       `json:"scope"`
+		Rb    []resources `json:"resourcePatterns"`
+	}
 )
 
 const (
@@ -28,7 +51,7 @@ const (
 	mds_ListRoles                = "/security/1.0/roles"
 	mds_GetPrincipalsForRoles    = "/security/1.0/lookup/role/{roleName}"
 	mds_GetPrincipalRoleBindings = "/security/1.0/lookup/rolebindings/principal/{pName}"
-	mds_CreateRoleBindings       = "/security/1.0/principals/{pName}/roles/{roleName}/bindings"
+	mds_CreateDeleteRoleBindings = "/security/1.0/principals/{pName}/roles/{roleName}/bindings"
 )
 
 var (
@@ -60,102 +83,49 @@ func (c ConfluentRbacACLExecutionManagerImpl) CreateACL(clusterName string, in *
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) createACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
-
-	type (
-		mappingKey struct {
-			principal         string
-			role              ksengine.ACLOperationsInterface
-			kafkaCluster      string
-			otherClusterName  string
-			otherClusterValue string
-		}
-		resources struct {
-			resourceType string
-			name         string
-			patternType  string
-		}
-		mappingTable map[mappingKey][]resources
-
-		Clusters map[string]interface{}
-		Scope    struct {
-			Clusters Clusters `json:"clusters"`
-		}
-		rbReq struct {
-			scope Scope       `json:"scope"`
-			Rb    []resources `json:"resourcePatterns"`
-		}
-	)
-
+	if dryRun {
+		c.ListConfigACL(true, in)
+		return
+	}
 	mappingCache := make(mappingTable)
-
-	for k, v := range *in {
-		var key mappingKey
-		key.principal = k.Principal
-		key.role = k.Operation
-		for cName, cVal := range v.(map[string]string) {
-			switch cName {
-			case kCluster:
-				key.kafkaCluster = cVal
-			case cCluster:
-				key.otherClusterName = cCluster
-				key.otherClusterValue = cVal
-			case srCluster:
-				key.otherClusterName = srCluster
-				key.otherClusterValue = cVal
-			case ksqlCluster:
-				key.otherClusterName = ksqlCluster
-				key.otherClusterValue = cVal
-			}
-		}
-
-		if mapRes, found := mappingCache[key]; found {
-			mappingCache[key] = append(mapRes, resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()})
-		} else {
-			mappingCache[key] = []resources{resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()}}
-		}
-	}
-
-	execRB := func(mapKey mappingKey, mapVal []resources, wg *sync.WaitGroup) {
-		defer wg.Done()
-
-		var cluster Clusters = c.createClustersObject(clusterName, mapKey.otherClusterName, mapKey.otherClusterValue)
-		req := &rbReq{
-			scope: Scope{cluster},
-			Rb:    mapVal,
-		}
-		connObj := c.getConnectionObject(clusterName)
-
-		resp, err := connObj.MDS.R().SetBody(req).SetPathParams(map[string]string{"pName": mapKey.principal, "roleName": mapKey.role.String()}).Post(mds_CreateRoleBindings)
-		if err != nil {
-			logger.Fatalw("Cannot contact the MDS Server. Will not Retry Creating ACL's. Turn on debug for more details.",
-				"Status Code", resp.StatusCode(),
-				"Error", err)
-		}
-
-		if resp.StatusCode() == 204 {
-			logger.Debugw("Role Binding has been created.",
-				"URI", resp.Request.URL,
-				"Request Body", resp.Request.Body)
-		}
-
-	}
-
+	c.createMappingTableForRBExec(clusterName, &mappingCache, in)
 	wg_int := new(sync.WaitGroup)
 	wg_int.Add(len(mappingCache))
 	for k, v := range mappingCache {
-		go execRB(k, v, wg_int)
+		go c.executeRBRequest(clusterName, k, v, resty.MethodPost, mds_CreateDeleteRoleBindings, map[string]string{"pName": k.principal, "roleName": k.role.String()}, wg_int)
 	}
-
 	wg_int.Wait()
 	logger.Infof("All Rolebindings have been created. Total RoleBinding Creation Requests Executed: %d", len(mappingCache))
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
-	panic("not implemented") // TODO: Implement
+	ksmisc.DottedLineOutput("Delete Config ACLs", "=", 80)
+	c.ListClusterACL(clusterName, false)
+	deleteSet := c.FindProvisionedACLsInCluster(clusterName, confRbacAclMappings, ConfluentRBACOperation("Unknown"))
+	c.deleteACLs(clusterName, deleteSet, dryRun)
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
-	panic("not implemented") // TODO: Implement
+	ksmisc.DottedLineOutput("Delete Unknown ACLs", "=", 80)
+	c.ListClusterACL(clusterName, false)
+	deleteSet := c.FindNonExistentACLsInConfig(clusterName, confRbacAclMappings, ConfluentRBACOperation("Unknown"))
+	c.deleteACLs(clusterName, deleteSet, dryRun)
+}
+
+func (c ConfluentRbacACLExecutionManagerImpl) deleteACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
+	if dryRun {
+		c.ListConfigACL(true, in)
+		return
+	}
+	mappingCache := make(mappingTable)
+	c.createMappingTableForRBExec(clusterName, &mappingCache, in)
+	wg_int := new(sync.WaitGroup)
+	wg_int.Add(len(mappingCache))
+	for k, v := range mappingCache {
+		go c.executeRBRequest(clusterName, k, v, resty.MethodDelete, mds_CreateDeleteRoleBindings, map[string]string{"pName": k.principal, "roleName": k.role.String()}, wg_int)
+	}
+	wg_int.Wait()
+	logger.Infof("All provided Rolebindings have been deleted. Total RoleBinding Deletion Requests Executed: %d", len(mappingCache))
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string, printOutput bool) {
@@ -425,5 +395,61 @@ func (c ConfluentRbacACLExecutionManagerImpl) createClustersObject(clusterName s
 		"clusters": map[string]interface{}{
 			"kafka-cluster": connObj.KafkaClusterID,
 		},
+	}
+}
+
+func (c ConfluentRbacACLExecutionManagerImpl) executeRBRequest(clusterName string, mapKey mappingKey, mapVal []resources, method string, uri string, paramMap map[string]string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var cluster Clusters = c.createClustersObject(clusterName, mapKey.otherClusterName, mapKey.otherClusterValue)
+	req := &rbReq{
+		scope: Scope{cluster},
+		Rb:    mapVal,
+	}
+	connObj := c.getConnectionObject(clusterName)
+
+	resp, err := connObj.MDS.R().SetBody(req).SetPathParams(paramMap).Execute(method, uri)
+	if err != nil {
+		logger.Fatalw("Cannot contact the MDS Server. Will not Retry Executing ACL Requests. Turn on debug for more details.",
+			"Request Method", resp.Request.Method,
+			"Request URL", resp.Request.URL,
+			"Request Body", resp.Request.Body,
+			"Status Code", resp.StatusCode(),
+			"Error", err)
+	}
+
+	if resp.StatusCode() == 204 {
+		logger.Debugw("Role Binding has been created.",
+			"URI", resp.Request.URL,
+			"Request Body", resp.Request.Body)
+	}
+
+}
+
+func (c ConfluentRbacACLExecutionManagerImpl) createMappingTableForRBExec(clusterName string, mappingCache *mappingTable, in *ksengine.ACLMapping) {
+	for k, v := range *in {
+		var key mappingKey
+		key.principal = k.Principal
+		key.role = k.Operation
+		for cName, cVal := range v.(map[string]string) {
+			switch cName {
+			case kCluster:
+				key.kafkaCluster = cVal
+			case cCluster:
+				key.otherClusterName = cCluster
+				key.otherClusterValue = cVal
+			case srCluster:
+				key.otherClusterName = srCluster
+				key.otherClusterValue = cVal
+			case ksqlCluster:
+				key.otherClusterName = ksqlCluster
+				key.otherClusterValue = cVal
+			}
+		}
+		if mapRes, found := (*mappingCache)[key]; found {
+			(*mappingCache)[key] = append(mapRes, resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()})
+		} else {
+			(*mappingCache)[key] = []resources{resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()}}
+		}
 	}
 }
