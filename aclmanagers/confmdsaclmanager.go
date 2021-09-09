@@ -55,12 +55,99 @@ func (c ConfluentRbacACLExecutionManagerImpl) getConnectionObject(clusterName st
 func (c ConfluentRbacACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 	ksmisc.DottedLineOutput("Create Cluster ACLs", "=", 80)
 	c.ListClusterACL(clusterName, false)
-	createSet := c.FindNonExistentACLsInCluster(clusterName, confRbacAclMappings, ConfluentRBACOperation("UNKNOWN"))
+	createSet := c.FindNonExistentACLsInCluster(clusterName, confRbacAclMappings, ConfluentRBACOperation("Unknown"))
 	c.createACLs(clusterName, createSet, dryRun)
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) createACLs(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
 
+	type (
+		mappingKey struct {
+			principal         string
+			role              ksengine.ACLOperationsInterface
+			kafkaCluster      string
+			otherClusterName  string
+			otherClusterValue string
+		}
+		resources struct {
+			resourceType string
+			name         string
+			patternType  string
+		}
+		mappingTable map[mappingKey][]resources
+
+		Clusters map[string]interface{}
+		Scope    struct {
+			Clusters Clusters `json:"clusters"`
+		}
+		rbReq struct {
+			scope Scope       `json:"scope"`
+			Rb    []resources `json:"resourcePatterns"`
+		}
+	)
+
+	mappingCache := make(mappingTable)
+
+	for k, v := range *in {
+		var key mappingKey
+		key.principal = k.Principal
+		key.role = k.Operation
+		for cName, cVal := range v.(map[string]string) {
+			switch cName {
+			case kCluster:
+				key.kafkaCluster = cVal
+			case cCluster:
+				key.otherClusterName = cCluster
+				key.otherClusterValue = cVal
+			case srCluster:
+				key.otherClusterName = srCluster
+				key.otherClusterValue = cVal
+			case ksqlCluster:
+				key.otherClusterName = ksqlCluster
+				key.otherClusterValue = cVal
+			}
+		}
+
+		if mapRes, found := mappingCache[key]; found {
+			mappingCache[key] = append(mapRes, resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()})
+		} else {
+			mappingCache[key] = []resources{resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()}}
+		}
+	}
+
+	execRB := func(mapKey mappingKey, mapVal []resources, wg *sync.WaitGroup) {
+		defer wg.Done()
+
+		var cluster Clusters = c.createClustersObject(clusterName, mapKey.otherClusterName, mapKey.otherClusterValue)
+		req := &rbReq{
+			scope: Scope{cluster},
+			Rb:    mapVal,
+		}
+		connObj := c.getConnectionObject(clusterName)
+
+		resp, err := connObj.MDS.R().SetBody(req).SetPathParams(map[string]string{"pName": mapKey.principal, "roleName": mapKey.role.String()}).Post(mds_CreateRoleBindings)
+		if err != nil {
+			logger.Fatalw("Cannot contact the MDS Server. Will not Retry Creating ACL's. Turn on debug for more details.",
+				"Status Code", resp.StatusCode(),
+				"Error", err)
+		}
+
+		if resp.StatusCode() == 204 {
+			logger.Debugw("Role Binding has been created.",
+				"URI", resp.Request.URL,
+				"Request Body", resp.Request.Body)
+		}
+
+	}
+
+	wg_int := new(sync.WaitGroup)
+	wg_int.Add(len(mappingCache))
+	for k, v := range mappingCache {
+		go execRB(k, v, wg_int)
+	}
+
+	wg_int.Wait()
+	logger.Infof("All Rolebindings have been created. Total RoleBinding Creation Requests Executed: %d", len(mappingCache))
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) DeleteProvisionedACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
@@ -88,23 +175,8 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 
 	temp := []string{}
 	r2 := mapset.NewSet()
-	f1 := func(aName string, aVal string) map[string]interface{} {
-		if aName != "" {
-			return map[string]interface{}{
-				"clusters": map[string]interface{}{
-					kCluster: connObj.KafkaClusterID,
-					aName:    aVal,
-				},
-			}
-		}
-		return map[string]interface{}{
-			"clusters": map[string]interface{}{
-				"kafka-cluster": connObj.KafkaClusterID,
-			},
-		}
-	}
 	f2 := func(roleName string, aName string, aVal string) {
-		resp, err = connObj.MDS.R().SetBody(f1("", "")).SetPathParam("roleName", roleName).Post(mds_GetPrincipalsForRoles)
+		resp, err = connObj.MDS.R().SetBody(c.createClustersObject(clusterName, "", "")).SetPathParam("roleName", roleName).Post(mds_GetPrincipalsForRoles)
 		if err != nil {
 			logger.Fatalw("Tried Multiple Times to get Principals for RoleName. Cannot Proceed Without MDS Connectivity.",
 				"Principal Name", roleName,
@@ -141,7 +213,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 		}
 	)
 	r3 := []rbResp{}
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
 	lock := &sync.Mutex{}
 	f3 := func(pName string) {
 		resp, err := connObj.MDS.R().SetPathParam("pName", pName).Get(mds_GetPrincipalRoleBindings)
@@ -153,7 +225,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 		connObj.MDS.JSONUnmarshal(resp.Body(), &r3)
 		wg.Add(len(r3))
 		for _, v := range r3 {
-			go c.mapRBACToKafkaACL(v.Scope.Clusters, v.Rb, confRbacAclMappings, &wg, lock)
+			go c.mapRBACToACLMapping(v.Scope.Clusters, v.Rb, confRbacAclMappings, wg, lock)
 		}
 	}
 	for item := range r2.Iter() {
@@ -162,7 +234,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 	wg.Wait()
 }
 
-func (c ConfluentRbacACLExecutionManagerImpl) mapRBACToKafkaACL(cluster, rb map[string]interface{}, mapping *ksengine.ACLMapping, wg *sync.WaitGroup, mtx *sync.Mutex) {
+func (c ConfluentRbacACLExecutionManagerImpl) mapRBACToACLMapping(cluster, rb map[string]interface{}, mapping *ksengine.ACLMapping, wg *sync.WaitGroup, mtx *sync.Mutex) {
 	defer wg.Done()
 	value := make(map[string]string)
 	for k, v := range cluster {
@@ -337,4 +409,21 @@ func (c ConfluentRBACOperation) GenerateACLMappingStructures(clusterName string,
 	ksmisc.DottedLineOutput("Failed ACLs", "=", 80)
 	ConfluentRbacACLManager.ListConfigACL(true, &failed)
 	return &out
+}
+
+func (c ConfluentRbacACLExecutionManagerImpl) createClustersObject(clusterName string, aName string, aVal string) map[string]interface{} {
+	connObj := c.getConnectionObject(clusterName)
+	if aName != "" {
+		return map[string]interface{}{
+			"clusters": map[string]interface{}{
+				kCluster: connObj.KafkaClusterID,
+				aName:    aVal,
+			},
+		}
+	}
+	return map[string]interface{}{
+		"clusters": map[string]interface{}{
+			"kafka-cluster": connObj.KafkaClusterID,
+		},
+	}
 }
