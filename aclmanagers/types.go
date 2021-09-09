@@ -60,7 +60,7 @@ func (a ACLExecutionManagerBaseImpl) ListConfigACL(useProvidedInput bool, in *ks
 	} else {
 		temp = ksengine.ShepherdACLList
 	}
-	for k := range *temp {
+	for k, v := range *temp {
 		logger.Infow("Config ACL Mapping Details",
 			"Resource Type", k.ResourceType.GetACLResourceString(),
 			"Resource Name", k.ResourceName,
@@ -69,6 +69,7 @@ func (a ACLExecutionManagerBaseImpl) ListConfigACL(useProvidedInput bool, in *ks
 			"Host", k.Hostname,
 			"ACL Operation", k.Operation.String(),
 			"Permission Type", perm.String(),
+			"Value", v,
 		)
 	}
 }
