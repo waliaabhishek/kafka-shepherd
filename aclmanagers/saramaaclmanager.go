@@ -299,6 +299,10 @@ func (s SaramaACLExecutionManagerImpl) gatherClusterACLs(clusterName string) *[]
 	return &acls
 }
 
+func (c SaramaACLExecutionManagerImpl) GenerateACLMappingStructures(clusterName string, in *engine.ACLMapping) *engine.ACLMapping {
+	panic("implementation not available") // TODO: implement
+}
+
 func (s SaramaACLExecutionManagerImpl) mapFromShepherdACL(clusterName string, in *engine.ACLMapping, out *engine.ACLMapping, failed *engine.ACLMapping) {
 	panic("implementation not available") // TODO: implement
 }
