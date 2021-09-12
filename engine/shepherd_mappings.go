@@ -104,13 +104,13 @@ func (c ClientDefinition) addClientToUTM(topic string) {
 		// v.addClientToUTM(utm, topic)
 	}
 	for _, v := range c.Streams {
-		if v.getTypeValue() == ShepherdClientType_STREAM_READ {
-			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic, v.Hostnames)
-		} else {
-			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic, v.Hostnames)
-		}
-		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic, v.Hostnames)
-		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic, v.Hostnames)
+		// if v.getTypeValue() == ShepherdClientType_STREAM_READ {
+		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic, v.Hostnames)
+		// } else {
+		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic, v.Hostnames)
+		// }
+		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic, v.Hostnames)
+		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic, v.Hostnames)
 		ConfMaps.utm.addToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic, v.Hostnames)
 	}
 	for _, v := range c.KSQL {
