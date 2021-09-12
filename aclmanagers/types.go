@@ -46,6 +46,7 @@ type ACLExecutionManager interface {
 	DeleteUnknownACL(clusterName string, in *ksengine.ACLMapping, dryRun bool)
 	ListClusterACL(clusterName string, printOutput bool)
 	ListConfigACL(useProvidedInput bool, in *ksengine.ACLMapping)
+	GenerateACLMappingStructures(clusterName string, in *ksengine.ACLMapping) *ksengine.ACLMapping
 	mapFromShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
 	mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
 }
