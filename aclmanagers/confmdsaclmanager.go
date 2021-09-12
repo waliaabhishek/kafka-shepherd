@@ -314,7 +314,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 func (c ConfluentRbacACLExecutionManagerImpl) mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping) {
 	// TODO: Convert Confluent ACL's back to the Shepherd ACL format for interconversion support
 	for k, v := range *in {
-		if k.ResourceType != ksengine.KafkaResourceType_TOPIC || k.ResourceType != ksengine.KafkaResourceType_CLUSTER || k.ResourceType != ksengine.KafkaResourceType_GROUP || k.ResourceType != ksengine.KafkaResourceType_TRANSACTIONALID {
+		if k.ResourceType != ksengine.KafkaResourceType_TOPIC && k.ResourceType != ksengine.KafkaResourceType_CLUSTER && k.ResourceType != ksengine.KafkaResourceType_GROUP && k.ResourceType != ksengine.KafkaResourceType_TRANSACTIONALID {
 			logger.Warnf("Resource Type %s is not supported as they may not have a logical conversion to the Shepherd ACLs. Adding to the list of Failed ACLs.", k.ResourceType.GetACLResourceString())
 			failed.Append(k, v)
 			continue
