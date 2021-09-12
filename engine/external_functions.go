@@ -42,9 +42,10 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 					i[0], varType, i[3])] = value
 			case ShepherdClientType_SINK_CONNECTOR:
 				value := make(NVPairs)
-				value[KafkaResourceType_GROUP.GetACLResourceString()] = i[1]
 				value[KafkaResourceType_CLUSTER.GetACLResourceString()] = "kafka-cluster"
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = value
+				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value
 			case ShepherdClientType_STREAM_READ:
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
