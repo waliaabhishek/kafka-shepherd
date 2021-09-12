@@ -38,7 +38,7 @@ type (
 		Clusters Clusters `json:"clusters"`
 	}
 	rbReq struct {
-		scope Scope       `json:"scope"`
+		Scope Scope       `json:"scope"`
 		Rb    []resources `json:"resourcePatterns"`
 	}
 )
@@ -353,7 +353,8 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapToShepherdACL(clusterName strin
 }
 
 func (c ConfluentRBACOperation) String() string {
-	return strings.ToUpper(strings.TrimSpace(c.String()))
+	// return strings.ToUpper(strings.TrimSpace(c))
+	return strings.ToUpper(strings.TrimSpace(string(c)))
 }
 
 func (c ConfluentRBACOperation) GetValue(in string) (ksengine.ACLOperationsInterface, error) {
@@ -403,7 +404,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) executeRBRequest(clusterName strin
 
 	var cluster Clusters = c.createClustersObject(clusterName, mapKey.otherClusterName, mapKey.otherClusterValue)
 	req := &rbReq{
-		scope: Scope{cluster},
+		Scope: Scope{cluster},
 		Rb:    mapVal,
 	}
 	connObj := c.getConnectionObject(clusterName)
@@ -449,7 +450,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) createMappingTableForRBExec(cluste
 		if mapRes, found := (*mappingCache)[key]; found {
 			(*mappingCache)[key] = append(mapRes, resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()})
 		} else {
-			(*mappingCache)[key] = []resources{resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()}}
+			(*mappingCache)[key] = []resources{{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()}}
 		}
 	}
 }
