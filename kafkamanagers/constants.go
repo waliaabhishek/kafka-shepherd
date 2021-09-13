@@ -17,7 +17,6 @@ const (
 
 func (a ACLType) String() string {
 	mapping := map[ACLType]string{
-		ACLType_UNKNOWN:        "ACLType_UNKNOWN",
 		ACLType_KAFKA_ACLS:     "kafka_acl",
 		ACLType_CONFLUENT_RBAC: "confluent_rbac",
 	}
@@ -41,11 +40,10 @@ func (a ACLType) stringJoin() (out []string) {
 
 func (c ACLType) GetValue(in string) (ACLType, error) {
 	m := map[string]ACLType{
-		"ACLType_UNKNOWN": ACLType_UNKNOWN,
-		"kafka_acl":       ACLType_KAFKA_ACLS,
-		"confluent_rbac":  ACLType_CONFLUENT_RBAC,
+		"kafka_acl":      ACLType_KAFKA_ACLS,
+		"confluent_rbac": ACLType_CONFLUENT_RBAC,
 	}
-	s, ok := m[strings.ToUpper(strings.TrimSpace(in))]
+	s, ok := m[strings.ToLower(strings.TrimSpace(in))]
 	if !ok {
 		s = m["ACLType_UNKNOWN"]
 		logger.Errorw("Illegal Cluster ACL Operation String provided.",
