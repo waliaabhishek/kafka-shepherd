@@ -244,6 +244,7 @@ func getTopicConfigProperties(topicName string) *sarama.TopicDetail {
 }
 
 func (t SaramaTopicExecutionManagerImpl) findMismatchedConfigTopics(clusterName string) (configDiff mapset.Set, partitionDiff mapset.Set) {
+	configDiff, partitionDiff = mapset.NewSet(), mapset.NewSet()
 	clusterTCM := make(ksengine.TopicConfigMapping)
 	for tName, configs := range *t.getTopicListFromKafkaCluster(clusterName) {
 		t.generateTopicConfigMappings(&clusterTCM, tName, &configs)
