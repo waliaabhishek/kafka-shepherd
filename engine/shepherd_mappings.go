@@ -273,7 +273,7 @@ func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol,
 		sp = ClusterSecurityProtocol_SSL
 	case "", "PLAINTEXT":
 		logger.Debug("Inside the PLAINTEXT switch statement")
-		logger.Infow("Turning off ACL management as the cluster type is PLAINTEXT",
+		logger.Warnw("Turning off ACL management as the cluster type is PLAINTEXT",
 			"Cluster Name", sc.Name,
 			"Cluster Security Protocol", p)
 		sp = ClusterSecurityProtocol_PLAINTEXT
