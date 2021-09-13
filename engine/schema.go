@@ -494,6 +494,7 @@ type ClusterConfigMappingKey struct {
 
 type ClusterConfigMappingValue struct {
 	IsActive                bool
+	IsACLManagementEnabled  bool
 	ClusterSecurityProtocol ClusterSecurityProtocol
 	ClusterSASLMechanism    ClusterSASLMechanism
 	ClientID                string

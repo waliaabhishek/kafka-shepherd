@@ -236,7 +236,7 @@ func (sc *ShepherdCore) getBlueprintProps(blueprintName string) NVPairs {
 func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping) {
 	for _, cluster := range sc.Configs.ConfigRoot.Clusters {
 		if cluster.IsEnabled {
-			sp, sc := cluster.understandClusterTopology()
+			sp, sc, am := cluster.understandClusterTopology()
 			value := ClusterConfigMappingValue{
 				ClientID:                cluster.ClientID,
 				Configs:                 cluster.Configs[0],
@@ -244,6 +244,7 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 				ClusterSecurityProtocol: sp,
 				ClusterSASLMechanism:    sc,
 				IsActive:                false,
+				IsACLManagementEnabled:  am,
 			}
 			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled, Name: cluster.Name}] = value
 		}
@@ -256,10 +257,11 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 	leveraging the properties provided. The two properties it uses is `security.protocol` and the
 	`sasl.mechanism` to parse and understand the security mechanism. Still is a work in progress though.
 */
-func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol, ClusterSASLMechanism) {
+func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol, ClusterSASLMechanism, bool) {
 	var sp ClusterSecurityProtocol
+	var am bool = true
 	// Figure Out the Security Protocol
-	switch sc.Configs[0]["security.protocol"] {
+	switch strings.ToUpper(sc.Configs[0]["security.protocol"]) {
 	case "SASL_SSL":
 		logger.Debug("Inside the SASL_SSL switch statement")
 		sp = ClusterSecurityProtocol_SASL_SSL
@@ -269,9 +271,10 @@ func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol,
 	case "SSL":
 		logger.Debug("Inside the SSL switch statement")
 		sp = ClusterSecurityProtocol_SSL
-	case "":
+	case "", "PLAINTEXT":
 		logger.Debug("Inside the PLAINTEXT switch statement")
 		sp = ClusterSecurityProtocol_PLAINTEXT
+		am = false
 	default:
 		sp = ClusterSecurityProtocol_UNKNOWN
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",
@@ -301,5 +304,5 @@ func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol,
 		//
 	}
 
-	return sp, sm
+	return sp, sm, am
 }

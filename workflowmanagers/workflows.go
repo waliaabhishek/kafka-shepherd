@@ -9,6 +9,7 @@ import (
 
 var (
 	configTopicList     = engine.Shepherd.GetTopicList()
+	logger              = engine.Shepherd.GetLogger()
 	dryRun              = engine.DryRun
 	deleteUnknownTopics = engine.SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.DeleteUnknownTopics
 	deleteUnknownACLs   = engine.SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.DeleteUnknownACLs
@@ -34,16 +35,23 @@ func ExecuteTopicManagementWorkflow(executeCreateFlow bool, executeModifyFlow bo
 }
 
 func ExecuteACLManagementWorkflow(executeCreateFlow bool, executeDeleteFlow bool) {
-	for k := range engine.ConfMaps.CCM {
-		aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name)
-		temp := aclInterface.GenerateACLMappingStructures(k.Name, engine.ShepherdACLList)
-		// temp := engine.Shepherd.RenderACLMappings(k.Name, engine.ShepherdACLList, aclInterface)
-		if executeCreateFlow {
-			aclManager.CreateACL(k.Name, temp, dryRun)
+	for k, v := range engine.ConfMaps.CCM {
+		if v.IsACLManagementEnabled {
+			aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name)
+			temp := aclInterface.GenerateACLMappingStructures(k.Name, engine.ShepherdACLList)
+			// temp := engine.Shepherd.RenderACLMappings(k.Name, engine.ShepherdACLList, aclInterface)
+			if executeCreateFlow {
+				aclManager.CreateACL(k.Name, temp, dryRun)
+			}
+			if deleteUnknownACLs && executeDeleteFlow {
+				aclManager.DeleteUnknownACL(k.Name, temp, dryRun)
+			}
+			continue
 		}
-		if deleteUnknownACLs && executeDeleteFlow {
-			aclManager.DeleteUnknownACL(k.Name, temp, dryRun)
-		}
+		logger.Warnw("ACL management is disabled for the cluster. Skipping ACL Execution.",
+			"Cluster Name", k.Name,
+			"Cluster Security Protocol", v.ClusterSecurityProtocol.String(),
+		)
 	}
 }
 
@@ -56,12 +64,17 @@ func DeleteShepherdTopics(executeDeleteFlow bool) {
 }
 
 func DeleteShepherdACLs(executeDeleteFlow bool) {
-	for k := range engine.ConfMaps.CCM {
-		aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name)
-		temp := aclInterface.GenerateACLMappingStructures(k.Name, engine.ShepherdACLList)
-		// temp := engine.Shepherd.RenderACLMappings(k.Name, engine.ShepherdACLList, aclInterface)
-		if executeDeleteFlow {
+	for k, v := range engine.ConfMaps.CCM {
+		if v.IsACLManagementEnabled && executeDeleteFlow {
+			aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name)
+			temp := aclInterface.GenerateACLMappingStructures(k.Name, engine.ShepherdACLList)
+			// temp := engine.Shepherd.RenderACLMappings(k.Name, engine.ShepherdACLList, aclInterface)
 			aclManager.DeleteProvisionedACL(k.Name, temp, dryRun)
+			continue
 		}
+		logger.Warnw("ACL management is disabled for the cluster. Skipping ACL Execution.",
+			"Cluster Name", k.Name,
+			"Cluster Security Protocol", v.ClusterSecurityProtocol.String(),
+		)
 	}
 }
