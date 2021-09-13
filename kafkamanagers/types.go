@@ -52,6 +52,7 @@ func InitiateAllKafkaConnections(clusters ksengine.ConfigRoot) {
 				}
 				v.Connection.InitiateAdminConnection(cluster)
 				Connections[k] = v
+				continue
 			}
 			if v == ACLType_CONFLUENT_RBAC {
 				k := KafkaConnectionsKey{ClusterName: cluster.Name}
@@ -61,6 +62,7 @@ func InitiateAllKafkaConnections(clusters ksengine.ConfigRoot) {
 				}
 				v.Connection.InitiateAdminConnection(cluster)
 				Connections[k] = v
+				continue
 			}
 		}
 	}
