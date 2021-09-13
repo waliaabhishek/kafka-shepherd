@@ -6,9 +6,9 @@ import (
 
 func main() {
 	workflow.ExecuteTopicManagementWorkflow(true, true, true)
-	// workflow.ExecuteACLManagementWorkflow(true, true)
-	// workflow.DeleteShepherdTopics(true)
-	// workflow.DeleteShepherdACLs(true)
+	workflow.ExecuteACLManagementWorkflow(true, true)
+	workflow.DeleteShepherdTopics(true)
+	workflow.DeleteShepherdACLs(true)
 }
 
 // TODO: Generate the Baseline YAML files from pre-existing clusters.
