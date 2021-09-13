@@ -72,7 +72,7 @@ func init() {
 
 func ResolveFlags() {
 	flag.BoolVar(&DryRun, "dryRun", false, "Does not execute anything but lists what will be executed.")
-	flag.BoolVar(&IsTest, "testRun", false, "Executes the whole flow and then wipes out everything created by the flow in the same run. This helps in testing the same configurations multiple times without wiping your clusters and starting over.")
+	flag.BoolVar(&IsTest, "testRun", false, "Executes the whole flow and then wipes out all the objects that the configurations provide (not just for this run but configured in the earlier runs as well). This helps in testing the same configurations multiple times without wiping your clusters and starting over.")
 	flag.BoolVar(&enableDebug, "debug", false, "Turns on Debug mode log")
 	flag.BoolVar(&enableStructuredLogs, "enableStructuredLogs", false, "Turns off unstructured mode logging features and use Structured logging instead.")
 	flag.StringVar(&configFile, "configPath", "./configs/shepherd.yaml", "Absolute file Path for Core Configuration file. Please note that this might still be overwritten by the SHEPHERD_CONFIG_FILE_LOCATION for additional flexibility.")
