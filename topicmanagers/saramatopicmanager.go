@@ -72,16 +72,20 @@ func (t SaramaTopicExecutionManagerImpl) createTopic(conn *sarama.ClusterAdmin, 
 	for retry {
 		if retryCount < 5 {
 			if err := (*conn).CreateTopic(topicName, getTopicConfigProperties(topicName), false); err != nil {
-				retryCount += 1
 				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(5, 10), "s")
 				logger.Errorw("Topic Creation failed. Will try again",
+					"Try Count", retryCount,
 					"Topic Name", topicName,
 					"Error", err.Error(),
 					"Cooldown before retry", dur.String())
+				retryCount += 1
 				time.Sleep(dur)
+			} else {
+				break
 			}
 		} else {
 			logger.Errorw("Topic Creation request failed consecutively. Will not retry",
+				"Try Count", retryCount,
 				"Topic Name", topicName)
 			retry = false
 		}
@@ -119,16 +123,20 @@ func (t SaramaTopicExecutionManagerImpl) deleteTopic(conn *sarama.ClusterAdmin, 
 	for retry {
 		if retryCount < 5 {
 			if err := (*conn).DeleteTopic(topicName); err != nil {
-				retryCount += 1
 				dur := ksmisc.GenerateRandomDuration(ksmisc.GenerateRandomNumber(5, 10), "s")
 				logger.Errorw("Topic deletion failed. Will try again.",
+					"Try Count", retryCount,
 					"Topic Name", topicName,
 					"Error", err.Error(),
 					"Cooldown before retry", dur.String())
+				retryCount += 1
 				time.Sleep(dur)
+			} else {
+				break
 			}
 		} else {
 			logger.Errorw("Topic Deletion request failed consecutively. Will not retry",
+				"Try Count", retryCount,
 				"Topic Name", topicName)
 			retry = false
 		}
@@ -175,6 +183,8 @@ func modifyTopicConfig(conn *sarama.ClusterAdmin, wg *sync.WaitGroup, topicName 
 					"Error", err.Error(),
 					"Cooldown before retry", dur.String())
 				time.Sleep(dur)
+			} else {
+				break
 			}
 		} else {
 			logger.Errorw("Topic Configuration update request failed consecutively. Will not retry",
@@ -198,6 +208,8 @@ func modifyTopicPartitions(conn *sarama.ClusterAdmin, wg *sync.WaitGroup, topicN
 					"Error", err.Error(),
 					"Cooldown before retry", dur.String())
 				time.Sleep(dur)
+			} else {
+				break
 			}
 		} else {
 			logger.Errorw("Topic partition count change request failed consecutively. Will not retry",
