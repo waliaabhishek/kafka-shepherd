@@ -94,6 +94,9 @@ func (conn *SaramaConnection) understandClusterTopology(sc *ksengine.ShepherdClu
 		logger.Debug("Inside the SSL switch statement")
 		c.Net.TLS.Enable = true
 		c.Net.TLS.Config = createTLSConfig(sc)
+	case "PLAINTEXT", "":
+		// Do Nothing
+		logger.Debug("Inside the PLAINTEXT switch statement")
 	default:
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",
 			"Cluster Name", sc.Name,
