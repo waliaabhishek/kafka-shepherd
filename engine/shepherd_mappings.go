@@ -261,41 +261,45 @@ func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol,
 	var sp ClusterSecurityProtocol
 	var am bool = true
 	// Figure Out the Security Protocol
-	switch strings.ToUpper(sc.Configs[0]["security.protocol"]) {
+	switch p := strings.ToUpper(sc.Configs[0]["security.protocol"]); p {
 	case "SASL_SSL":
-		logger.Debug("Inside the SASL_SSL switch statement")
+		logger.Debugf("Inside the %v switch statement", p)
 		sp = ClusterSecurityProtocol_SASL_SSL
 	case "SASL_PLAINTEXT":
-		logger.Debug("Inside the SASL_PLAINTEXT switch statement")
+		logger.Debugf("Inside the %v switch statement", p)
 		sp = ClusterSecurityProtocol_SASL_PLAINTEXT
 	case "SSL":
-		logger.Debug("Inside the SSL switch statement")
+		logger.Debugf("Inside the %v switch statement", p)
 		sp = ClusterSecurityProtocol_SSL
 	case "", "PLAINTEXT":
 		logger.Debug("Inside the PLAINTEXT switch statement")
+		logger.Infow("Turning off ACL management as the cluster type is PLAINTEXT",
+			"Cluster Name", sc.Name,
+			"Cluster Security Protocol", p)
 		sp = ClusterSecurityProtocol_PLAINTEXT
 		am = false
 	default:
 		sp = ClusterSecurityProtocol_UNKNOWN
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",
 			"Cluster Name", sc.Name,
-			"Cluster Security Protocol Provided", sc.Configs[0]["security.protocol"])
+			"Cluster Security Protocol Provided", p)
 	}
 
 	var sm ClusterSASLMechanism = ClusterSASLMechanism_UNKNOWN
 	// Figure out the sasl mechanism
-	switch sc.Configs[0]["sasl.mechanism"] {
+	switch m := strings.ToUpper(sc.Configs[0]["sasl.mechanism"]); m {
 	case "PLAIN":
-		logger.Debug("Inside the PLAIN switch statement")
+		logger.Debug("Inside the %v switch statement", m)
 		sm = ClusterSASLMechanism_PLAIN
 		// temp.ClusterSASLMechanism = PLAIN
 	case "SCRAM-SHA-256":
-		logger.Debug("Inside SCRAM SSL switch statement")
+		logger.Debug("Inside the %v switch statement", m)
 		sm = ClusterSASLMechanism_SCRAM_SHA_256
 	case "SCRAM-SHA-512":
+		logger.Debug("Inside the %v switch statement", m)
 		sm = ClusterSASLMechanism_SCRAM_SHA_512
 	case "OAUTHBEARER":
-		logger.Debug("Inside the OAUTHBEARER switch statement")
+		logger.Debug("Inside the %v switch statement", m)
 		sm = ClusterSASLMechanism_OAUTHBEARER
 	case "":
 		logger.Debug("Inside the EMPTY switch statement")
