@@ -307,6 +307,6 @@ func (s SaramaACLExecutionManagerImpl) mapFromShepherdACL(clusterName string, in
 	panic("implementation not available") // TODO: implement
 }
 
-func (s SaramaACLExecutionManagerImpl) mapToShepherdACL(clusterName string, in *engine.ACLMapping, out *engine.ACLMapping, failed *engine.ACLMapping) {
-	panic("implementation not available") // TODO: implement
-}
+// func (s SaramaACLExecutionManagerImpl) mapToShepherdACL(clusterName string, in *engine.ACLMapping, out *engine.ACLMapping, failed *engine.ACLMapping) {
+// 	panic("implementation not available") // TODO: implement
+// }

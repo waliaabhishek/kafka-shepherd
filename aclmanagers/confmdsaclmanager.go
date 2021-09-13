@@ -311,46 +311,46 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 	}
 }
 
-func (c ConfluentRbacACLExecutionManagerImpl) mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping) {
-	// TODO: Convert Confluent ACL's back to the Shepherd ACL format for interconversion support
-	for k, v := range *in {
-		if k.ResourceType != ksengine.KafkaResourceType_TOPIC && k.ResourceType != ksengine.KafkaResourceType_CLUSTER && k.ResourceType != ksengine.KafkaResourceType_GROUP && k.ResourceType != ksengine.KafkaResourceType_TRANSACTIONALID {
-			logger.Warnf("Resource Type %s is not supported as they may not have a logical conversion to the Shepherd ACLs. Adding to the list of Failed ACLs.", k.ResourceType.GetACLResourceString())
-			failed.Append(k, v)
-			continue
-		}
-		switch k.Operation {
-		case ConfluentRBACOperation("DeveloperRead"):
-			if k.ResourceType == ksengine.KafkaResourceType_TOPIC {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER, k.Hostname), nil)
-			}
-			if k.ResourceType == ksengine.KafkaResourceType_GROUP {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER_GROUP, k.Hostname), nil)
-			}
-		case ConfluentRBACOperation("DeveloperWrite"):
-			if k.ResourceType == ksengine.KafkaResourceType_TOPIC {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_PRODUCER, k.Hostname), nil)
-			}
-			if k.ResourceType == ksengine.KafkaResourceType_CLUSTER {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_PRODUCER_IDEMPOTENCE, k.Hostname), nil)
-			}
-			if k.ResourceType == ksengine.KafkaResourceType_TRANSACTIONALID {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_TRANSACTIONAL_PRODUCER, k.Hostname), nil)
-			}
-		case ConfluentRBACOperation("ResourceOwner"):
-			if k.ResourceType == ksengine.KafkaResourceType_TOPIC {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER, k.Hostname), nil)
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_PRODUCER, k.Hostname), nil)
-			}
-			if k.ResourceType == ksengine.KafkaResourceType_GROUP {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER_GROUP, k.Hostname), nil)
-			}
-			if k.ResourceType == ksengine.KafkaResourceType_TRANSACTIONALID {
-				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_TRANSACTIONAL_PRODUCER, k.Hostname), nil)
-			}
-		}
-	}
-}
+// func (c ConfluentRbacACLExecutionManagerImpl) mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping) {
+// 	// TODO: Convert Confluent ACL's back to the Shepherd ACL format for interconversion support
+// 	for k, v := range *in {
+// 		if k.ResourceType != ksengine.KafkaResourceType_TOPIC && k.ResourceType != ksengine.KafkaResourceType_CLUSTER && k.ResourceType != ksengine.KafkaResourceType_GROUP && k.ResourceType != ksengine.KafkaResourceType_TRANSACTIONALID {
+// 			logger.Warnf("Resource Type %s is not supported as they may not have a logical conversion to the Shepherd ACLs. Adding to the list of Failed ACLs.", k.ResourceType.GetACLResourceString())
+// 			failed.Append(k, v)
+// 			continue
+// 		}
+// 		switch k.Operation {
+// 		case ConfluentRBACOperation("DeveloperRead"):
+// 			if k.ResourceType == ksengine.KafkaResourceType_TOPIC {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER, k.Hostname), nil)
+// 			}
+// 			if k.ResourceType == ksengine.KafkaResourceType_GROUP {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER_GROUP, k.Hostname), nil)
+// 			}
+// 		case ConfluentRBACOperation("DeveloperWrite"):
+// 			if k.ResourceType == ksengine.KafkaResourceType_TOPIC {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_PRODUCER, k.Hostname), nil)
+// 			}
+// 			if k.ResourceType == ksengine.KafkaResourceType_CLUSTER {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_PRODUCER_IDEMPOTENCE, k.Hostname), nil)
+// 			}
+// 			if k.ResourceType == ksengine.KafkaResourceType_TRANSACTIONALID {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_TRANSACTIONAL_PRODUCER, k.Hostname), nil)
+// 			}
+// 		case ConfluentRBACOperation("ResourceOwner"):
+// 			if k.ResourceType == ksengine.KafkaResourceType_TOPIC {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER, k.Hostname), nil)
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_PRODUCER, k.Hostname), nil)
+// 			}
+// 			if k.ResourceType == ksengine.KafkaResourceType_GROUP {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_CONSUMER_GROUP, k.Hostname), nil)
+// 			}
+// 			if k.ResourceType == ksengine.KafkaResourceType_TRANSACTIONALID {
+// 				out.Append(c.constructACLDetailsObject(k.ResourceType, k.ResourceName, k.PatternType, k.Principal, ksengine.ShepherdClientType_TRANSACTIONAL_PRODUCER, k.Hostname), nil)
+// 			}
+// 		}
+// 	}
+// }
 
 func (c ConfluentRBACOperation) String() string {
 	// return strings.ToUpper(strings.TrimSpace(c))

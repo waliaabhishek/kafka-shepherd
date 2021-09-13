@@ -48,7 +48,8 @@ type ACLExecutionManager interface {
 	ListConfigACL(useProvidedInput bool, in *ksengine.ACLMapping)
 	GenerateACLMappingStructures(clusterName string, in *ksengine.ACLMapping) *ksengine.ACLMapping
 	mapFromShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
-	mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
+	// This method will be added when the Migration templates are available.
+	// mapToShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping)
 }
 
 type ACLExecutionManagerBaseImpl struct{}
