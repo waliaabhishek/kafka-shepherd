@@ -112,7 +112,7 @@ func (c *ConfluentMDSConnection) InitiateAdminConnection(cConfig ksengine.Shephe
 			} else {
 				cluster_id = r["id"].(string)
 			}
-			logger.Infow("Extracted the Cluster ID successfully. ERP Connection Succeeded.",
+			logger.Debugw("Extracted the Cluster ID successfully. ERP Connection Succeeded.",
 				"Cluster Name", cConfig.Name,
 				"ERP Server", cConfig.Configs[0]["erp.url"],
 				"Cluster ID", cluster_id)
