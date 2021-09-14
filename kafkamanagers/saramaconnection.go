@@ -68,9 +68,9 @@ func (conn *SaramaConnection) understandClusterTopology(sc *ksengine.ShepherdClu
 	// This is the minimum version required to support prefixed ACLs.
 	c.Version = sarama.V2_0_0_0
 	// Figure Out the Security Protocol
-	switch sc.Configs[0]["security.protocol"] {
+	switch s := sc.Configs[0]["security.protocol"]; s {
 	case "SASL_SSL":
-		logger.Debug("Inside the SASL_SSL switch statement")
+		logger.Debugf("Inside the %v switch statement", s)
 		if sc.Configs[0]["sasl.jaas.config"] == "" {
 			conn.generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jaas.config to be configured. Exiting process.")
 		}
@@ -81,17 +81,18 @@ func (conn *SaramaConnection) understandClusterTopology(sc *ksengine.ShepherdClu
 		c.Net.TLS.Enable = true
 		c.Net.TLS.Config = createTLSConfig(sc)
 	case "SASL_PLAINTEXT":
-		logger.Debug("Inside the SASL_PLAINTEXT switch statement")
+		logger.Debugf("Inside the %v switch statement", s)
 		if sc.Configs[0]["sasl.jaas.config"] == "" {
 			conn.generateCustomError(true, "sasl.jaas.config", "SASL_SSL security protocol needs sasl.jaas.config to be configured. Exiting process.")
 		}
 		c.Net.SASL.Enable = true
 		c.Net.SASL.User = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "username")
 		c.Net.SASL.Password = ksmisc.FindSASLValues(sc.Configs[0]["sasl.jaas.config"], "password")
+		// logger.Debugw("TestRun", "Username", c.Net.SASL.User, "password", c.Net.SASL.Password)
 		c.Net.SASL.Handshake = true
 		c.Net.TLS.Enable = false
 	case "SSL":
-		logger.Debug("Inside the SSL switch statement")
+		logger.Debugf("Inside the %v switch statement", s)
 		c.Net.TLS.Enable = true
 		c.Net.TLS.Config = createTLSConfig(sc)
 	case "PLAINTEXT", "":
@@ -100,23 +101,24 @@ func (conn *SaramaConnection) understandClusterTopology(sc *ksengine.ShepherdClu
 	default:
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",
 			"Cluster Name", sc.Name,
-			"Cluster Security Protocol Provided", sc.Configs[0]["security.protocol"])
+			"Cluster Security Protocol Provided", s)
 	}
 
 	// Figure out the sasl mechanism
-	switch sc.Configs[0]["sasl.mechanism"] {
+	switch m := sc.Configs[0]["sasl.mechanism"]; m {
 	case "PLAIN":
-		logger.Debug("Inside the PLAIN switch statement")
+		logger.Debugf("Inside the %v switch statement", m)
 		c.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	case "SCRAM-SHA-256":
-		logger.Debug("Inside SCRAM SSL switch statement")
-		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &xdgSCRAMClient{HashGeneratorFcn: SHA256} }
+		logger.Debugf("Inside the %v switch statement", m)
+		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA256} }
 		c.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
 	case "SCRAM-SHA-512":
-		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &xdgSCRAMClient{HashGeneratorFcn: SHA512} }
+		logger.Debugf("Inside the %v switch statement", m)
+		c.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA512} }
 		c.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
 	case "OAUTHBEARER":
-		logger.Debug("Inside the OAUTHBEARER switch statement")
+		logger.Debugf("Inside the %v switch statement", m)
 		c.Net.SASL.Mechanism = "OAUTHBEARER"
 	case "":
 		logger.Debug("Inside the EMPTY switch statement")
@@ -268,13 +270,13 @@ func createTLSConfig(sc *ksengine.ShepherdCluster) *tls.Config {
 	return t
 }
 
-type xdgSCRAMClient struct {
+type XDGSCRAMClient struct {
 	*scram.Client
 	*scram.ClientConversation
 	scram.HashGeneratorFcn
 }
 
-func (x *xdgSCRAMClient) Begin(userName, password, authzID string) (err error) {
+func (x *XDGSCRAMClient) Begin(userName, password, authzID string) (err error) {
 	x.Client, err = x.HashGeneratorFcn.NewClient(userName, password, authzID)
 	if err != nil {
 		return err
@@ -283,11 +285,11 @@ func (x *xdgSCRAMClient) Begin(userName, password, authzID string) (err error) {
 	return nil
 }
 
-func (x *xdgSCRAMClient) Step(challenge string) (response string, err error) {
+func (x *XDGSCRAMClient) Step(challenge string) (response string, err error) {
 	response, err = x.ClientConversation.Step(challenge)
 	return
 }
 
-func (x *xdgSCRAMClient) Done() bool {
+func (x *XDGSCRAMClient) Done() bool {
 	return x.ClientConversation.Done()
 }
