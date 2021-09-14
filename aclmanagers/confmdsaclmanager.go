@@ -245,18 +245,19 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapRBACToACLMapping(cluster, rb ma
 func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName string, in *ksengine.ACLMapping, out *ksengine.ACLMapping, failed *ksengine.ACLMapping) {
 	connObj := c.getConnectionObject(clusterName)
 	for k, v := range *in {
-		value := make(ksengine.NVPairs)
+		value, multiValue := make(ksengine.NVPairs), make(ksengine.NVPairs)
 		value[kCluster] = connObj.KafkaClusterID
+		multiValue[kCluster] = connObj.KafkaClusterID
 		switch k.Operation {
 		case ksengine.ShepherdClientType_PRODUCER:
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
 				k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname), value)
 			if c.determinePatternType(k.ResourceName) == ksengine.KafkaACLPatternType_LITERAL && connObj.SRClusterID != "" {
-				value[srCluster] = connObj.SRClusterID
+				multiValue[srCluster] = connObj.SRClusterID
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-key", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), multiValue)
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-value", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), multiValue)
 			}
 		case ksengine.ShepherdClientType_PRODUCER_IDEMPOTENCE:
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_CLUSTER, "kafka-cluster", ksengine.KafkaACLPatternType_LITERAL,
@@ -268,11 +269,11 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
 				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), value)
 			if c.determinePatternType(k.ResourceName) == ksengine.KafkaACLPatternType_LITERAL && connObj.SRClusterID != "" {
-				value[srCluster] = connObj.SRClusterID
+				multiValue[srCluster] = connObj.SRClusterID
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-key", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), multiValue)
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-value", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), multiValue)
 			}
 		case ksengine.ShepherdClientType_CONSUMER_GROUP:
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
@@ -281,11 +282,11 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
 				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
 			if c.determinePatternType(k.ResourceName) == ksengine.KafkaACLPatternType_LITERAL && connObj.SRClusterID != "" {
-				value[srCluster] = connObj.SRClusterID
+				multiValue[srCluster] = connObj.SRClusterID
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-key", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), multiValue)
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, fmt.Sprintf("%s-value", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), multiValue)
 			}
 		case ksengine.ShepherdClientType_STREAM_READ, ksengine.ShepherdClientType_STREAM_WRITE:
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
