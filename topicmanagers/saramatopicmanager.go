@@ -52,8 +52,8 @@ func (t SaramaTopicExecutionManagerImpl) getTopicListFromKafkaCluster(clusterNam
 
 func (t SaramaTopicExecutionManagerImpl) CreateTopics(clusterName string, topics mapset.Set, dryRun bool) {
 	tSet := topics.Difference(*t.GetTopicsAsSet(clusterName))
-	logger.Info("Topic List that will be executed")
-	t.ListTopics(tSet)
+	// logger.Info("Topic List that will be executed")
+	t.ListTopics(tSet, "Create Eligible Topic List")
 	if !dryRun {
 		wg := new(sync.WaitGroup)
 		conn := t.getSaramaConnectionObject(clusterName)
@@ -103,8 +103,8 @@ func (t SaramaTopicExecutionManagerImpl) DeleteUnknownTopics(clusterName string,
 }
 
 func (t SaramaTopicExecutionManagerImpl) deleteTopics(clusterName string, tSet *mapset.Set, dryRun bool) {
-	logger.Info("Topic List eligible for Deletion")
-	t.ListTopics(*tSet)
+	// logger.Info("Topic List eligible for Deletion")
+	t.ListTopics(*tSet, "Delete Eligible Topic List")
 	if !dryRun {
 		wg := new(sync.WaitGroup)
 		conn := t.getSaramaConnectionObject(clusterName)
@@ -145,10 +145,10 @@ func (t SaramaTopicExecutionManagerImpl) deleteTopic(conn *sarama.ClusterAdmin, 
 
 func (t SaramaTopicExecutionManagerImpl) ModifyTopics(clusterName string, dryRun bool) {
 	cDiff, pDiff := t.findMismatchedConfigTopics(clusterName)
-	logger.Info("Configurations will be updated for the following topics")
-	t.ListTopics(cDiff)
-	logger.Info("Partition Count will be updated for the following topics")
-	t.ListTopics(pDiff)
+	// logger.Info("Configurations will be updated for the following topics")
+	t.ListTopics(cDiff, "Update Topic Config List")
+	// logger.Info("Partition Count will be updated for the following topics")
+	t.ListTopics(pDiff, "Update Topic Partition count")
 
 	if !dryRun {
 		wg := new(sync.WaitGroup)

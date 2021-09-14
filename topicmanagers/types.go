@@ -35,8 +35,8 @@ func (t TopicExecutionManagerBaseImpl) GetTopicsAsSlice(in mapset.Set) []string 
 /*
 	List all the topic names provided in the mapset as a formatted output.
 */
-func (t TopicExecutionManagerBaseImpl) ListTopics(in mapset.Set) {
-	ksmisc.DottedLineOutput("Topic List", "=", 80)
+func (t TopicExecutionManagerBaseImpl) ListTopics(in mapset.Set, heading string) {
+	ksmisc.DottedLineOutput(heading, "=", 80)
 	for idx, item := range t.GetTopicsAsSlice(in) {
 		logger.Infof("%04d# : %s", idx+1, item)
 	}
