@@ -76,7 +76,8 @@ type ShepherdCluster struct {
 	Name             string        `yaml:"name"`
 	IsEnabled        bool          `yaml:"isEnabled"`
 	BootstrapServers []string      `yaml:"bootstrapServers,flow"`
-	ACLType          string        `yaml:"aclType"`
+	ACLManager       string        `yaml:"aclManager"`
+	TopicManager     string        `yaml:"topicManager" default:"sarama"`
 	ClientID         string        `yaml:"clientId"`
 	TLSDetails       ShepherdCerts `yaml:"tlsDetails,omitempty"`
 	Configs          []NVPairs     `yaml:"configOverrides,flow"`
@@ -88,7 +89,8 @@ func (c *ShepherdCluster) readValuesFromENV() {
 	for i, v := range c.BootstrapServers {
 		c.BootstrapServers[i] = envVarCheckNReplace(v, "")
 	}
-	c.ACLType = envVarCheckNReplace(c.ACLType, "")
+	c.ACLManager = envVarCheckNReplace(c.ACLManager, "kafka_acl")
+	c.TopicManager = envVarCheckNReplace(c.TopicManager, "sarama")
 	c.ClientID = envVarCheckNReplace(c.ClientID, "")
 	c.TLSDetails.readValuesFromENV()
 	c.Configs = streamlineNVPairs(c.Configs)
@@ -500,4 +502,6 @@ type ClusterConfigMappingValue struct {
 	ClientID                string
 	Configs                 NVPairs
 	ClusterDetails          NVPairs
+	TopicManager            string
+	ACLManager              string
 }
