@@ -17,14 +17,16 @@ var (
 	ACL Manager Object as well as the ACLOperationInterface used for execution.
 */
 var (
-	aclController map[kafkamanagers.ACLType]ACLExecutionManager = map[kafkamanagers.ACLType]ACLExecutionManager{
-		kafkamanagers.ACLType_KAFKA_ACLS:     SaramaACLManager,
-		kafkamanagers.ACLType_CONFLUENT_RBAC: ConfluentRbacACLManager,
+	aclController map[kafkamanagers.ConnectionType]ACLExecutionManager = map[kafkamanagers.ConnectionType]ACLExecutionManager{
+		kafkamanagers.ConnectionType_KAFKA_ACLS:    SaramaACLManager,
+		kafkamanagers.ConnectionType_SARAMA:        SaramaACLManager,
+		kafkamanagers.ConnectionType_CONFLUENT_MDS: ConfluentRbacACLManager,
 	}
 
-	aclInterface map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface = map[kafkamanagers.ACLType]ksengine.ACLOperationsInterface{
-		kafkamanagers.ACLType_KAFKA_ACLS:     ksengine.KafkaACLOperation_UNKNOWN,
-		kafkamanagers.ACLType_CONFLUENT_RBAC: ConfluentRBACOperation("Unknown"),
+	aclInterface map[kafkamanagers.ConnectionType]ksengine.ACLOperationsInterface = map[kafkamanagers.ConnectionType]ksengine.ACLOperationsInterface{
+		kafkamanagers.ConnectionType_KAFKA_ACLS:    ksengine.KafkaACLOperation_UNKNOWN,
+		kafkamanagers.ConnectionType_SARAMA:        ksengine.KafkaACLOperation_UNKNOWN,
+		kafkamanagers.ConnectionType_CONFLUENT_MDS: ConfluentRBACOperation("Unknown"),
 	}
 )
 
@@ -32,8 +34,9 @@ var (
 	The user can logically derive these values themselves but the convenience method below provides the implemented
 	values as an output. If its a forked repo, this is the method and the maps above are the ones to be changed.
 */
-func GetACLControllerDetails(clusterName string) (ACLExecutionManager, ksengine.ACLOperationsInterface) {
-	aclType := kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].ACLType
+func GetACLControllerDetails(clusterName string, cType string) (ACLExecutionManager, ksengine.ACLOperationsInterface) {
+	v, _ := kafkamanagers.ConnectionType_UNKNOWN.GetValue(cType)
+	aclType := kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName, ConnectionType: v}].ConnectionType
 	execMgr := aclController[aclType]
 	execInterface := aclInterface[aclType]
 	return execMgr, execInterface
