@@ -27,18 +27,19 @@ type (
 		otherClusterValue string
 	}
 	resources struct {
-		resourceType string
-		name         string
-		patternType  string
+		ResourceType string `json:"resourceType"`
+		Name         string `json:"name"`
+		PatternType  string `json:"patternType"`
 	}
 	mappingTable map[mappingKey][]resources
 
 	Clusters map[string]interface{}
-	Scope    struct {
-		Clusters Clusters `json:"clusters"`
-	}
+	// Scope    struct {
+	// 	Clusters map[string]interface{}
+	// }
+	Scope map[string]interface{}
 	rbReq struct {
-		Scope Scope       `json:"scope"`
+		Scope Clusters    `json:"scope"`
 		Rb    []resources `json:"resourcePatterns"`
 	}
 )
@@ -72,7 +73,7 @@ var (
 	it to execute any functionality in this module.
 */
 func (c ConfluentRbacACLExecutionManagerImpl) getConnectionObject(clusterName string) *kafkamanagers.ConfluentMDSConnection {
-	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].Connection.(*kafkamanagers.ConfluentMDSConnection)
+	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName, ConnectionType: kafkamanagers.ConnectionType_CONFLUENT_MDS}].Connection.(*kafkamanagers.ConfluentMDSConnection)
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) CreateACL(clusterName string, in *ksengine.ACLMapping, dryRun bool) {
@@ -89,6 +90,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) createACLs(clusterName string, in 
 	}
 	mappingCache := make(mappingTable)
 	c.createMappingTableForRBExec(clusterName, &mappingCache, in)
+	logger.Debugf("Mapping Table setup: %v", mappingCache)
 	wg_int := new(sync.WaitGroup)
 	wg_int.Add(len(mappingCache))
 	for k, v := range mappingCache {
@@ -131,7 +133,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) deleteACLs(clusterName string, in 
 func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string, printOutput bool) {
 	connObj := c.getConnectionObject(clusterName)
 	resp, err := connObj.MDS.R().Get(mds_ListRoles)
-	if err != nil {
+	if err != nil || resp.StatusCode() >= 400 {
 		logger.Fatalw("Cannot contact the MDS Server. Will not Retry Listing ACL's. Turn on debug for more details.",
 			"Status Code", resp.StatusCode(),
 			"Error", err)
@@ -147,7 +149,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 	r2 := mapset.NewSet()
 	f2 := func(roleName string, aName string, aVal string) {
 		resp, err = connObj.MDS.R().SetBody(c.createClustersObject(clusterName, "", "")).SetPathParam("roleName", roleName).Post(mds_GetPrincipalsForRoles)
-		if err != nil {
+		if err != nil || resp.StatusCode() >= 400 {
 			logger.Fatalw("Tried Multiple Times to get Principals for RoleName. Cannot Proceed Without MDS Connectivity.",
 				"Principal Name", roleName,
 				"Error", err)
@@ -187,7 +189,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) ListClusterACL(clusterName string,
 	lock := &sync.Mutex{}
 	f3 := func(pName string) {
 		resp, err := connObj.MDS.R().SetPathParam("pName", pName).Get(mds_GetPrincipalRoleBindings)
-		if err != nil {
+		if err != nil || resp.StatusCode() >= 400 {
 			logger.Fatalw("Cannot contact the MDS Server. Will not Retry Listing ACL's. Turn on debug for more details.",
 				"Status Code", resp.StatusCode(),
 				"Error", err)
@@ -222,13 +224,14 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapRBACToACLMapping(cluster, rb ma
 	}
 	for user, permMap := range rb {
 		for perm, resMap := range permMap.(map[string]interface{}) {
-			for _, acl := range resMap.([]map[string]string) {
-				resType, _ := ksengine.KafkaResourceType_ANY.GetACLResourceValue(acl["resourceType"])
+			for _, acl := range resMap.([]interface{}) {
+				acl := acl.(map[string]interface{})
+				resType, _ := ksengine.KafkaResourceType_ANY.GetACLResourceValue(acl["resourceType"].(string))
 				mtx.Lock()
 				mapping.Append(ksengine.ACLDetails{
 					ResourceType: resType,
-					ResourceName: acl["name"],
-					PatternType:  confluentRBAC2KafkaPatternTypeConversion[acl["patternType"]],
+					ResourceName: acl["name"].(string),
+					PatternType:  confluentRBAC2KafkaPatternTypeConversion[acl["patternType"].(string)],
 					Principal:    user,
 					Operation:    ConfluentRBACOperation(perm),
 					Hostname:     "*",
@@ -354,11 +357,11 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 
 func (c ConfluentRBACOperation) String() string {
 	// return strings.ToUpper(strings.TrimSpace(c))
-	return strings.ToUpper(strings.TrimSpace(string(c)))
+	return strings.TrimSpace(string(c))
 }
 
 func (c ConfluentRBACOperation) GetValue(in string) (ksengine.ACLOperationsInterface, error) {
-	return ConfluentRBACOperation(strings.ToUpper(strings.TrimSpace(in))), nil
+	return ConfluentRBACOperation(strings.TrimSpace(in)), nil
 }
 
 func (c ConfluentRBACOperation) GenerateACLMappingStructures(clusterName string, in *ksengine.ACLMapping) *ksengine.ACLMapping {
@@ -377,8 +380,10 @@ func (c ConfluentRBACOperation) GenerateACLMappingStructures(clusterName string,
 	if len(temp) > 0 {
 		ConfluentRbacACLManager.mapFromShepherdACL(clusterName, &temp, &out, &failed)
 	}
-	ksmisc.DottedLineOutput("Failed ACLs", "=", 80)
-	ConfluentRbacACLManager.ListConfigACL(true, &failed)
+	if len(failed) != 0 {
+		ksmisc.DottedLineOutput("Failed ACLs", "=", 80)
+		ConfluentRbacACLManager.ListConfigACL(true, &failed)
+	}
 	return &out
 }
 
@@ -404,17 +409,18 @@ func (c ConfluentRbacACLExecutionManagerImpl) executeRBRequest(clusterName strin
 
 	var cluster Clusters = c.createClustersObject(clusterName, mapKey.otherClusterName, mapKey.otherClusterValue)
 	req := &rbReq{
-		Scope: Scope{cluster},
+		Scope: cluster,
 		Rb:    mapVal,
 	}
 	connObj := c.getConnectionObject(clusterName)
 
 	resp, err := connObj.MDS.R().SetBody(req).SetPathParams(paramMap).Execute(method, uri)
-	if err != nil {
-		logger.Fatalw("Cannot contact the MDS Server. Will not Retry Executing ACL Requests. Turn on debug for more details.",
+	if err != nil || resp.StatusCode() >= 400 {
+		logger.Errorw("Cannot contact the MDS Server. Will not Retry Executing ACL Requests. Turn on debug for more details.",
 			"Request Method", resp.Request.Method,
 			"Request URL", resp.Request.URL,
 			"Request Body", resp.Request.Body,
+			"Response Body", string(resp.Body()),
 			"Status Code", resp.StatusCode(),
 			"Error", err)
 	}
@@ -429,10 +435,14 @@ func (c ConfluentRbacACLExecutionManagerImpl) executeRBRequest(clusterName strin
 
 func (c ConfluentRbacACLExecutionManagerImpl) createMappingTableForRBExec(clusterName string, mappingCache *mappingTable, in *ksengine.ACLMapping) {
 	for k, v := range *in {
+		logger.Debugw("Adding ACLMapping to the Mapping Table for execution",
+			"ResourceType", k.ResourceType.GetACLResourceString(),
+			"Name", k.ResourceName,
+			"Pattern Type", k.PatternType.GetACLPatternString())
 		var key mappingKey
 		key.principal = k.Principal
 		key.role = k.Operation
-		for cName, cVal := range v.(map[string]string) {
+		for cName, cVal := range v.(ksengine.NVPairs) {
 			switch cName {
 			case kCluster:
 				key.kafkaCluster = cVal
@@ -445,12 +455,15 @@ func (c ConfluentRbacACLExecutionManagerImpl) createMappingTableForRBExec(cluste
 			case ksqlCluster:
 				key.otherClusterName = ksqlCluster
 				key.otherClusterValue = cVal
+				// default:
+				// 	key.otherClusterName = ""
+				// 	key.otherClusterValue = ""
 			}
 		}
 		if mapRes, found := (*mappingCache)[key]; found {
-			(*mappingCache)[key] = append(mapRes, resources{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()})
+			(*mappingCache)[key] = append(mapRes, resources{ResourceType: k.ResourceType.GetACLResourceString(), Name: k.ResourceName, PatternType: strings.ToUpper(k.PatternType.GetACLPatternString())})
 		} else {
-			(*mappingCache)[key] = []resources{{resourceType: k.ResourceType.GetACLResourceString(), name: k.ResourceName, patternType: k.PatternType.GetACLPatternString()}}
+			(*mappingCache)[key] = []resources{{ResourceType: k.ResourceType.GetACLResourceString(), Name: k.ResourceName, PatternType: strings.ToUpper(k.PatternType.GetACLPatternString())}}
 		}
 	}
 }
