@@ -17,6 +17,9 @@ func envVarCheckNReplace(s string, def string) string {
 	if strings.HasPrefix(s, ENVVAR_PREFIX) {
 		return getEnvVarsWithDefaults(strings.Replace(s, ENVVAR_PREFIX, "", 1), def)
 	}
+	if s == "" && def != "" {
+		return def
+	}
 	return s
 }
 
