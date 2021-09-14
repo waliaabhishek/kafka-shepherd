@@ -7,9 +7,12 @@ configs:
   clusters:
     - name: dev_plaintext
       isEnabled: false
+      aclManager: "kafka_acl"
       bootstrapServers:
-        - localhost:9092
+        - localhost:9093
       clientId: "abhishektest1"
+      configOverrides:
+        - security.protocol: "PLAINTEXT"
     # - name: test_ssl_1WaySSL
     #   isEnabled: false
     #   bootstrapServers:
@@ -29,35 +32,40 @@ configs:
       isEnabled: false
       bootstrapServers:
         - localhost:9093
-      aclType: "kafka_acl"
+      aclManager: "kafka_acl"
       clientId: "abhishektest3"
       configOverrides:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: PLAIN
         - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'
     - name: test3_sasl_plaintext_scram
-      isEnabled: true
+      isEnabled: false
       bootstrapServers:
         - localhost:9093
+        # - kafka:9093
         - localhost:9094
-      aclType: "kafka_acl"
+      aclManager: "kafka_acl"
       clientId: "abhishektest4"
       configOverrides:
         - security.protocol: SASL_PLAINTEXT
         - sasl.mechanism: SCRAM-SHA-256
-        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-pass"'
+        - sasl.jaas.config: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="kafka-pass"'
     - name: test4_confluent_rbac
-      isEnabled: false
+      isEnabled: true
       bootstrapServers:
         - localhost:9093
-      aclType: "confluent_rbac"
+        - localhost:9094
+      aclManager: "confluent_mds"
       clientId: "abhishektest3"
       configOverrides:
-        - erp.url: "https://0.0.0.0:8091"
-        - mds.url: "https://0.0.0.0:8091"
-        - ksql.url: "https://0.0.0.0:8083"
-        - mds.username: "superUser"
-        - mds.password: "superUser"
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: PLAIN
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="alice" password="alice-secret"'
+        - erp.url: "http://0.0.0.0:8090"
+        - mds.url: "http://0.0.0.0:8090"
+        - ksql.url: "http://0.0.0.0:8083"
+        - mds.username: "alice"
+        - mds.password: "alice-secret"
         # Kafka Cluster ID is not required if the erp.url is provided. The code will get that value from the ERP.
         # - kafka-cluster: "asjkdfglsdkgfdjakds"
         # KSQL Cluster ID is not required if the ksql.url is provided. The code will feed that value from the KSQL REST Layer at runtime.
