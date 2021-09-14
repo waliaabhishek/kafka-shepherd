@@ -32,16 +32,18 @@ type SaramaConnection struct {
 }
 
 func (c *SaramaConnection) InitiateAdminConnection(cConfig ksengine.ShepherdCluster) {
-	c.validateInputDetails(cConfig)
-	conf := c.understandClusterTopology(&cConfig)
-	ca, err := sarama.NewClusterAdmin(cConfig.BootstrapServers, conf)
-	if err != nil {
-		logger.Fatalw("Cannot set up the connection to Kafka Cluster. ",
-			"Bootstrap Server", cConfig.BootstrapServers,
-			"Error", err)
+	if c.SCA == nil {
+		c.validateInputDetails(cConfig)
+		conf := c.understandClusterTopology(&cConfig)
+		ca, err := sarama.NewClusterAdmin(cConfig.BootstrapServers, conf)
+		if err != nil {
+			logger.Fatalw("Cannot set up the connection to Kafka Cluster. ",
+				"Bootstrap Server", cConfig.BootstrapServers,
+				"Error", err)
+		}
+		addShutdownHook(&ca)
+		c.SCA = &ca
 	}
-	addShutdownHook(&ca)
-	c.SCA = &ca
 }
 
 func (c *SaramaConnection) validateInputDetails(cConfig ksengine.ShepherdCluster) {
