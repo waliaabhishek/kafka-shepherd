@@ -27,7 +27,7 @@ var (
 	it to execute any functionality in this module.
 */
 func (t SaramaTopicExecutionManagerImpl) getSaramaConnectionObject(clusterName string) *sarama.ClusterAdmin {
-	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName}].Connection.(*kafkamanagers.SaramaConnection).SCA
+	return kafkamanagers.Connections[kafkamanagers.KafkaConnectionsKey{ClusterName: clusterName, ConnectionType: kafkamanagers.ConnectionType_SARAMA}].Connection.(*kafkamanagers.SaramaConnection).SCA
 }
 
 func (t SaramaTopicExecutionManagerImpl) GetTopicsAsSet(clusterName string) *mapset.Set {

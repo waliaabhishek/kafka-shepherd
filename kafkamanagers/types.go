@@ -9,13 +9,15 @@ import (
 type KafkaConnections map[KafkaConnectionsKey]KafkaConnectionsValue
 
 type KafkaConnectionsKey struct {
-	ClusterName string
+	ClusterName    string
+	ConnectionType ConnectionType
 }
 
 type KafkaConnectionsValue struct {
-	Connection   ConnectionObject
-	ACLType      ACLType
-	WaitGroupRef *sync.WaitGroup
+	Connection     ConnectionObject
+	ConnectionType ConnectionType
+	WaitGroupRef   *sync.WaitGroup
+	IsInitiated    bool
 }
 
 type ConnectionObject interface {
@@ -31,39 +33,60 @@ var (
 )
 
 func InitiateAllKafkaConnections(clusters ksengine.ConfigRoot) {
-	var temp ACLType
-	for _, cluster := range clusters.Clusters {
-		v, err := temp.GetValue(cluster.ACLType)
-		if err != nil {
-			logger.Fatalw("Cannot Proceed with unknown aclType.",
-				"Cluster Name", cluster.Name,
-				"Is Enabled", cluster.IsEnabled,
-				"ACL Type provided", cluster.ACLType,
-				"Expected Types", temp.stringJoin())
+	var temp ConnectionType
+	f := func(clusterName string, cType ConnectionType) KafkaConnectionsValue {
+		v, found := Connections[KafkaConnectionsKey{ClusterName: clusterName, ConnectionType: cType}]
+		if !found {
+			wg := new(sync.WaitGroup)
+			switch cType {
+			case ConnectionType_SARAMA, ConnectionType_KAFKA_ACLS:
+				key := KafkaConnectionsKey{ClusterName: clusterName, ConnectionType: ConnectionType_SARAMA}
+				val := KafkaConnectionsValue{
+					Connection:     &SaramaConnection{},
+					ConnectionType: ConnectionType_SARAMA,
+					WaitGroupRef:   wg,
+					IsInitiated:    false,
+				}
+				Connections[key] = val
+				return val
+			case ConnectionType_CONFLUENT_MDS:
+				key := KafkaConnectionsKey{ClusterName: clusterName, ConnectionType: ConnectionType_CONFLUENT_MDS}
+				val := KafkaConnectionsValue{
+					Connection:     &ConfluentMDSConnection{},
+					ConnectionType: ConnectionType_CONFLUENT_MDS,
+					WaitGroupRef:   wg,
+					IsInitiated:    false,
+				}
+				Connections[key] = val
+				return val
+			}
 		}
+		return v
+	}
+
+	for _, cluster := range clusters.Clusters {
 		if cluster.IsEnabled {
-			if v == ACLType_KAFKA_ACLS {
-				wg := new(sync.WaitGroup)
-				k := KafkaConnectionsKey{ClusterName: cluster.Name}
-				v := KafkaConnectionsValue{
-					Connection:   &SaramaConnection{},
-					ACLType:      ACLType_KAFKA_ACLS,
-					WaitGroupRef: wg,
-				}
-				v.Connection.InitiateAdminConnection(cluster)
-				Connections[k] = v
-				continue
+			v, err := temp.GetValue(cluster.ACLManager)
+			if err != nil {
+				logger.Fatalw("Cannot Proceed with unknown Connection Type.",
+					"Cluster Name", cluster.Name,
+					"Is Enabled", cluster.IsEnabled,
+					"ACL Type provided", cluster.ACLManager,
+					"Expected Types", temp.stringJoin())
 			}
-			if v == ACLType_CONFLUENT_RBAC {
-				k := KafkaConnectionsKey{ClusterName: cluster.Name}
-				v := KafkaConnectionsValue{
-					Connection: &ConfluentMDSConnection{},
-					ACLType:    ACLType_CONFLUENT_RBAC,
-				}
-				v.Connection.InitiateAdminConnection(cluster)
-				Connections[k] = v
-				continue
+			val := f(cluster.Name, v)
+			val.Connection.InitiateAdminConnection(cluster)
+
+			v, err = temp.GetValue(cluster.TopicManager)
+			if err != nil {
+				logger.Fatalw("Cannot Proceed with unknown Connection Type.",
+					"Cluster Name", cluster.Name,
+					"Is Enabled", cluster.IsEnabled,
+					"ACL Type provided", cluster.ACLManager,
+					"Expected Types", temp.stringJoin())
 			}
+			val = f(cluster.Name, v)
+			val.Connection.InitiateAdminConnection(cluster)
 		}
 	}
 }

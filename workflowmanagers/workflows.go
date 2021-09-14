@@ -37,7 +37,7 @@ func ExecuteTopicManagementWorkflow(executeCreateFlow bool, executeModifyFlow bo
 func ExecuteACLManagementWorkflow(executeCreateFlow bool, executeDeleteFlow bool) {
 	for k, v := range engine.ConfMaps.CCM {
 		if v.IsACLManagementEnabled {
-			aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name)
+			aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name, v.ACLManager)
 			temp := aclInterface.GenerateACLMappingStructures(k.Name, engine.ShepherdACLList)
 			// temp := engine.Shepherd.RenderACLMappings(k.Name, engine.ShepherdACLList, aclInterface)
 			if executeCreateFlow {
@@ -69,7 +69,7 @@ func DeleteShepherdACLs(executeDeleteFlow bool) {
 	if engine.IsTest {
 		for k, v := range engine.ConfMaps.CCM {
 			if v.IsACLManagementEnabled && executeDeleteFlow {
-				aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name)
+				aclManager, aclInterface := aclmanagers.GetACLControllerDetails(k.Name, v.ACLManager)
 				temp := aclInterface.GenerateACLMappingStructures(k.Name, engine.ShepherdACLList)
 				// temp := engine.Shepherd.RenderACLMappings(k.Name, engine.ShepherdACLList, aclInterface)
 				aclManager.DeleteProvisionedACL(k.Name, temp, dryRun)

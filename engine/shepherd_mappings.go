@@ -245,6 +245,8 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 				ClusterSASLMechanism:    sc,
 				IsActive:                false,
 				IsACLManagementEnabled:  am,
+				TopicManager:            cluster.TopicManager,
+				ACLManager:              cluster.ACLManager,
 			}
 			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled, Name: cluster.Name}] = value
 		}
@@ -273,11 +275,13 @@ func (sc *ShepherdCluster) understandClusterTopology() (ClusterSecurityProtocol,
 		sp = ClusterSecurityProtocol_SSL
 	case "", "PLAINTEXT":
 		logger.Debug("Inside the PLAINTEXT switch statement")
-		logger.Warnw("Turning off ACL management as the cluster type is PLAINTEXT",
-			"Cluster Name", sc.Name,
-			"Cluster Security Protocol", p)
 		sp = ClusterSecurityProtocol_PLAINTEXT
-		am = false
+		if strings.ToLower(strings.TrimSpace(sc.ACLManager)) != "confluent_mds" {
+			logger.Warnw("Turning off ACL management as the cluster type is PLAINTEXT",
+				"Cluster Name", sc.Name,
+				"Cluster Security Protocol", p)
+			am = false
+		}
 	default:
 		sp = ClusterSecurityProtocol_UNKNOWN
 		logger.Fatalw("Unknown security mode supplied for Cluster Config",

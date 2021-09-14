@@ -6,31 +6,36 @@ import (
 )
 
 type (
-	ACLType int
+	ConnectionType int
 )
 
 const (
-	ACLType_UNKNOWN ACLType = iota
-	ACLType_KAFKA_ACLS
-	ACLType_CONFLUENT_RBAC
+	ConnectionType_UNKNOWN ConnectionType = iota
+	ConnectionType_SARAMA
+	ConnectionType_KAFKA_ACLS
+	ConnectionType_CONFLUENT_MDS
 )
 
-func (a ACLType) String() string {
-	mapping := map[ACLType]string{
-		ACLType_KAFKA_ACLS:     "kafka_acl",
-		ACLType_CONFLUENT_RBAC: "confluent_rbac",
+func (a ConnectionType) String() string {
+	mapping := map[ConnectionType]string{
+		ConnectionType_UNKNOWN:       "unknown",
+		ConnectionType_SARAMA:        "sarama",
+		ConnectionType_KAFKA_ACLS:    "kafka_acl",
+		ConnectionType_CONFLUENT_MDS: "confluent_mds",
 	}
 	s, ok := mapping[a]
 	if !ok {
-		s = mapping[ACLType_UNKNOWN]
+		s = mapping[ConnectionType_UNKNOWN]
 	}
 	return s
 }
 
-func (a ACLType) stringJoin() (out []string) {
-	mapping := map[ACLType]string{
-		ACLType_KAFKA_ACLS:     "kafka_acl",
-		ACLType_CONFLUENT_RBAC: "confluent_rbac",
+func (a ConnectionType) stringJoin() (out []string) {
+	mapping := map[ConnectionType]string{
+		ConnectionType_UNKNOWN:       "unknown",
+		ConnectionType_SARAMA:        "sarama",
+		ConnectionType_KAFKA_ACLS:    "kafka_acl",
+		ConnectionType_CONFLUENT_MDS: "confluent_mds",
 	}
 	for _, v := range mapping {
 		out = append(out, v)
@@ -38,14 +43,16 @@ func (a ACLType) stringJoin() (out []string) {
 	return out
 }
 
-func (c ACLType) GetValue(in string) (ACLType, error) {
-	m := map[string]ACLType{
-		"kafka_acl":      ACLType_KAFKA_ACLS,
-		"confluent_rbac": ACLType_CONFLUENT_RBAC,
+func (c ConnectionType) GetValue(in string) (ConnectionType, error) {
+	m := map[string]ConnectionType{
+		"unknown":       ConnectionType_UNKNOWN,
+		"sarama":        ConnectionType_SARAMA,
+		"kafka_acl":     ConnectionType_KAFKA_ACLS,
+		"confluent_mds": ConnectionType_CONFLUENT_MDS,
 	}
 	s, ok := m[strings.ToLower(strings.TrimSpace(in))]
 	if !ok {
-		s = m["ACLType_UNKNOWN"]
+		s = m["ConnectionType_UNKNOWN"]
 		logger.Errorw("Illegal Cluster ACL Operation String provided.",
 			"Input String", in)
 		return s, fmt.Errorf("illegal cluster acl string provided. input string: %s", in)
