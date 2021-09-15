@@ -27,6 +27,7 @@ blueprints:
           # - partition.count
         blacklist:
           - replication.factor
+          - min.insync.replicas
     aclPolicy:
       setupACLs: false
       aclType: '"kafkaacls" | "confluentrbac"'
