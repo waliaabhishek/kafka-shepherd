@@ -56,8 +56,8 @@ const (
 )
 
 var (
+	// ConfACLManager                           ksengine.ShepherdACLConfigManager       = ConfluentRbacACLExecutionManagerImpl{}
 	ConfluentRbacACLManager                  ACLExecutionManager                     = ConfluentRbacACLExecutionManagerImpl{}
-	ConfACLManager                           ksengine.ShepherdACLConfigManager       = ConfluentRbacACLExecutionManagerImpl{}
 	confRbacAclMappings                      *ksengine.ACLMapping                    = &ksengine.ACLMapping{}
 	confluentRBAC2KafkaPatternTypeConversion map[string]ksengine.KafkaACLPatternType = map[string]ksengine.KafkaACLPatternType{
 		"UNKNOWN":  ksengine.KafkaACLPatternType_UNKNOWN,
@@ -431,7 +431,6 @@ func (c ConfluentRbacACLExecutionManagerImpl) executeRBRequest(clusterName strin
 			"URI", resp.Request.URL,
 			"Request Body", resp.Request.Body)
 	}
-
 }
 
 func (c ConfluentRbacACLExecutionManagerImpl) createMappingTableForRBExec(clusterName string, mappingCache *mappingTable, in *ksengine.ACLMapping) {
