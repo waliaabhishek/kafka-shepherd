@@ -146,14 +146,19 @@ func ExistsInString(s string, part1 []string, part2 []string, sep string) bool {
 }
 
 func IsTopicName(topicName string, delimiter string) bool {
-	if strings.HasSuffix(topicName, strings.Join([]string{delimiter, "*"}, "")) {
+	// if strings.HasSuffix(topicName, strings.Join([]string{delimiter, "*"}, "")) {
+	// 	return false
+	// }
+	if strings.HasSuffix(topicName, "*") || strings.EqualFold(topicName, "*") || strings.EqualFold(topicName, "") {
 		return false
-	} else {
-		return true
 	}
+	return true
 }
 
 func InPlaceDedup(in []string) []string {
+	if IsZero1DSlice(in) {
+		return in
+	}
 	sort.Strings(in)
 	j := 0
 	for i := 1; i < len(in); i++ {
@@ -175,15 +180,14 @@ func InPlaceDedup(in []string) []string {
 // }
 
 func PrettyPrintMapSet(in mapset.Set) {
-	it := in.Iterator()
 	index := 1
-	for elem := range it.C {
+	for elem := range in.Iterator().C {
 		// fmt.Fprintf(TW, "\n%d\t%s", index, elem)
 		zaplog.Infof("%04d: %s", index, elem)
 		index += 1
 	}
 	// fmt.Fprintln(TW, " ")
-	it.Stop()
+	// it.Stop()
 }
 
 func GenerateRandomNumber(min int, max int) int {

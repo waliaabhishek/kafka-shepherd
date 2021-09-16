@@ -66,7 +66,7 @@ func (s *StackSuite) TestStackSuite_Misc_RemoveValuesFromSlice() {
 
 	for _, c := range cases {
 		out := RemoveValuesFromSlice(c.in, c.val)
-		s.Assert().ElementsMatch(c.out, out)
+		s.ElementsMatch(c.out, out)
 	}
 }
 
@@ -167,6 +167,85 @@ func (s *StackSuite) TestStackSuite_Misc_IsZero1DSlice() {
 
 	for _, c := range cases {
 		out := IsZero1DSlice(c.in)
-		s.Equal(c.out, out)
+		s.Equal(c.out, out, c.err)
+	}
+}
+
+func (s *StackSuite) TestStackSuite_Misc_ExistsInString() {
+	cases := []struct {
+		in    string
+		srch1 []string
+		srch2 []string
+		sep   string
+		out   bool
+		err   string
+	}{
+		{"test0.test2.test4.test3", []string{"test1", "test2"}, []string{"test3", "test4"}, ".", true, "concat value success search case"},
+		{"test0.test2.test1.test5", []string{"test1", "test2"}, []string{"test3", "test4"}, ".", false, "concat value failure search case"},
+		{"", []string{"test1", "test2"}, []string{"test3", "test4"}, ".", false, "empty value search case"},
+	}
+
+	for _, c := range cases {
+		out := ExistsInString(c.in, c.srch1, c.srch2, c.sep)
+		s.Equal(c.out, out, c.err)
+	}
+}
+
+func (s *StackSuite) TestStackSuite_Misc_IsTopicName() {
+	cases := []struct {
+		in  string
+		sep string
+		out bool
+		err string
+	}{
+		{"test", ".", true, "Full Topic name case"},
+		{"test.test2", ".", true, "Full Topic name case"},
+		{"", ".", false, "Full Topic name case"},
+		{"*", ".", false, "Full Topic name case"},
+		{"test.*", ".", false, "Regex topic name success case"},
+		{"test**", ".", false, "Regex topic name failure case"},
+	}
+
+	for _, c := range cases {
+		out := IsTopicName(c.in, c.sep)
+		s.Equal(c.out, out, c.err)
+	}
+}
+
+func (s *StackSuite) TestStackSuite_Misc_InPlaceDedup() {
+	cases := []struct {
+		in  []string
+		out []string
+		err string
+	}{
+		{[]string{"1", "2", "3"}, []string{"1", "2", "3"}, "no dupes slice case"},
+		{[]string{}, []string{}, "empty slice case"},
+		{[]string{"1", "2", "3", "1"}, []string{"1", "2", "3"}, "dupe slice case"},
+		{[]string{"1", "2", "3", "1", "2"}, []string{"1", "2", "3"}, "multi dupes slice case"},
+		{[]string{"1", "2", "3", "1", "2", "2", "2"}, []string{"2", "1", "3"}, "multi dupes slice case 2"},
+	}
+
+	for _, c := range cases {
+		out := InPlaceDedup(c.in)
+		s.ElementsMatch(c.out, out, c.err)
+	}
+}
+
+func (s *StackSuite) TestStackSuite_Misc_GenerateRandomNumber() {
+	cases := []struct {
+		min int
+		max int
+		out int
+		err string
+	}{
+		{0, 10, 10, "positive numbers case"},
+		{-10, 0, 0, "negative numbers case"},
+		{-1, 10, 10, "negative & positive numbers case"},
+	}
+
+	for _, c := range cases {
+		out := GenerateRandomNumber(c.min, c.max)
+		s.GreaterOrEqual(out, c.min, "Number less than Minimum. "+c.err)
+		s.LessOrEqual(out, c.max, "Number greater than Maximum. "+c.err)
 	}
 }
