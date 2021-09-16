@@ -51,15 +51,15 @@ func init() {
 	// runMode = assertRunMode(runString)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	SpdCore.Configs.parseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile))
+	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile))
 	logger.Debug("Shepherd Config File parse Result: ", SpdCore.Configs)
 
 	// Parse Shepherd Blueprints from the YAML file.
-	SpdCore.Blueprints.parseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
+	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
 	logger.Debug("Shepherd Blueprints parse Result: ", SpdCore.Blueprints)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	SpdCore.Definitions.parseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", definitionsFile))
+	SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", definitionsFile), true)
 	logger.Debug("Shepherd Definitions parse Result: ", SpdCore.Definitions)
 
 	// Understand the Blueprints & Definitions file and setup the External facing representation of the core files.
@@ -112,7 +112,7 @@ func assertRunMode(mode *string) RunMode {
 	return RunMode_SINGLE_CLUSTER
 }
 
-func (shp *ShepherdBlueprint) parseShepherBlueprints(configFilePath string) {
+func (shp *ShepherdBlueprint) ParseShepherBlueprints(configFilePath string) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_BLUEPRINTS_FILE_LOCATION variable. Please Correct.",
@@ -135,14 +135,14 @@ func (scf *ShepherdBlueprint) validateShepherdBlueprints() {
 	logger.Debug("No Validations for Shepherd Blueprints at the moment.")
 }
 
-func (shp *ShepherdDefinition) parseShepherDefinitions(configFilePath string) *ShepherdDefinition {
+func (shp *ShepherdDefinition) ParseShepherDefinitions(configFilePath string, overwriteExisting bool) *ShepherdDefinition {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_DEFINITIONS_FILE_LOCATION variable. Please Correct.",
 			"Error Received", err)
 	}
 
-	if shp == nil {
+	if overwriteExisting || shp == nil {
 		shp = &ShepherdDefinition{}
 	}
 
@@ -158,7 +158,7 @@ func (scf *ShepherdDefinition) validateShepherdDefinitions() {
 	return
 }
 
-func (shp *ShepherdConfig) parseShepherdConfig(configFilePath string) {
+func (shp *ShepherdConfig) ParseShepherdConfig(configFilePath string) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatal("Cannot read the filepath provided in SHEPHERD_CONFIG_FILELOCATION variable. Please Correct. Error Received", err)
