@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	configTopicList     = engine.Shepherd.GetTopicList()
+	configTopicList     = engine.Shepherd.GetTopicList(true)
 	logger              = engine.Shepherd.GetLogger()
 	dryRun              = engine.DryRun
 	deleteUnknownTopics = engine.SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.DeleteUnknownTopics

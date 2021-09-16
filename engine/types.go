@@ -17,7 +17,7 @@ var (
 
 type (
 	ShepherdManager interface {
-		GetTopicList() mapset.Set
+		GetTopicList(forceRefresh bool) mapset.Set
 		// GetShepherdACLList() *ACLMapping
 		RenderACLMappings(clusterName string, mappings *ACLMapping, inputACLType ACLOperationsInterface) *ACLMapping
 		GetLogger() *ShepherdLogger
@@ -52,13 +52,12 @@ func (s ShepherdManagerBaseImpl) RenderACLMappings(clusterName string, in *ACLMa
 	(.*) suffixed topics. Technically, this is the unique list of topics
 	that the configuration is expecting to be created.
 */
-func (s ShepherdTopicManagerImpl) GetTopicList() mapset.Set {
-	if topicsInConfig.Cardinality() == 0 {
-		for _, v := range ConfMaps.utm {
-			for _, topic := range v.TopicList {
-				if ksmisc.IsTopicName(topic, SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken) {
-					topicsInConfig.Add(topic)
-				}
+func (s ShepherdTopicManagerImpl) GetTopicList(forceRefresh bool) mapset.Set {
+	if forceRefresh || topicsInConfig.Cardinality() == 0 {
+		topicsInConfig = mapset.NewSet()
+		for topicName := range ConfMaps.TCM {
+			if ksmisc.IsTopicName(topicName, SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken) {
+				topicsInConfig.Add(topicName)
 			}
 		}
 	}

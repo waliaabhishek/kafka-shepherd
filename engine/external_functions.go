@@ -128,8 +128,8 @@ func (tcm *TopicConfigMapping) PrintTCM() {
 	}
 }
 
-func ListTopicsInConfig() []string {
-	return ksmisc.GetStringSliceFromMapSet(topicsInConfig)
+func ListTopicsInConfig(forceRefresh bool) []string {
+	return ksmisc.GetStringSliceFromMapSet(Shepherd.GetTopicList(forceRefresh))
 }
 
 /*
