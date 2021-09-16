@@ -3,3 +3,4 @@
 go.sum
 target/golist.json
 test.go
+coverage.out
