@@ -344,6 +344,12 @@ func (c *ProducerDefinition) readValuesFromENV() {
 			c.Hostnames[i] = envVarCheckNReplace(v, "")
 		}
 	}
+	if c.EnableIdempotence && c.Group == "" {
+		logger.Fatalw("If Idempotence is enabled, Producer needs to have a group defined.",
+			"Producer Principal", c.Principal,
+			"Producer Group", c.Group,
+			"Idempotence Enabled", c.EnableIdempotence)
+	}
 	if c.TransactionalID && c.Group == "" {
 		logger.Fatalw("If Transactions are enabled, Producer needs to have a group defined.",
 			"Producer Principal", c.Principal,
