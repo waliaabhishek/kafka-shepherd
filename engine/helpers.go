@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -72,46 +71,44 @@ func GetClientCertificateFromCertNKey(pathToClientCert string, pathToPrivateKey 
 
 	cCert, err := ioutil.ReadFile(pathToClientCert)
 	if err != nil {
-		logger.Warnw("Cannot read the Client Cert file provided in config. Skipping setting up the client certificate.",
+		logger.Errorw("Cannot read the Client Cert file provided in config. Skipping setting up the client certificate.",
 			"Client Certificate Path", pathToClientCert,
 			"Error Details", err)
-		failFlag = true
+		return nil, err
 	}
 	b, err := ioutil.ReadFile(pathToPrivateKey)
 	if err != nil {
-		logger.Warnw("Cannot read the Private Key file provided in config. Skipping setting up the client certificate.",
+		logger.Errorw("Cannot read the Private Key file provided in config. Skipping setting up the client certificate.",
 			"Private Key Path", pathToPrivateKey,
 			"Error Details", err)
-		failFlag = true
-	} else {
-		if !failFlag {
-			for {
-				v, b = pem.Decode(b)
-				logger.Debug("Private Key Decoded.")
-				if v == nil {
-					logger.Debug("inside the circuit Breaker for Decoder.")
+		return nil, err
+	}
+	for {
+		v, b = pem.Decode(b)
+		logger.Debug("Private Key Decoded.")
+		if v == nil {
+			logger.Debug("inside the circuit Breaker for Decoder.")
+			break
+		}
+		if v.Type == "PRIVATE KEY" || v.Type == "RSA PRIVATE KEY" {
+			logger.Debug("Triggered Private Key Encryption Check")
+			if x509.IsEncryptedPEMBlock(v) {
+				logger.Debug("Private Key is Encrypted. Will need the Private Key Password")
+				pKey, err = x509.DecryptPEMBlock(v, []byte(privateKeyPassword))
+				if err != nil {
+					logger.Warnw("Cannot decrypt the Private Key file provided in config. Skipping setting up the client certificate.",
+						"Client Certificate Path", pathToClientCert,
+						"Private Key Path", pathToPrivateKey,
+						"Error Details", err)
+					failFlag = true
 					break
 				}
-				if v.Type == "PRIVATE KEY" || v.Type == "RSA PRIVATE KEY" {
-					logger.Debug("Triggered Private Key Encryption Check")
-					if x509.IsEncryptedPEMBlock(v) {
-						logger.Debug("Private Key is Encrypted. Will need the Private Key Password")
-						pKey, err = x509.DecryptPEMBlock(v, []byte(privateKeyPassword))
-						if err != nil {
-							logger.Warnw("Cannot decrypt the Private Key file provided in config. Skipping setting up the client certificate.",
-								"Client Certificate Path", pathToClientCert,
-								"Private Key Path", pathToPrivateKey,
-								"Error Details", err)
-							break
-						}
-						pKey = pem.EncodeToMemory(&pem.Block{
-							Type:  v.Type,
-							Bytes: pKey,
-						})
-					} else {
-						pKey = pem.EncodeToMemory(v)
-					}
-				}
+				pKey = pem.EncodeToMemory(&pem.Block{
+					Type:  v.Type,
+					Bytes: pKey,
+				})
+			} else {
+				pKey = pem.EncodeToMemory(v)
 			}
 		}
 	}
@@ -124,21 +121,21 @@ func GetClientCertificateFromCertNKey(pathToClientCert string, pathToPrivateKey 
 	return &clientCert, err
 }
 
-func (sc *DefinitionRoot) PrettyPrintScope() {
-	for _, v1 := range sc.ScopeFlow {
-		v1.prettyPrintSND(0)
-	}
-}
+// func (sc *DefinitionRoot) PrettyPrintScope() {
+// 	for _, v1 := range sc.ScopeFlow {
+// 		v1.prettyPrintSND(0)
+// 	}
+// }
 
-func (snd *ScopeDefinition) prettyPrintSND(tabCounter int) {
-	fmt.Println(strings.Repeat("  ", tabCounter), "Short Name:", snd.ShortName)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Custom Enum Ref:", snd.CustomEnumRef)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Values:", snd.Values)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Include in Topic Name Flag:", snd.IncludeInTopicName)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Topics:", snd.Topics)
-	fmt.Println(strings.Repeat("  ", tabCounter), "Clients:", snd.Clients)
-	if snd.Child != nil {
-		fmt.Println(strings.Repeat("  ", tabCounter), "Child Node:")
-		snd.Child.prettyPrintSND(tabCounter + 1)
-	}
-}
+// func (snd *ScopeDefinition) prettyPrintSND(tabCounter int) {
+// 	fmt.Println(strings.Repeat("  ", tabCounter), "Short Name:", snd.ShortName)
+// 	fmt.Println(strings.Repeat("  ", tabCounter), "Custom Enum Ref:", snd.CustomEnumRef)
+// 	fmt.Println(strings.Repeat("  ", tabCounter), "Values:", snd.Values)
+// 	fmt.Println(strings.Repeat("  ", tabCounter), "Include in Topic Name Flag:", snd.IncludeInTopicName)
+// 	fmt.Println(strings.Repeat("  ", tabCounter), "Topics:", snd.Topics)
+// 	fmt.Println(strings.Repeat("  ", tabCounter), "Clients:", snd.Clients)
+// 	if snd.Child != nil {
+// 		fmt.Println(strings.Repeat("  ", tabCounter), "Child Node:")
+// 		snd.Child.prettyPrintSND(tabCounter + 1)
+// 	}
+// }
