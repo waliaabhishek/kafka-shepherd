@@ -1,0 +1,10 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          consumers:
+            - group: "cg1"

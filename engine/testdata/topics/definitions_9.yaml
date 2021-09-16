@@ -1,0 +1,30 @@
+---
+definitions:
+  scopeFlow:
+    - shortName: teamFlows
+      values:
+        - "int"
+        - "bss"
+        - "oss"
+      addToTopicName: true
+      topics:
+        name:
+          - "test"
+        ignoreScope:
+          - "bss"
+      #  No tokens added to the topic name without topic name entry
+      # child:
+      #   blueprintEnum: zones
+      #   addToTopicName: true
+      #   topics:
+      #     name:
+      #       - "test2"
+      #   child:
+      #     blueprintEnum: logicalEnv
+      #     addToTopicName: false
+      #     topics:
+      #       name:
+      #         - logicalenvtopictest
+      #       ignoreScope:
+      #         - dev
+      #         - pprd

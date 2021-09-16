@@ -1,0 +1,6 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"

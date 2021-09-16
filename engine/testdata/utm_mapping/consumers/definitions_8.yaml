@@ -1,0 +1,17 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          consumers:
+            - id: "ci1"
+              group: "cg1"
+              hostnames:
+                - "abc.host"
+            - id: "ci2"
+              group: "cg2"
+              hostnames:
+                - "def.host"

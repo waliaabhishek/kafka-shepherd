@@ -1,0 +1,12 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          consumers:
+            - hostnames:
+                - "abc.host"
+                - "def.host"

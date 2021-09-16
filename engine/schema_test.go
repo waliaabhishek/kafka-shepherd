@@ -10,12 +10,9 @@ func (s *StackSuite) TestStackSuite_YAMLFileParsing() {
 	os.Setenv("SHEPHERD_CLIENTCERT_PEM", "clientCert1")
 	os.Setenv("SHEPHERD_CLIENTKEY_KEY", "password2")
 	os.Setenv("SHEPHERD_CLIENTKEY_KEYPASS", "password1")
-	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile))
+	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", ""))
 	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
-	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
-	os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", "./testdata/definitions_0.yaml")
-	os.Setenv("HOSTNAME_REPLACEMENT_TEST", "abhishek.replaced.hostname")
-	SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", definitionsFile))
+	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
 
 	// Shepherd Cluster file Validation
 	s.Equal(".", SpdCore.Configs.ConfigRoot.ShepherdCoreConfig.SeperatorToken, "Separator Token Mismatch")
@@ -86,6 +83,9 @@ func (s *StackSuite) TestStackSuite_YAMLFileParsing() {
 	s.Equal(false, SpdCore.Blueprints.Blueprint.CustomEnums[2].IncludeInTopicName)
 
 	// Definitions File Validation
+	os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", "./testdata/definitions_0.yaml")
+	os.Setenv("HOSTNAME_REPLACEMENT_TEST", "abhishek.replaced.hostname")
+	SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
 	s.Equal(2, len(SpdCore.Definitions.DefinitionRoot.AdhocConfigs.Topics[0].Name))
 	s.Equal(1, len(SpdCore.Definitions.DefinitionRoot.AdhocConfigs.Topics[0].Clients.Consumers))
 	s.Equal("test.consumer", SpdCore.Definitions.DefinitionRoot.AdhocConfigs.Topics[0].Clients.Consumers[0].Hostnames[0])

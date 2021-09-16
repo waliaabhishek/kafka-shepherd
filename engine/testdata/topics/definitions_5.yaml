@@ -1,0 +1,26 @@
+---
+definitions:
+  scopeFlow:
+    # WIth this config No topics will get created as the topicName token is not specified.
+    # The values tokens are used as prefixes but not as a full fledged topic names by themselves.
+    - shortName: teamFlows
+      values:
+        - "int"
+        - "bss"
+        - "oss"
+      addToTopicName: true
+      # child:
+      #   blueprintEnum: zones
+      #   addToTopicName: true
+      #   topics:
+      #     name:
+      #       - "test1"
+      #   child:
+      #     blueprintEnum: logicalEnv
+      #     addToTopicName: false
+      #     topics:
+      #       name:
+      #         - logicalenvtopictest
+      #       ignoreScope:
+      #         - dev
+      #         - pprd
