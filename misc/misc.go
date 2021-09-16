@@ -213,7 +213,6 @@ func DottedLineOutput(comment string, seperator string, length int) {
 	}
 	zaplog.Info(strings.Repeat(seperator, length))
 	zaplog.Infof("%s%s%s", strings.Repeat(seperator, right), comment, strings.Repeat(seperator, left))
-	// zaplog.Info(strings.Repeat(seperator, length))
 }
 
 // This method sets up a zap logger object for use and returns back a pointer to the object.
