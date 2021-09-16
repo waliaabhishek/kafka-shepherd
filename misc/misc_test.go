@@ -3,7 +3,9 @@ package misc
 import (
 	"testing"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zapcore"
 )
 
 var _ = func() bool {
@@ -247,5 +249,61 @@ func (s *StackSuite) TestStackSuite_Misc_GenerateRandomNumber() {
 		out := GenerateRandomNumber(c.min, c.max)
 		s.GreaterOrEqual(out, c.min, "Number less than Minimum. "+c.err)
 		s.LessOrEqual(out, c.max, "Number greater than Maximum. "+c.err)
+	}
+}
+
+func (s *StackSuite) TestStackSuite_Misc_GetLogger() {
+	cases := []struct {
+		isDebug      bool
+		isStructured bool
+		err          string
+	}{
+		{false, false, "both false use case"},
+		{false, true, "false true use case"},
+		{true, false, "true false use case"},
+		{true, true, "true true use case"},
+	}
+
+	for _, c := range cases {
+		logger := GetLogger(c.isDebug, c.isStructured)
+		s.Equal(c.isDebug, logger.Desugar().Core().Enabled(zapcore.DebugLevel), c.err)
+		// TODO: figure out a way to check the structured status
+	}
+
+}
+
+func (s *StackSuite) TestStackSuite_Misc_GetStringSliceFromMapSet() {
+	cases := []struct {
+		in  mapset.Set
+		out []string
+		err string
+	}{
+		{mapset.NewSetWith("A", "B", "C", "D"), []string{"A", "B", "C", "D"}, "populated MapSet test"},
+		{mapset.NewSetWith("A"), []string{"A"}, "Single Element MapSet test"},
+		{mapset.NewSetWith(""), []string{""}, "Single zero value Element MapSet test"},
+		{mapset.NewSet(), []string{}, "nil value Element MapSet test"},
+	}
+
+	for _, c := range cases {
+		out := GetStringSliceFromMapSet(c.in)
+		s.ElementsMatch(c.out, out, c.err)
+	}
+}
+
+func (s *StackSuite) TestStackSuite_Misc_GetMapSetFromStringSlice() {
+	cases := []struct {
+		out mapset.Set
+		in  []string
+		err string
+	}{
+		{mapset.NewSetWith("A", "B", "C", "D"), []string{"A", "B", "C", "D"}, "populated MapSet test"},
+		{mapset.NewSetWith("A"), []string{"A"}, "Single Element MapSet test"},
+		{mapset.NewSetWith(""), []string{""}, "Single zero value Element MapSet test"},
+		{mapset.NewSet(), []string{}, "nil value Element MapSet test"},
+	}
+
+	for _, c := range cases {
+		out := GetMapSetFromStringSlice(&c.in)
+		s.ElementsMatch(c.out.ToSlice(), (*out).ToSlice(), c.err)
 	}
 }

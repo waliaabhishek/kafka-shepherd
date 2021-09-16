@@ -240,6 +240,7 @@ func GetLogger(enableDebug bool, enableStructuredLogs bool) *zap.SugaredLogger {
 	if enableDebug {
 		config.DisableCaller = false
 		config.DisableStacktrace = false
+		config.Level.SetLevel(zap.DebugLevel)
 	} else {
 		config.DisableStacktrace = true
 		config.Level.SetLevel(zap.InfoLevel)
