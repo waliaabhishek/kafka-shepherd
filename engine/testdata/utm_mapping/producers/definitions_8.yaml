@@ -1,0 +1,12 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          producers:
+            - group: "pg1"
+              enableIdempotence: true
+              enableTransactions: true
