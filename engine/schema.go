@@ -424,9 +424,9 @@ func (c *KSQLDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "read" && c.Type != "write" {
-		logger.Fatalw("Connectors need to be source or sink type. null or any other values are not expected.",
-			"Connector Principal", c.Principal,
-			"Connector Type provided", c.Type)
+		logger.Fatalw("KSQL need to be read or write type. null or any other values are not expected.",
+			"KSQL Principal", c.Principal,
+			"KSQL Type provided", c.Type)
 	}
 	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
 	if len(c.Hostnames) == 0 {
