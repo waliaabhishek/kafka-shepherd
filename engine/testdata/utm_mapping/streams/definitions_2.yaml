@@ -1,0 +1,33 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          streams:
+            - id: "stri1"
+              type: "read"
+              group: "str1"
+            - id: "stri2"
+              type: "write"
+              group: "str2"
+            - type: "read"
+              group: "str3"
+              hostnames:
+                - "abc.host"
+            - type: "read"
+              group: "str4"
+              hostnames:
+                - "def.host"
+                - "ghi.host"
+            - type: "write"
+              group: "str5"
+              hostnames:
+                - "jkl.host"
+            - type: "write"
+              group: "str6"
+              hostnames:
+                - "mno.host"
+                - "pqr.host"

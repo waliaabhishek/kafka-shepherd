@@ -1,0 +1,31 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          ksql:
+            - id: "ksqli1"
+              type: "read"
+              clusterName: "ksql1"
+              hostnames:
+                - "abc.host"
+            - id: "ksqli2"
+              type: "write"
+              clusterName: "ksql2"
+              hostnames:
+                - "def.host"
+            - id: "ksqli3"
+              type: "read"
+              clusterName: "ksql3"
+              hostnames:
+                - "ghi.host"
+                - "jkl.host"
+            - id: "ksqli4"
+              type: "write"
+              clusterName: "ksql4"
+              hostnames:
+                - "mno.host"
+                - "pqr.host"

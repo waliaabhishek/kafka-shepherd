@@ -1,0 +1,13 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          streams:
+            - type: "read"
+              group: "str1"
+            - type: "write"
+              group: "str2"

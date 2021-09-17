@@ -1,0 +1,25 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          connectors:
+            - id: "con1"
+              type: "source"
+            - id: "con2"
+              type: "sink"
+            - clusterName: "connect1"
+              type: "source"
+            - clusterName: "connect2"
+              type: "sink"
+            - hostnames:
+                - "abc.host"
+                - "def.host"
+              type: "source"
+            - hostnames:
+                - "ghi.host"
+                - "jkl.host"
+              type: "sink"

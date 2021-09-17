@@ -1,0 +1,33 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          connectors:
+            - id: "coni1"
+              type: "source"
+              clusterName: "connect1"
+            - id: "coni2"
+              type: "sink"
+              clusterName: "connect2"
+            - id: "coni3"
+              type: "source"
+              hostnames:
+                - "abc.host"
+            - id: "coni4"
+              type: "sink"
+              hostnames:
+                - "def.host"
+            - id: "coni5"
+              type: "source"
+              hostnames:
+                - "ghi.host"
+                - "jkl.host"
+            - id: "coni6"
+              type: "sink"
+              hostnames:
+                - "mno.host"
+                - "pqr.host"

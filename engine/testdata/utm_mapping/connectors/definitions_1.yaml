@@ -1,0 +1,11 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          connectors:
+            - type: "source"
+            - type: "sink"
