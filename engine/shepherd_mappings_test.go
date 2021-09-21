@@ -6,7 +6,7 @@ import (
 
 func (s *StackSuite) SetupTest() {
 	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
-	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
+	SpdCore.Blueprints.ParseShepherdBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
 }
 
 func (s *StackSuite) TestStackSuite_ExternalFunctions_ProducerDefinitionsToUTMMapping() {
@@ -59,7 +59,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ProducerDefinitionsToUTMMa
 
 	for _, c := range cases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		err := SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		s.Nil(err, "Error Object is not Nil. Parsing Failed for Shepherd Definitions file.")
 		ConfMaps.utm = UserTopicMapping{}
 		GenerateMappings()
 		s.EqualValues(c.out, ConfMaps.utm, c.err)
@@ -106,7 +107,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ConsumerDefinitionsToUTMMa
 
 	for _, c := range cases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		err := SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		s.Nil(err, "Error Object is not Nil. Parsing Failed for Shepherd Definitions file.")
 		ConfMaps.utm = UserTopicMapping{}
 		GenerateMappings()
 		s.EqualValues(c.out, ConfMaps.utm, c.err)
@@ -153,7 +155,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ConnectorDefinitionsToUTMM
 
 	for _, c := range cases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		err := SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		s.Nil(err, "Error Object is not Nil. Parsing Failed for Shepherd Definitions file.")
 		ConfMaps.utm = UserTopicMapping{}
 		GenerateMappings()
 		s.EqualValues(c.out, ConfMaps.utm, c.err)
@@ -191,7 +194,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_StreamsDefinitionsToUTMMap
 
 	for _, c := range cases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		err := SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		s.Nil(err, "Error Object is not Nil. Parsing Failed for Shepherd Definitions file.")
 		ConfMaps.utm = UserTopicMapping{}
 		GenerateMappings()
 		s.EqualValues(c.out, ConfMaps.utm, c.err)
@@ -259,7 +263,12 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_KSQLDefinitionsToUTMMappin
 
 	for _, c := range cases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		err := SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		// s.Nil(err, "Error Object is not Nil. Parsing Failed for Shepherd Definitions file.")
+		if err != nil {
+			s.FailNow(err.Error())
+			continue
+		}
 		ConfMaps.utm = UserTopicMapping{}
 		GenerateMappings()
 		s.EqualValues(c.out, ConfMaps.utm, c.err)

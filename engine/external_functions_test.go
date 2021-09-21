@@ -8,7 +8,7 @@ import (
 
 func (s *StackSuite) TestStackSuite_ExternalFunctions_ListTopicsInConfig() {
 	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
-	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
+	SpdCore.Blueprints.ParseShepherdBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
 
 	cases := []struct {
 		inDefFileName string
@@ -34,7 +34,10 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListTopicsInConfig() {
 
 	for _, c := range cases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		err := SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		if err != nil {
+			s.FailNow(err.Error())
+		}
 		ConfMaps.TCM = TopicConfigMapping{}
 		topicsInConfig = mapset.NewSet()
 		GenerateMappings()

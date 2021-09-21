@@ -1,15 +1,18 @@
 package engine
 
+import "errors"
+
 type CustomParser interface {
-	readValuesFromENV()
+	readValuesFromENV() error
 }
 
 type NVPairs map[string]string
 
-func (nv *NVPairs) readValuesFromENV() {
+func (nv *NVPairs) readValuesFromENV() error {
 	for k, v := range *nv {
 		(*nv)[k] = envVarCheckNReplace(v, "")
 	}
+	return nil
 }
 
 /*
@@ -36,18 +39,32 @@ type ShepherdCore struct {
 	Definitions ShepherdDefinition
 }
 
-func (c *ShepherdCore) readValuesFromENV() {
-	c.Configs.readValuesFromENV()
-	c.Blueprints.readValuesFromENV()
-	c.Definitions.readValuesFromENV()
+func (c *ShepherdCore) readValuesFromENV() error {
+	err := c.Configs.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	err = c.Blueprints.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	err = c.Definitions.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type ShepherdConfig struct {
 	ConfigRoot ConfigRoot `yaml:"configs"`
 }
 
-func (c *ShepherdConfig) readValuesFromENV() {
-	c.ConfigRoot.readValuesFromENV()
+func (c *ShepherdConfig) readValuesFromENV() error {
+	err := c.ConfigRoot.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type ConfigRoot struct {
@@ -55,11 +72,18 @@ type ConfigRoot struct {
 	Clusters           []ShepherdCluster  `yaml:"clusters,flow"`
 }
 
-func (c *ConfigRoot) readValuesFromENV() {
-	c.ShepherdCoreConfig.readValuesFromENV()
-	for idx := 0; idx < len(c.Clusters); idx++ {
-		c.Clusters[idx].readValuesFromENV()
+func (c *ConfigRoot) readValuesFromENV() error {
+	err := c.ShepherdCoreConfig.readValuesFromENV()
+	if err != nil {
+		return err
 	}
+	for idx := 0; idx < len(c.Clusters); idx++ {
+		err = c.Clusters[idx].readValuesFromENV()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type ShepherdCoreConfig struct {
@@ -68,8 +92,9 @@ type ShepherdCoreConfig struct {
 	DeleteUnknownACLs   bool   `yaml:"deleteUnknownACLs"`
 }
 
-func (c *ShepherdCoreConfig) readValuesFromENV() {
+func (c *ShepherdCoreConfig) readValuesFromENV() error {
 	c.SeperatorToken = envVarCheckNReplace(c.SeperatorToken, ".")
+	return nil
 }
 
 type ShepherdCluster struct {
@@ -84,7 +109,7 @@ type ShepherdCluster struct {
 	ClusterDetails   []NVPairs     `yaml:"clusterDetails,flow"`
 }
 
-func (c *ShepherdCluster) readValuesFromENV() {
+func (c *ShepherdCluster) readValuesFromENV() error {
 	c.Name = envVarCheckNReplace(c.Name, "")
 	for i, v := range c.BootstrapServers {
 		c.BootstrapServers[i] = envVarCheckNReplace(v, "")
@@ -92,15 +117,25 @@ func (c *ShepherdCluster) readValuesFromENV() {
 	c.ACLManager = envVarCheckNReplace(c.ACLManager, "kafka_acl")
 	c.TopicManager = envVarCheckNReplace(c.TopicManager, "sarama")
 	c.ClientID = envVarCheckNReplace(c.ClientID, "")
-	c.TLSDetails.readValuesFromENV()
+	err := c.TLSDetails.readValuesFromENV()
+	if err != nil {
+		return err
+	}
 	c.Configs = streamlineNVPairs(c.Configs)
 	for idx := 0; idx < len(c.Configs); idx++ {
-		c.Configs[idx].readValuesFromENV()
+		err = c.Configs[idx].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
 	c.ClusterDetails = streamlineNVPairs(c.ClusterDetails)
 	for idx := 0; idx < len(c.ClusterDetails); idx++ {
-		c.ClusterDetails[idx].readValuesFromENV()
+		err = c.ClusterDetails[idx].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type ShepherdCerts struct {
@@ -111,21 +146,26 @@ type ShepherdCerts struct {
 	PrivateKeyPassword string   `yaml:"privateKeyPass"`
 }
 
-func (c *ShepherdCerts) readValuesFromENV() {
+func (c *ShepherdCerts) readValuesFromENV() error {
 	for i, v := range c.TrustedCerts {
 		c.TrustedCerts[i] = envVarCheckNReplace(v, "")
 	}
 	c.ClientCert = envVarCheckNReplace(c.ClientCert, "")
 	c.PrivateKey = envVarCheckNReplace(c.PrivateKey, "")
 	c.PrivateKeyPassword = envVarCheckNReplace(c.PrivateKeyPassword, "")
+	return nil
 }
 
 type ShepherdBlueprint struct {
 	Blueprint BlueprintRoot `yaml:"blueprints"`
 }
 
-func (c *ShepherdBlueprint) readValuesFromENV() {
-	c.Blueprint.readValuesFromENV()
+func (c *ShepherdBlueprint) readValuesFromENV() error {
+	err := c.Blueprint.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type BlueprintRoot struct {
@@ -134,22 +174,36 @@ type BlueprintRoot struct {
 	CustomEnums []CustomEnums    `yaml:"customEnums,flow,omitempty"`
 }
 
-func (c *BlueprintRoot) readValuesFromENV() {
-	c.Topic.readValuesFromENV()
-	c.Policy.readValuesFromENV()
-	for i := 0; i < len(c.CustomEnums); i++ {
-		c.CustomEnums[i].readValuesFromENV()
+func (c *BlueprintRoot) readValuesFromENV() error {
+	err := c.Topic.readValuesFromENV()
+	if err != nil {
+		return err
 	}
+	err = c.Policy.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(c.CustomEnums); i++ {
+		err = c.CustomEnums[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type TopicBlueprints struct {
 	TopicConfigs []TopicBlueprintConfigs `yaml:"topicConfigs,flow,omitempty"`
 }
 
-func (c *TopicBlueprints) readValuesFromENV() {
+func (c *TopicBlueprints) readValuesFromENV() error {
 	for i := 0; i < len(c.TopicConfigs); i++ {
-		c.TopicConfigs[i].readValuesFromENV()
+		err := c.TopicConfigs[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type TopicBlueprintConfigs struct {
@@ -157,12 +211,16 @@ type TopicBlueprintConfigs struct {
 	Overrides []NVPairs `yaml:"configOverrides,omitempty,flow"`
 }
 
-func (c *TopicBlueprintConfigs) readValuesFromENV() {
+func (c *TopicBlueprintConfigs) readValuesFromENV() error {
 	c.Name = envVarCheckNReplace(c.Name, "")
 	c.Overrides = streamlineNVPairs(c.Overrides)
 	for i := 0; i < len(c.Overrides); i++ {
-		c.Overrides[i].readValuesFromENV()
+		err := c.Overrides[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type PolicyBlueprints struct {
@@ -170,13 +228,20 @@ type PolicyBlueprints struct {
 	ACLPolicy   *ACLPolicyConfigs   `yaml:"aclPolicy,omitempty"`
 }
 
-func (c *PolicyBlueprints) readValuesFromENV() {
+func (c *PolicyBlueprints) readValuesFromENV() error {
 	if c.TopicPolicy != nil {
-		c.TopicPolicy.readValuesFromENV()
+		err := c.TopicPolicy.readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
 	if c.ACLPolicy != nil {
-		c.ACLPolicy.readValuesFromENV()
+		err := c.ACLPolicy.readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type TopicPolicyConfigs struct {
@@ -184,12 +249,19 @@ type TopicPolicyConfigs struct {
 	Overrides TopicPolicyOverrides `yaml:"overrides,omitempty"`
 }
 
-func (c *TopicPolicyConfigs) readValuesFromENV() {
+func (c *TopicPolicyConfigs) readValuesFromENV() error {
 	c.Defaults = streamlineNVPairs(c.Defaults)
 	for i := 0; i < len(c.Defaults); i++ {
-		c.Defaults[i].readValuesFromENV()
+		err := c.Defaults[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
-	c.Overrides.readValuesFromENV()
+	err := c.Overrides.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type TopicPolicyOverrides struct {
@@ -197,13 +269,14 @@ type TopicPolicyOverrides struct {
 	Blacklist []string `yaml:"blacklist,flow,omitempty"`
 }
 
-func (c *TopicPolicyOverrides) readValuesFromENV() {
+func (c *TopicPolicyOverrides) readValuesFromENV() error {
 	for i, v := range c.Whitelist {
 		c.Whitelist[i] = envVarCheckNReplace(v, "")
 	}
 	for i, v := range c.Blacklist {
 		c.Blacklist[i] = envVarCheckNReplace(v, "")
 	}
+	return nil
 }
 
 type ACLPolicyConfigs struct {
@@ -212,8 +285,9 @@ type ACLPolicyConfigs struct {
 	OptimizeACLs bool   `yaml:"optimizeACLs,omitempty"`
 }
 
-func (c *ACLPolicyConfigs) readValuesFromENV() {
+func (c *ACLPolicyConfigs) readValuesFromENV() error {
 	c.ACLType = envVarCheckNReplace(c.ACLType, "")
+	return nil
 }
 
 type CustomEnums struct {
@@ -222,19 +296,24 @@ type CustomEnums struct {
 	IncludeInTopicName bool     `yaml:"mandatoryInTopicName,omitempty"`
 }
 
-func (c *CustomEnums) readValuesFromENV() {
+func (c *CustomEnums) readValuesFromENV() error {
 	c.Name = envVarCheckNReplace(c.Name, "")
 	for i, v := range c.Values {
 		c.Values[i] = envVarCheckNReplace(v, "")
 	}
+	return nil
 }
 
 type ShepherdDefinition struct {
 	DefinitionRoot DefinitionRoot `yaml:"definitions"`
 }
 
-func (c *ShepherdDefinition) readValuesFromENV() {
-	c.DefinitionRoot.readValuesFromENV()
+func (c *ShepherdDefinition) readValuesFromENV() error {
+	err := c.DefinitionRoot.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type DefinitionRoot struct {
@@ -242,21 +321,32 @@ type DefinitionRoot struct {
 	ScopeFlow    []ScopeDefinition `yaml:"scopeFlow,flow,omitempty"`
 }
 
-func (c *DefinitionRoot) readValuesFromENV() {
-	c.AdhocConfigs.readValuesFromENV()
-	for i := 0; i < len(c.ScopeFlow); i++ {
-		c.ScopeFlow[i].readValuesFromENV()
+func (c *DefinitionRoot) readValuesFromENV() error {
+	err := c.AdhocConfigs.readValuesFromENV()
+	if err != nil {
+		return err
 	}
+	for i := 0; i < len(c.ScopeFlow); i++ {
+		err = c.ScopeFlow[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type AdhocConfig struct {
 	Topics []TopicDefinition `yaml:"topics,flow,omitempty"`
 }
 
-func (c *AdhocConfig) readValuesFromENV() {
+func (c *AdhocConfig) readValuesFromENV() error {
 	for i := 0; i < len(c.Topics); i++ {
-		c.Topics[i].readValuesFromENV()
+		err := c.Topics[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type TopicDefinition struct {
@@ -267,7 +357,7 @@ type TopicDefinition struct {
 	ConfigOverrides       []NVPairs        `yaml:"configOverrides,flow,omitempty"`
 }
 
-func (c *TopicDefinition) readValuesFromENV() {
+func (c *TopicDefinition) readValuesFromENV() error {
 	for i, v := range c.Name {
 		c.Name[i] = envVarCheckNReplace(v, "")
 	}
@@ -278,8 +368,12 @@ func (c *TopicDefinition) readValuesFromENV() {
 	c.TopicBlueprintEnumRef = envVarCheckNReplace(c.TopicBlueprintEnumRef, "")
 	c.ConfigOverrides = streamlineNVPairs(c.ConfigOverrides)
 	for i := 0; i < len(c.ConfigOverrides); i++ {
-		c.ConfigOverrides[i].readValuesFromENV()
+		err := c.ConfigOverrides[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type ClientDefinition struct {
@@ -290,22 +384,39 @@ type ClientDefinition struct {
 	KSQL       []KSQLDefinition      `yaml:"ksql,flow,omitempty"`
 }
 
-func (c *ClientDefinition) readValuesFromENV() {
+func (c *ClientDefinition) readValuesFromENV() error {
+	var err error = nil
 	for i := 0; i < len(c.Consumers); i++ {
-		c.Consumers[i].readValuesFromENV()
+		err = c.Consumers[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
 	for i := 0; i < len(c.Producers); i++ {
-		c.Producers[i].readValuesFromENV()
+		err = c.Producers[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
 	for i := 0; i < len(c.Connectors); i++ {
-		c.Connectors[i].readValuesFromENV()
+		err = c.Connectors[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
 	for i := 0; i < len(c.Streams); i++ {
-		c.Streams[i].readValuesFromENV()
+		err = c.Streams[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
 	for i := 0; i < len(c.KSQL); i++ {
-		c.KSQL[i].readValuesFromENV()
+		err = c.KSQL[i].readValuesFromENV()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type ConsumerDefinition struct {
@@ -314,7 +425,7 @@ type ConsumerDefinition struct {
 	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
-func (c *ConsumerDefinition) readValuesFromENV() {
+func (c *ConsumerDefinition) readValuesFromENV() error {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
 	if len(c.Hostnames) == 0 {
@@ -324,6 +435,7 @@ func (c *ConsumerDefinition) readValuesFromENV() {
 			c.Hostnames[i] = envVarCheckNReplace(v, "")
 		}
 	}
+	return nil
 }
 
 type ProducerDefinition struct {
@@ -334,7 +446,7 @@ type ProducerDefinition struct {
 	TransactionalID   bool     `yaml:"enableTransactions"`
 }
 
-func (c *ProducerDefinition) readValuesFromENV() {
+func (c *ProducerDefinition) readValuesFromENV() error {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Group = envVarCheckNReplace(c.Group, "")
 	if len(c.Hostnames) == 0 {
@@ -345,17 +457,20 @@ func (c *ProducerDefinition) readValuesFromENV() {
 		}
 	}
 	if c.EnableIdempotence && c.Group == "" {
-		logger.Fatalw("If Idempotence is enabled, Producer needs to have a group defined.",
+		logger.Errorw("If Idempotence is enabled, Producer needs to have a group defined.",
 			"Producer Principal", c.Principal,
 			"Producer Group", c.Group,
 			"Idempotence Enabled", c.EnableIdempotence)
+		return errors.New("if idempotence is enabled, producer needs to have a group defined")
 	}
 	if c.TransactionalID && c.Group == "" {
-		logger.Fatalw("If Transactions are enabled, Producer needs to have a group defined.",
+		logger.Errorw("If Transactions are enabled, Producer needs to have a group defined.",
 			"Producer Principal", c.Principal,
 			"Producer Group", c.Group,
 			"Transactions Enabled", c.TransactionalID)
+		return errors.New("if transactions are enabled, producer needs to have a group defined")
 	}
+	return nil
 }
 
 type ConnectorDefinition struct {
@@ -365,13 +480,14 @@ type ConnectorDefinition struct {
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
 }
 
-func (c *ConnectorDefinition) readValuesFromENV() {
+func (c *ConnectorDefinition) readValuesFromENV() error {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "source" && c.Type != "sink" {
-		logger.Fatalw("Connectors need to be source or sink type. null or any other values are not expected.",
+		logger.Errorw("Connectors need to be source or sink type. null or any other values are not expected.",
 			"Connector Principal", c.Principal,
 			"Connector Type provided", c.Type)
+		return errors.New("connectors need to be source or sink type. null or any other values are not expected")
 	}
 	if len(c.Hostnames) == 0 {
 		c.Hostnames = append(c.Hostnames, "*")
@@ -381,6 +497,7 @@ func (c *ConnectorDefinition) readValuesFromENV() {
 		}
 	}
 	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
+	return nil
 }
 
 type StreamDefinition struct {
@@ -390,19 +507,21 @@ type StreamDefinition struct {
 	Hostnames []string `yaml:"hostnames,omitempty,flow"`
 }
 
-func (c *StreamDefinition) readValuesFromENV() {
+func (c *StreamDefinition) readValuesFromENV() error {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "read" && c.Type != "write" {
-		logger.Fatalw("Streams need to be read or write type. null or any other values are not expected.",
+		logger.Errorw("Streams need to be read or write type. null or any other values are not expected.",
 			"Stream Principal", c.Principal,
 			"Stream Type provided", c.Type)
+		return errors.New("streams need to be read or write type. null or any other values are not expected")
 	}
 	c.Group = envVarCheckNReplace(c.Group, "")
 	if c.Group == "" {
-		logger.Fatalw("Streams need a group Name. It is the application.id that the Streams application is expected to use. null is not expected.",
+		logger.Errorw("Streams need a group Name. It is the application.id that the Streams application is expected to use. null is not expected.",
 			"Stream Principal", c.Principal,
 			"Stream Group Name", c.Group)
+		return errors.New("streams need a group name. it is the application.id that the streams application is expected to use. null is not expected")
 	}
 	if len(c.Hostnames) == 0 {
 		c.Hostnames = append(c.Hostnames, "*")
@@ -411,24 +530,19 @@ func (c *StreamDefinition) readValuesFromENV() {
 			c.Hostnames[i] = envVarCheckNReplace(v, "")
 		}
 	}
+	return nil
 }
 
 type KSQLDefinition struct {
 	Principal      string   `yaml:"id,omitempty"`
 	Type           string   `yaml:"type,omitempty"`
-	ClusterNameRef string   `yaml:"clusterName,omitempty"`
+	ClusterNameRef string   `yaml:"ksql.service.id,omitempty"`
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
 }
 
-func (c *KSQLDefinition) readValuesFromENV() {
+func (c *KSQLDefinition) readValuesFromENV() error {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
-	if c.Type != "read" && c.Type != "write" {
-		logger.Fatalw("KSQL need to be read or write type. null or any other values are not expected.",
-			"KSQL Principal", c.Principal,
-			"KSQL Type provided", c.Type)
-	}
-	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
 	if len(c.Hostnames) == 0 {
 		c.Hostnames = append(c.Hostnames, "*")
 	} else {
@@ -436,6 +550,20 @@ func (c *KSQLDefinition) readValuesFromENV() {
 			c.Hostnames[i] = envVarCheckNReplace(v, "")
 		}
 	}
+	if c.Type != "read" && c.Type != "write" {
+		logger.Errorw("KSQL need to be read or write type. null or any other values are not expected.",
+			"KSQL Principal", c.Principal,
+			"KSQL Type provided", c.Type)
+		return errors.New("ksql need to be read or write type. null or any other values are not expected")
+	}
+	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
+	if c.ClusterNameRef == "" {
+		logger.Errorw("KSQL cluster id is required. It is the ksql.service.id that the KSQL user is expected to use. null is not expected.",
+			"KSQL Principal", c.Principal,
+			"KSQL Group Name", c.ClusterNameRef)
+		return errors.New("ksql cluster id is required. it is the ksql.service.id that the ksql user is expected to use. null is not expected.")
+	}
+	return nil
 }
 
 type ScopeDefinition struct {
@@ -448,17 +576,27 @@ type ScopeDefinition struct {
 	Child              *ScopeDefinition `yaml:"child,omitempty"`
 }
 
-func (c *ScopeDefinition) readValuesFromENV() {
+func (c *ScopeDefinition) readValuesFromENV() error {
 	c.ShortName = envVarCheckNReplace(c.ShortName, "")
 	for i, v := range c.Values {
 		(c.Values)[i] = envVarCheckNReplace(v, "")
 	}
 	c.CustomEnumRef = envVarCheckNReplace(c.CustomEnumRef, "")
-	c.Topics.readValuesFromENV()
-	c.Clients.readValuesFromENV()
-	if c.Child != nil {
-		c.Child.readValuesFromENV()
+	err := c.Topics.readValuesFromENV()
+	if err != nil {
+		return err
 	}
+	err = c.Clients.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	if c.Child != nil {
+		err = c.Child.readValuesFromENV()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 /*

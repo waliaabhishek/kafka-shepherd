@@ -48,6 +48,7 @@ func init() {
 	// Initialize Logger
 	ResolveFlags()
 	logger = ksmisc.GetLogger(enableDebug, enableStructuredLogs)
+	var err error = nil
 	// runMode = assertRunMode(runString)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
@@ -55,11 +56,14 @@ func init() {
 	logger.Debug("Shepherd Config File parse Result: ", SpdCore.Configs)
 
 	// Parse Shepherd Blueprints from the YAML file.
-	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
+	SpdCore.Blueprints.ParseShepherdBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", blueprintsFile))
 	logger.Debug("Shepherd Blueprints parse Result: ", SpdCore.Blueprints)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", definitionsFile), true)
+	err = SpdCore.Definitions.ParseShepherdDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", definitionsFile), true)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 	logger.Debug("Shepherd Definitions parse Result: ", SpdCore.Definitions)
 
 	// Understand the Blueprints & Definitions file and setup the External facing representation of the core files.
@@ -89,7 +93,7 @@ func GetConfigMaps() (sc *ConfigurationMaps) {
 }
 
 func GetConfigTopicsAsMapSet() mapset.Set {
-	return topicsInConfig
+	return Shepherd.GetTopicList(false)
 }
 
 func IsDebugEnabled() bool {
@@ -112,7 +116,7 @@ func assertRunMode(mode *string) RunMode {
 	return RunMode_SINGLE_CLUSTER
 }
 
-func (shp *ShepherdBlueprint) ParseShepherBlueprints(configFilePath string) {
+func (shp *ShepherdBlueprint) ParseShepherdBlueprints(configFilePath string) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_BLUEPRINTS_FILE_LOCATION variable. Please Correct.",
@@ -127,7 +131,10 @@ func (shp *ShepherdBlueprint) ParseShepherBlueprints(configFilePath string) {
 		logger.Fatal("Error Unmarshaling Shepherd Blueprints File", err)
 	}
 	shp.validateShepherdBlueprints()
-	shp.readValuesFromENV()
+	err = shp.readValuesFromENV()
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 	// return shp
 }
 
@@ -135,7 +142,7 @@ func (scf *ShepherdBlueprint) validateShepherdBlueprints() {
 	logger.Debug("No Validations for Shepherd Blueprints at the moment.")
 }
 
-func (shp *ShepherdDefinition) ParseShepherDefinitions(configFilePath string, overwriteExisting bool) *ShepherdDefinition {
+func (shp *ShepherdDefinition) ParseShepherdDefinitions(configFilePath string, overwriteExisting bool) error {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_DEFINITIONS_FILE_LOCATION variable. Please Correct.",
@@ -146,16 +153,21 @@ func (shp *ShepherdDefinition) ParseShepherDefinitions(configFilePath string, ov
 		shp = &ShepherdDefinition{}
 	}
 
-	if err := yaml.Unmarshal(temp, shp); err != nil {
+	if err := yaml.Unmarshal(temp, &shp); err != nil {
 		logger.Fatal("Error Unmarshalling Shepherd Definitions File", err)
 	}
 	shp.validateShepherdDefinitions()
-	shp.readValuesFromENV()
-	return shp
+	err = shp.readValuesFromENV()
+	if err != nil {
+		return err
+	}
+	SpdCore.Definitions = *shp
+	return nil
+
 }
 
 func (scf *ShepherdDefinition) validateShepherdDefinitions() {
-	return
+	logger.Debug("No Validations for Shepherd Definitions at the moment.")
 }
 
 func (shp *ShepherdConfig) ParseShepherdConfig(configFilePath string) {
@@ -172,7 +184,10 @@ func (shp *ShepherdConfig) ParseShepherdConfig(configFilePath string) {
 		logger.Fatal("Error Unmarshaling Shepherd Configs File", err)
 	}
 	shp.validateShepherdConfig()
-	shp.readValuesFromENV()
+	err = shp.readValuesFromENV()
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 	// return shp
 }
 
