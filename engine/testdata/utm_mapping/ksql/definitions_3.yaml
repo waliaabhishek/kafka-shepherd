@@ -13,24 +13,24 @@ definitions:
             - id: "ksqli2"
               type: "write"
               clusterName: "ksql2"
-            - id: "ksqli3"
-              type: "read"
-              hostnames:
-                - "abc.host"
-            - id: "ksqli4"
-              type: "write"
-              hostnames:
-                - "def.host"
-            - id: "ksqli5"
-              type: "read"
-              hostnames:
-                - "ghi.host"
-                - "jkl.host"
-            - id: "ksqli6"
-              type: "write"
-              hostnames:
-                - "mno.host"
-                - "pqr.host"
+            # - id: "ksqli3"
+            #   type: "read"
+            #   hostnames:
+            #     - "abc.host"
+            # - id: "ksqli4"
+            #   type: "write"
+            #   hostnames:
+            #     - "def.host"
+            # - id: "ksqli5"
+            #   type: "read"
+            #   hostnames:
+            #     - "ghi.host"
+            #     - "jkl.host"
+            # - id: "ksqli6"
+            #   type: "write"
+            #   hostnames:
+            #     - "mno.host"
+            #     - "pqr.host"
             - clusterName: "ksql3"
               type: "read"
               hostnames:

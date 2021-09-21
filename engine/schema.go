@@ -428,13 +428,18 @@ func (c *KSQLDefinition) readValuesFromENV() {
 			"KSQL Principal", c.Principal,
 			"KSQL Type provided", c.Type)
 	}
-	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
 	if len(c.Hostnames) == 0 {
 		c.Hostnames = append(c.Hostnames, "*")
 	} else {
 		for i, v := range c.Hostnames {
 			c.Hostnames[i] = envVarCheckNReplace(v, "")
 		}
+	}
+	c.ClusterNameRef = envVarCheckNReplace(c.ClusterNameRef, "")
+	if c.ClusterNameRef == "" {
+		logger.Fatalw("KSQL cluster id is required. It is the ksql.service.id that the KSQL user is expected to use. null is not expected.",
+			"KSQL Principal", c.Principal,
+			"KSQL Group Name", c.ClusterNameRef)
 	}
 }
 

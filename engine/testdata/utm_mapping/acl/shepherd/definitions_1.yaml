@@ -1,0 +1,54 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+          - "test.2"
+        clients:
+          producers:
+            - id: "User:1101"
+            - id: "User:1102"
+              group: "1102"
+            - id: "User:1103"
+              group: "1103"
+              enableIdempotence: true
+            - id: "User:1104"
+              group: "1104"
+              enableTransactions: true
+            - id: "User:1105"
+              group: "1105"
+              enableIdempotence: true
+              enableTransactions: true
+            - id: "User:1106"
+              group: "1106"
+              enableTransactions: true
+              hostnames:
+                - "abc.host"
+                - "def.host"
+          consumers:
+            - id: "User:1111"
+            - id: "User:1112"
+              group: "1112"
+            - id: "User:1113"
+              group: "1113"
+              hostnames:
+                - "ghi.host"
+                - "jkl.host"
+          connectors:
+            - id: "User:1121"
+              type: "source"
+            - id: "User:1122"
+              type: "sink"
+            - id: "User:1123"
+              type: "source"
+              clusterName: "connect-cluster"
+            - id: "User:1124"
+              type: "sink"
+              clusterName: "connect-cluster"
+            - id: "User:1125"
+              type: "source"
+              clusterName: "connect-cluster"
+              hostnames:
+                - "mno.host"
+                - "pqr.host"

@@ -7,5 +7,4 @@ definitions:
           - "test.2"
         clients:
           ksql:
-            - type: "read"
-            - type: "write"
+            - clusterName: "ksql1"

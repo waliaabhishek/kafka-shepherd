@@ -7,19 +7,19 @@ definitions:
           - "test.2"
         clients:
           ksql:
-            - id: "ksqli1"
-              type: "read"
-            - id: "ksqli2"
-              type: "write"
+            # - id: "ksqli1"
+            #   type: "read"
+            # - id: "ksqli2"
+            #   type: "write"
             - clusterName: "ksql1"
               type: "read"
             - clusterName: "ksql2"
               type: "write"
-            - type: "read"
-              hostnames:
-                - "abc.host"
-                - "def.host"
-            - type: "write"
-              hostnames:
-                - "ghi.host"
-                - "jkl.host"
+            # - type: "read"
+            #   hostnames:
+            #     - "abc.host"
+            #     - "def.host"
+            # - type: "write"
+            #   hostnames:
+            #     - "ghi.host"
+            #     - "jkl.host"
