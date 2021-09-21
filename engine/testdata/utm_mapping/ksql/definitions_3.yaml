@@ -31,13 +31,13 @@ definitions:
             #   hostnames:
             #     - "mno.host"
             #     - "pqr.host"
-            - clusterName: "ksql3"
-              type: "read"
-              hostnames:
-                - "stu.host"
-                - "vwx.host"
-            - clusterName: "ksql4"
-              type: "write"
-              hostnames:
-                - "yza.host"
-                - "bcd.host"
+            # - clusterName: "ksql3"
+            #   type: "read"
+            #   hostnames:
+            #     - "stu.host"
+            #     - "vwx.host"
+            # - clusterName: "ksql4"
+            #   type: "write"
+            #   hostnames:
+            #     - "yza.host"
+            #     - "bcd.host"

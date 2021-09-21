@@ -11,15 +11,15 @@ definitions:
               type: "source"
             - id: "con2"
               type: "sink"
-            - clusterName: "connect1"
-              type: "source"
-            - clusterName: "connect2"
-              type: "sink"
-            - hostnames:
-                - "abc.host"
-                - "def.host"
-              type: "source"
-            - hostnames:
-                - "ghi.host"
-                - "jkl.host"
-              type: "sink"
+            # - clusterName: "connect1"
+            #   type: "source"
+            # - clusterName: "connect2"
+            #   type: "sink"
+            # - hostnames:
+            #     - "abc.host"
+            #     - "def.host"
+            #   type: "source"
+            # - hostnames:
+            #     - "ghi.host"
+            #     - "jkl.host"
+            #   type: "sink"
