@@ -316,6 +316,9 @@ type ConsumerDefinition struct {
 
 func (c *ConsumerDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
+	if len(c.Principal) == 0 {
+		logger.Fatal("ID needs to be defined, otherwise the ACL's cannot be set up.")
+	}
 	c.Group = envVarCheckNReplace(c.Group, "")
 	if len(c.Hostnames) == 0 {
 		c.Hostnames = append(c.Hostnames, "*")
@@ -336,6 +339,9 @@ type ProducerDefinition struct {
 
 func (c *ProducerDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
+	if len(c.Principal) == 0 {
+		logger.Fatal("ID needs to be defined, otherwise the ACL's cannot be set up.")
+	}
 	c.Group = envVarCheckNReplace(c.Group, "")
 	if len(c.Hostnames) == 0 {
 		c.Hostnames = append(c.Hostnames, "*")
@@ -367,6 +373,9 @@ type ConnectorDefinition struct {
 
 func (c *ConnectorDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
+	if len(c.Principal) == 0 {
+		logger.Fatal("ID needs to be defined, otherwise the ACL's cannot be set up.")
+	}
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "source" && c.Type != "sink" {
 		logger.Fatalw("Connectors need to be source or sink type. null or any other values are not expected.",
@@ -392,6 +401,9 @@ type StreamDefinition struct {
 
 func (c *StreamDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
+	if len(c.Principal) == 0 {
+		logger.Fatal("ID needs to be defined, otherwise the ACL's cannot be set up.")
+	}
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "read" && c.Type != "write" {
 		logger.Fatalw("Streams need to be read or write type. null or any other values are not expected.",
@@ -422,6 +434,9 @@ type KSQLDefinition struct {
 
 func (c *KSQLDefinition) readValuesFromENV() {
 	c.Principal = envVarCheckNReplace(c.Principal, "")
+	if len(c.Principal) == 0 {
+		logger.Fatal("ID needs to be defined, otherwise the ACL's cannot be set up.")
+	}
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "read" && c.Type != "write" {
 		logger.Fatalw("KSQL need to be read or write type. null or any other values are not expected.",
