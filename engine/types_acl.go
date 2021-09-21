@@ -1,7 +1,5 @@
 package engine
 
-import ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
-
 /*
 	This is the Mapping type used for any ACL map to be provided to the Shepherd Core for Translation.
 	Due to this centralized mapping structure, it will be easier in the future to cast mappings from one
@@ -69,18 +67,18 @@ func constructACLDetailsObject(resType ACLResourceInterface, resName string, pat
 	}
 }
 
-func (c *ACLMapping) prettyPrintACLMapping() {
-	ksmisc.DottedLineOutput("List ACLMapping", "=", 80)
-	for k := range *c {
-		logger.Infow("ACL Mapping Details",
-			"Principal", k.Principal,
-			"Hostname", k.Hostname,
-			"Operation", k.Operation.String(),
-			"Resource Type", k.ResourceType.GetACLResourceString(),
-			"Resource Name", k.ResourceName)
-	}
-	ksmisc.DottedLineOutput("", "=", 80)
-}
+// func (c *ACLMapping) prettyPrintACLMapping() {
+// 	ksmisc.DottedLineOutput("List ACLMapping", "=", 80)
+// 	for k := range *c {
+// 		logger.Infow("ACL Mapping Details",
+// 			"Principal", k.Principal,
+// 			"Hostname", k.Hostname,
+// 			"Operation", k.Operation.String(),
+// 			"Resource Type", k.ResourceType.GetACLResourceString(),
+// 			"Resource Name", k.ResourceName)
+// 	}
+// 	ksmisc.DottedLineOutput("", "=", 80)
+// }
 
 func (m *ACLMapping) Append(k ACLDetails, v interface{}) {
 	(*m)[k] = v
