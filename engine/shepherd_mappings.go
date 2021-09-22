@@ -122,6 +122,7 @@ func (c ClientDefinition) addClientToUTM(topic string) {
 	}
 	for _, v := range c.KSQL {
 		addlData := make(NVPairs)
+		addlData[KafkaResourceType_KSQL_CLUSTER.GetACLResourceString()] = v.ClusterNameRef
 		ConfMaps.utm.addToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic, v.Hostnames, addlData)
 		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_KSQL, v.ClusterNameRef, topic, v.Hostnames, addlData)
 	}

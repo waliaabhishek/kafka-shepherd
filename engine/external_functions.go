@@ -41,11 +41,12 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value.AddlData
 			case ShepherdOperationType_SINK_CONNECTOR:
+				// The Connect Cluster Name (Group Name) is part of the NVPairs and should be fetched from there for additional info.
 				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdOperationType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value.AddlData
-				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
-					i[0], varType, i[3])] = value.AddlData
+				// ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
+				// 	i[0], varType, i[3])] = value.AddlData
 			case ShepherdOperationType_STREAM_READ:
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = nil
@@ -54,18 +55,19 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 					i[0], varType, i[3])] = nil
 			case ShepherdOperationType_KSQL_READ:
 				// TODO: Implement KSQL Permission sets
+				// Added only the TOPIC Resource type and the KSQL Service ID should be available in the NVPairs
 				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdOperationType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value.AddlData
-				ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
-					i[0], varType, i[3])] = value.AddlData
+				// ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
+				// 	i[0], varType, i[3])] = value.AddlData
 			case ShepherdOperationType_KSQL_WRITE:
 				// TODO: Implement KSQL Permission sets
 				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdOperationType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = value.AddlData
-				ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
-					i[0], varType, i[3])] = value.AddlData
+				// ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
+				// 	i[0], varType, i[3])] = value.AddlData
 			default:
 				// TODO: Error handling if the Client Type provided is unknown
 			}

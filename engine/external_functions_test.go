@@ -100,20 +100,20 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
 			&ACLMapping{
 				// Connectors
 				// User:1121
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1121", ShepherdOperationType_SOURCE_CONNECTOR, "*"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1121", ShepherdOperationType_SOURCE_CONNECTOR, "*"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
 				// User:1122
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1122", ShepherdOperationType_SINK_CONNECTOR, "*"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1122", ShepherdOperationType_SINK_CONNECTOR, "*"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
 				// User:1123
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1123", ShepherdOperationType_SOURCE_CONNECTOR, "*"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1123", ShepherdOperationType_SOURCE_CONNECTOR, "*"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
 				// User:1124
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1124", ShepherdOperationType_SINK_CONNECTOR, "*"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1124", ShepherdOperationType_SINK_CONNECTOR, "*"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): ""},
 				// User:1125
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1125", ShepherdOperationType_SOURCE_CONNECTOR, "*"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1125"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1125", ShepherdOperationType_SOURCE_CONNECTOR, "*"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1125"},
 				// User:1126
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1126", ShepherdOperationType_SINK_CONNECTOR, "*"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1126"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1126", ShepherdOperationType_SINK_CONNECTOR, "*"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1126"},
 				// User:1127
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1125", ShepherdOperationType_SOURCE_CONNECTOR, "mno.host"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1127"},
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1125", ShepherdOperationType_SOURCE_CONNECTOR, "pqr.host"): NVPairs{KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1127"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1127", ShepherdOperationType_SOURCE_CONNECTOR, "mno.host"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1127"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1127", ShepherdOperationType_SOURCE_CONNECTOR, "pqr.host"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1127"},
 			},
 			"Connector ACL Mismatch"},
 	}

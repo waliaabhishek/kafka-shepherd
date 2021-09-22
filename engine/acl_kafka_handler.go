@@ -128,7 +128,7 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 			case ShepherdOperationType_SOURCE_CONNECTOR:
-				// Enable Topic Read
+				// Enable Topic Write
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
 				// if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
