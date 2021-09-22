@@ -4,7 +4,6 @@ definitions:
     topics:
       - name:
           - "test.1"
-          - "test.2"
         clients:
           producers:
             - id: "User:1101"
@@ -26,29 +25,3 @@ definitions:
               hostnames:
                 - "abc.host"
                 - "def.host"
-          consumers:
-            - id: "User:1111"
-            - id: "User:1112"
-              group: "1112"
-            - id: "User:1113"
-              group: "1113"
-              hostnames:
-                - "ghi.host"
-                - "jkl.host"
-          connectors:
-            - id: "User:1121"
-              type: "source"
-            - id: "User:1122"
-              type: "sink"
-            - id: "User:1123"
-              type: "source"
-              clusterName: "connect-cluster"
-            - id: "User:1124"
-              type: "sink"
-              clusterName: "connect-cluster"
-            - id: "User:1125"
-              type: "source"
-              clusterName: "connect-cluster"
-              hostnames:
-                - "mno.host"
-                - "pqr.host"

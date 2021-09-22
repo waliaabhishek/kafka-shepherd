@@ -1,0 +1,33 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+        clients:
+          connectors:
+            - id: "User:1121"
+              type: "source"
+            - id: "User:1122"
+              type: "sink"
+            - id: "User:1123"
+              type: "source"
+              clusterName: "connect-cluster"
+            - id: "User:1124"
+              type: "sink"
+              clusterName: "connect-cluster"
+            - id: "User:1125"
+              type: "source"
+              connectorName: "1125"
+              clusterName: "connect-cluster"
+            - id: "User:1126"
+              type: "sink"
+              connectorName: "1126"
+              clusterName: "connect-cluster"
+            - id: "User:1127"
+              type: "source"
+              connectorName: "1127"
+              clusterName: "connect-cluster"
+              hostnames:
+                - "mno.host"
+                - "pqr.host"

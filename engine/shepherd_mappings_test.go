@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"fmt"
 	"os"
+	"reflect"
 )
 
 func (s *StackSuite) SetupTest() {
@@ -53,6 +55,7 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ProducerDefinitionsToUTMMa
 			UserTopicMappingKey{Principal: "pi1", ClientType: ShepherdClientType_PRODUCER_IDEMPOTENCE, GroupID: "pg1"}:   UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
 			UserTopicMappingKey{Principal: "pi1", ClientType: ShepherdClientType_TRANSACTIONAL_PRODUCER, GroupID: "pg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
 			UserTopicMappingKey{Principal: "pi2", ClientType: ShepherdClientType_PRODUCER, GroupID: "pg2"}:               UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
+			UserTopicMappingKey{Principal: "pi1", ClientType: ShepherdClientType_PRODUCER_IDEMPOTENCE, GroupID: "pg2"}:   UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
 			UserTopicMappingKey{Principal: "pi2", ClientType: ShepherdClientType_TRANSACTIONAL_PRODUCER, GroupID: "pg2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}}},
 			"Everything Present"},
 	}
@@ -62,7 +65,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ProducerDefinitionsToUTMMa
 		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
 		ConfMaps.utm = UserTopicMapping{}
 		GenerateMappings()
-		s.EqualValues(c.out, ConfMaps.utm, c.err)
+		// s.EqualValues(c.out, ConfMaps.utm, fmt.Sprintf("File Name Reference: %v ; Error: %v", c.inDefFileName, c.err))
+		s.True(reflect.DeepEqual(c.out, ConfMaps.utm), fmt.Sprintf("File Name Reference: %v ; Error: %v", c.inDefFileName, c.err))
 	}
 }
 
@@ -212,10 +216,10 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_KSQLDefinitionsToUTMMappin
 		// },
 		// 	"Only two attributes are present"},
 		{"./testdata/utm_mapping/ksql/definitions_3.yaml", UserTopicMapping{
-			UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
-			UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_KSQL, GroupID: "ksql1"}:     UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
-			UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
-			UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_KSQL, GroupID: "ksql2"}:     UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
+			// UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
+			UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_KSQL_READ, GroupID: "ksql1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
+			// UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
+			UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_KSQL_WRITE, GroupID: "ksql2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}},
 			// UserTopicMappingKey{Principal: "", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql3"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"stu.host", "vwx.host"}},
 			// UserTopicMappingKey{Principal: "", ClientType: ShepherdClientType_KSQL, GroupID: "ksql3"}:           UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"stu.host", "vwx.host"}},
 			// UserTopicMappingKey{Principal: "", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql4"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"yza.host", "bcd.host"}},
@@ -223,14 +227,14 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_KSQLDefinitionsToUTMMappin
 		},
 			"Three attributes are present"},
 		{"./testdata/utm_mapping/ksql/definitions_4.yaml", UserTopicMapping{
-			UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}},
-			UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_KSQL, GroupID: "ksql1"}:     UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}},
-			UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}},
-			UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_KSQL, GroupID: "ksql2"}:     UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}},
-			UserTopicMappingKey{Principal: "ksqli3", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql3"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"ghi.host", "jkl.host"}},
-			UserTopicMappingKey{Principal: "ksqli3", ClientType: ShepherdClientType_KSQL, GroupID: "ksql3"}:     UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"ghi.host", "jkl.host"}},
-			UserTopicMappingKey{Principal: "ksqli4", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql4"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"mno.host", "pqr.host"}},
-			UserTopicMappingKey{Principal: "ksqli4", ClientType: ShepherdClientType_KSQL, GroupID: "ksql4"}:     UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"mno.host", "pqr.host"}},
+			// UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql1"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}},
+			UserTopicMappingKey{Principal: "ksqli1", ClientType: ShepherdClientType_KSQL_READ, GroupID: "ksql1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}},
+			// UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql2"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}},
+			UserTopicMappingKey{Principal: "ksqli2", ClientType: ShepherdClientType_KSQL_WRITE, GroupID: "ksql2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}},
+			// UserTopicMappingKey{Principal: "ksqli3", ClientType: ShepherdClientType_CONSUMER, GroupID: "ksql3"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"ghi.host", "jkl.host"}},
+			UserTopicMappingKey{Principal: "ksqli3", ClientType: ShepherdClientType_KSQL_READ, GroupID: "ksql3"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"ghi.host", "jkl.host"}},
+			// UserTopicMappingKey{Principal: "ksqli4", ClientType: ShepherdClientType_PRODUCER, GroupID: "ksql4"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"mno.host", "pqr.host"}},
+			UserTopicMappingKey{Principal: "ksqli4", ClientType: ShepherdClientType_KSQL_WRITE, GroupID: "ksql4"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"mno.host", "pqr.host"}},
 		},
 			"All attributes are present"},
 	}

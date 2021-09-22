@@ -1,0 +1,91 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+        clients:
+          producers:
+            - id: "User:1101"
+            - id: "User:1102"
+              group: "1102"
+            - id: "User:1103"
+              group: "1103"
+              enableIdempotence: true
+            - id: "User:1104"
+              group: "1104"
+              enableTransactions: true
+            - id: "User:1105"
+              group: "1105"
+              enableIdempotence: true
+              enableTransactions: true
+            - id: "User:1106"
+              group: "1106"
+              enableTransactions: true
+              hostnames:
+                - "abc.host"
+                - "def.host"
+          consumers:
+            - id: "User:1111"
+            - id: "User:1112"
+              group: "1112"
+            - id: "User:1113"
+              group: "1113"
+              hostnames:
+                - "ghi.host"
+                - "jkl.host"
+          connectors:
+            - id: "User:1121"
+              type: "source"
+            - id: "User:1122"
+              type: "sink"
+            - id: "User:1123"
+              type: "source"
+              clusterName: "connect-cluster"
+            - id: "User:1124"
+              type: "sink"
+              clusterName: "connect-cluster"
+            - id: "User:1125"
+              type: "source"
+              clusterName: "connect-cluster"
+              hostnames:
+                - "mno.host"
+                - "pqr.host"
+          streams:
+            - id: "User:1131"
+              group: "1131"
+              type: "read"
+            - id: "User:1132"
+              group: "1132"
+              type: "write"
+            - id: "User:1133"
+              group: "1133"
+              type: "read"
+              hostnames:
+                - "stu.host"
+                - "vwx.host"
+            - id: "User:1134"
+              group: "1134"
+              type: "write"
+              hostnames:
+                - "yza.host"
+                - "bcd.host"
+          ksql:
+            - id: "User:1141"
+              clusterName: "1141"
+              type: "read"
+            - id: "User:1142"
+              clusterName: "1142"
+              type: "write"
+            - id: "User:1143"
+              clusterName: "1143"
+              type: "read"
+              hostnames:
+                - "efg.host"
+                - "hij.host"
+            - id: "User:1144"
+              clusterName: "1144"
+              type: "write"
+              hostnames:
+                - "klm.host"
+                - "nop.host"

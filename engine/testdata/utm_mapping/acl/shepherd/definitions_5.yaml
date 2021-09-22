@@ -1,0 +1,26 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+        clients:
+          ksql:
+            - id: "User:1141"
+              clusterName: "1141"
+              type: "read"
+            - id: "User:1142"
+              clusterName: "1142"
+              type: "write"
+            - id: "User:1143"
+              clusterName: "1143"
+              type: "read"
+              hostnames:
+                - "efg.host"
+                - "hij.host"
+            - id: "User:1144"
+              clusterName: "1144"
+              type: "write"
+              hostnames:
+                - "klm.host"
+                - "nop.host"

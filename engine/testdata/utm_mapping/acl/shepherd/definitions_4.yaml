@@ -1,0 +1,26 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+        clients:
+          streams:
+            - id: "User:1131"
+              group: "1131"
+              type: "read"
+            - id: "User:1132"
+              group: "1132"
+              type: "write"
+            - id: "User:1133"
+              group: "1133"
+              type: "read"
+              hostnames:
+                - "stu.host"
+                - "vwx.host"
+            - id: "User:1134"
+              group: "1134"
+              type: "write"
+              hostnames:
+                - "yza.host"
+                - "bcd.host"

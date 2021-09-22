@@ -356,6 +356,9 @@ func (c *ProducerDefinition) readValuesFromENV() {
 			"Producer Group", c.Group,
 			"Idempotence Enabled", c.EnableIdempotence)
 	}
+	if c.TransactionalID {
+		c.EnableIdempotence = true
+	}
 	if c.TransactionalID && c.Group == "" {
 		logger.Fatalw("If Transactions are enabled, Producer needs to have a group defined.",
 			"Producer Principal", c.Principal,
@@ -366,6 +369,7 @@ func (c *ProducerDefinition) readValuesFromENV() {
 
 type ConnectorDefinition struct {
 	Principal      string   `yaml:"id,omitempty"`
+	ConnectorName  string   `yaml:"connectorName,omitempty"`
 	Type           string   `yaml:"type,omitempty"`
 	ClusterNameRef string   `yaml:"clusterName,omitempty"`
 	Hostnames      []string `yaml:"hostnames,omitempty,flow"`
@@ -376,6 +380,7 @@ func (c *ConnectorDefinition) readValuesFromENV() {
 	if len(c.Principal) == 0 {
 		logger.Fatal("ID needs to be defined, otherwise the ACL's cannot be set up.")
 	}
+	c.ConnectorName = envVarCheckNReplace(c.ConnectorName, "")
 	c.Type = envVarCheckNReplace(c.Type, "")
 	if c.Type != "source" && c.Type != "sink" {
 		logger.Fatalw("Connectors need to be source or sink type. null or any other values are not expected.",
@@ -506,6 +511,7 @@ type UserTopicMappingKey struct {
 type UserTopicMappingValue struct {
 	TopicList []string
 	Hostnames []string
+	AddlData  NVPairs
 }
 
 /*

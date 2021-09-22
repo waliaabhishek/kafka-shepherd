@@ -19,6 +19,7 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 		pairs = ksmisc.GetPermutationsString(pairs)
 		for _, i := range pairs {
 			varType, _ := temp.GetValue(i[2])
+			// value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdClientType), GroupID: i[1]}]
 			switch varType {
 			case ShepherdClientType_PRODUCER:
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
@@ -33,30 +34,38 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = nil
 			case ShepherdClientType_CONSUMER_GROUP:
-				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[2], determinePatternType(i[4]),
+				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
 					i[0], varType, i[3])] = nil
 			case ShepherdClientType_SOURCE_CONNECTOR:
-				value := make(NVPairs)
-				value[KafkaResourceType_CLUSTER.GetACLResourceString()] = "kafka-cluster"
+				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdClientType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
-					i[0], varType, i[3])] = value
+					i[0], varType, i[3])] = value.AddlData
 			case ShepherdClientType_SINK_CONNECTOR:
-				value := make(NVPairs)
-				value[KafkaResourceType_CLUSTER.GetACLResourceString()] = "kafka-cluster"
+				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdClientType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
-					i[0], varType, i[3])] = value
+					i[0], varType, i[3])] = value.AddlData
 				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
-					i[0], varType, i[3])] = value
+					i[0], varType, i[3])] = value.AddlData
 			case ShepherdClientType_STREAM_READ:
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = nil
 			case ShepherdClientType_STREAM_WRITE:
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = nil
-			case ShepherdClientType_KSQL:
+			case ShepherdClientType_KSQL_READ:
 				// TODO: Implement KSQL Permission sets
+				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdClientType), GroupID: i[1]}]
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = value.AddlData
 				ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
-					i[0], varType, i[3])] = nil
+					i[0], varType, i[3])] = value.AddlData
+			case ShepherdClientType_KSQL_WRITE:
+				// TODO: Implement KSQL Permission sets
+				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdClientType), GroupID: i[1]}]
+				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
+					i[0], varType, i[3])] = value.AddlData
+				ret[constructACLDetailsObject(KafkaResourceType_KSQL_CLUSTER, i[1], KafkaACLPatternType_PREFIXED,
+					i[0], varType, i[3])] = value.AddlData
 			default:
 				// TODO: Error handling if the Client Type provided is unknown
 			}

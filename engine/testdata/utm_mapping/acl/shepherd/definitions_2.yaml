@@ -1,0 +1,16 @@
+---
+definitions:
+  adhoc:
+    topics:
+      - name:
+          - "test.1"
+        clients:
+          consumers:
+            - id: "User:1111"
+            - id: "User:1112"
+              group: "1112"
+            - id: "User:1113"
+              group: "1113"
+              hostnames:
+                - "ghi.host"
+                - "jkl.host"
