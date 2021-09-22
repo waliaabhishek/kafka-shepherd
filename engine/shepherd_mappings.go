@@ -86,19 +86,19 @@ func (sd ScopeDefinition) getTokensForThisLevel(level int, b *BlueprintRoot) ([]
 func (c ClientDefinition) addClientToUTM(topic string) {
 	for _, v := range c.Consumers {
 		addlData := make(NVPairs)
-		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic, v.Hostnames, addlData)
+		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER, v.Group, topic, v.Hostnames, addlData)
 		if v.Group != "" {
-			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER_GROUP, v.Group, topic, v.Hostnames, addlData)
+			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER_GROUP, v.Group, topic, v.Hostnames, addlData)
 		}
 	}
 	for _, v := range c.Producers {
 		addlData := make(NVPairs)
-		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic, v.Hostnames, addlData)
+		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_PRODUCER, v.Group, topic, v.Hostnames, addlData)
 		if v.TransactionalID {
-			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic, v.Hostnames, addlData)
+			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_TRANSACTIONAL_PRODUCER, v.Group, topic, v.Hostnames, addlData)
 		}
 		if v.EnableIdempotence {
-			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic, v.Hostnames, addlData)
+			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_PRODUCER_IDEMPOTENCE, v.Group, topic, v.Hostnames, addlData)
 		}
 	}
 	for _, v := range c.Connectors {
@@ -111,47 +111,47 @@ func (c ClientDefinition) addClientToUTM(topic string) {
 	}
 	for _, v := range c.Streams {
 		addlData := make(NVPairs)
-		// if v.getTypeValue() == ShepherdClientType_STREAM_READ {
-		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_CONSUMER, v.Group, topic, v.Hostnames)
+		// if v.getTypeValue() == ShepherdOperationType_STREAM_READ {
+		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER, v.Group, topic, v.Hostnames)
 		// } else {
-		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER, v.Group, topic, v.Hostnames)
+		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_PRODUCER, v.Group, topic, v.Hostnames)
 		// }
-		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_TRANSACTIONAL_PRODUCER, v.Group, topic, v.Hostnames)
-		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_PRODUCER_IDEMPOTENCE, v.Group, topic, v.Hostnames)
+		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_TRANSACTIONAL_PRODUCER, v.Group, topic, v.Hostnames)
+		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_PRODUCER_IDEMPOTENCE, v.Group, topic, v.Hostnames)
 		ConfMaps.utm.addToUserTopicMapping(v.Principal, v.getTypeValue(), v.Group, topic, v.Hostnames, addlData)
 	}
 	for _, v := range c.KSQL {
 		addlData := make(NVPairs)
 		ConfMaps.utm.addToUserTopicMapping(v.Principal, v.getTypeValue(), v.ClusterNameRef, topic, v.Hostnames, addlData)
-		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdClientType_KSQL, v.ClusterNameRef, topic, v.Hostnames, addlData)
+		// ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_KSQL, v.ClusterNameRef, topic, v.Hostnames, addlData)
 	}
 }
 
-func (c ConnectorDefinition) getTypeValue() ShepherdClientType {
+func (c ConnectorDefinition) getTypeValue() ShepherdOperationType {
 	if strings.TrimSpace(strings.ToLower(c.Type)) == "source" {
-		return ShepherdClientType_SOURCE_CONNECTOR
+		return ShepherdOperationType_SOURCE_CONNECTOR
 	} else {
-		return ShepherdClientType_SINK_CONNECTOR
+		return ShepherdOperationType_SINK_CONNECTOR
 	}
 }
 
-func (c StreamDefinition) getTypeValue() ShepherdClientType {
+func (c StreamDefinition) getTypeValue() ShepherdOperationType {
 	if strings.TrimSpace(strings.ToLower(c.Type)) == "read" {
-		return ShepherdClientType_STREAM_READ
+		return ShepherdOperationType_STREAM_READ
 	} else {
-		return ShepherdClientType_STREAM_WRITE
+		return ShepherdOperationType_STREAM_WRITE
 	}
 }
 
-func (c KSQLDefinition) getTypeValue() ShepherdClientType {
+func (c KSQLDefinition) getTypeValue() ShepherdOperationType {
 	if strings.TrimSpace(strings.ToLower(c.Type)) == "read" {
-		return ShepherdClientType_KSQL_READ
+		return ShepherdOperationType_KSQL_READ
 	} else {
-		return ShepherdClientType_KSQL_WRITE
+		return ShepherdOperationType_KSQL_WRITE
 	}
 }
 
-func (utm *UserTopicMapping) addToUserTopicMapping(clientId string, cType ShepherdClientType, cGroup string, topicName string, hostNames []string, addlValues NVPairs) {
+func (utm *UserTopicMapping) addToUserTopicMapping(clientId string, cType ShepherdOperationType, cGroup string, topicName string, hostNames []string, addlValues NVPairs) {
 	// utm.addTopicToUserTopicMapping(clientId, cType, cGroup, topicName)
 	// utm.addHostnamesToUserTopicMapping(clientId, cType, cGroup, hostNames)
 
@@ -177,7 +177,7 @@ func (utm *UserTopicMapping) addToUserTopicMapping(clientId string, cType Shephe
 /*
 	This is the core function that implements addition to the USER to TOPIC Mapping.
 */
-// func (utm *UserTopicMapping) addTopicToUserTopicMapping(clientId string, cType ShepherdClientType, cGroup string, topicName string) {
+// func (utm *UserTopicMapping) addTopicToUserTopicMapping(clientId string, cType ShepherdOperationType, cGroup string, topicName string) {
 // 	if val, present := (*utm)[UserTopicMappingKey{Principal: clientId, ClientType: cType, GroupID: cGroup}]; present {
 // 		if _, ok := ksmisc.Find(&val.TopicList, topicName); !ok {
 // 			val.TopicList = append(val.TopicList, topicName)
@@ -191,7 +191,7 @@ func (utm *UserTopicMapping) addToUserTopicMapping(clientId string, cType Shephe
 /*
 	This is the core function that implements addition to the USER to TOPIC Mapping.
 */
-// func (utm *UserTopicMapping) addHostnamesToUserTopicMapping(clientId string, cType ShepherdClientType, cGroup string, hostnames []string) {
+// func (utm *UserTopicMapping) addHostnamesToUserTopicMapping(clientId string, cType ShepherdOperationType, cGroup string, hostnames []string) {
 // 	if val, present := (*utm)[UserTopicMappingKey{Principal: clientId, ClientType: cType, GroupID: cGroup}]; present {
 // 		for _, v := range hostnames {
 // 			if _, found := ksmisc.Find(&val.Hostnames, v); !found {

@@ -504,7 +504,7 @@ type UserTopicMapping map[UserTopicMappingKey]UserTopicMappingValue
 
 type UserTopicMappingKey struct {
 	Principal  string
-	ClientType ShepherdClientType
+	ClientType ShepherdOperationType
 	GroupID    string
 }
 

@@ -90,16 +90,16 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 		switch k.Operation.(type) {
 		case KafkaACLOperation:
 			temp[k] = v
-		case ShepherdClientType:
+		case ShepherdOperationType:
 			switch k.Operation {
-			case ShepherdClientType_PRODUCER, ShepherdClientType_STREAM_WRITE:
+			case ShepherdOperationType_PRODUCER, ShepherdOperationType_STREAM_WRITE:
 				// Enable Write to Topic
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
 				// Enable Describe on Transactional ID
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-			case ShepherdClientType_TRANSACTIONAL_PRODUCER:
+			case ShepherdOperationType_TRANSACTIONAL_PRODUCER:
 				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL,
 					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
@@ -108,26 +108,26 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
 				// Enable Idempotent Writes with Transaction ID
-			case ShepherdClientType_PRODUCER_IDEMPOTENCE:
+			case ShepherdOperationType_PRODUCER_IDEMPOTENCE:
 				// Repeat of above for the corner case where the customer wants idempotence but not the transactional behavior
 				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, k.ResourceName,
 					KafkaACLPatternType_LITERAL,
 					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
-			case ShepherdClientType_CONSUMER, ShepherdClientType_STREAM_READ:
+			case ShepherdOperationType_CONSUMER, ShepherdOperationType_STREAM_READ:
 				// Enable Topic Read
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				// Enable topic Describe
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-			case ShepherdClientType_CONSUMER_GROUP:
+			case ShepherdOperationType_CONSUMER_GROUP:
 				// Enable Consumer Group Functionalities
 				temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName,
 					KafkaACLPatternType_LITERAL,
 					// KafkaACLPatternType_UNKNOWN,
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-			case ShepherdClientType_SOURCE_CONNECTOR:
+			case ShepherdOperationType_SOURCE_CONNECTOR:
 				// Enable Topic Read
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
@@ -138,7 +138,7 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
 				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
 				// }
-			case ShepherdClientType_SINK_CONNECTOR:
+			case ShepherdOperationType_SINK_CONNECTOR:
 				// Enable Topic Read
 				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
 					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
@@ -154,7 +154,7 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
 				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
 			//  TODO: Implement use case for KSQL
-			// case ShepherdClientType_KSQL.String():
+			// case ShepherdOperationType_KSQL.String():
 			default:
 				// temp[k] = nil
 				logger.Warnw(" Could not generate Kafka ACL Mappings for the provided ACL Map. Sending back to the failure channel.",
