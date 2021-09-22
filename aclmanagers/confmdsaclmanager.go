@@ -248,6 +248,7 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 		value, multiValue := make(ksengine.NVPairs), make(ksengine.NVPairs)
 		value[kCluster] = connObj.KafkaClusterID
 		multiValue[kCluster] = connObj.KafkaClusterID
+		v := v.(ksengine.NVPairs)
 		switch k.Operation {
 		case ksengine.ShepherdOperationType_PRODUCER:
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, c.determinePatternType(k.ResourceName),
@@ -294,20 +295,35 @@ func (c ConfluentRbacACLExecutionManagerImpl) mapFromShepherdACL(clusterName str
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
 				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
 			if connObj.SRClusterID != "" {
-				value[srCluster] = connObj.SRClusterID
+				multiValue[srCluster] = connObj.SRClusterID
 				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_SUBJECT, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
-					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
+					k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), multiValue)
 			}
-		case ksengine.ShepherdOperationType_KSQL:
-			value[ksqlCluster] = connObj.KSQLClusterID
+		case ksengine.ShepherdOperationType_KSQL_READ, ksengine.ShepherdOperationType_KSQL_WRITE:
+			clusterId := v[ksengine.KafkaResourceType_KSQL_CLUSTER.GetACLResourceString()]
+			multiValue[ksengine.KafkaResourceType_KSQL_CLUSTER.GetACLResourceString()] = clusterId
+			// Enable Write to KSQL cluster
 			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_KSQL_CLUSTER, "ksql-cluster", ksengine.KafkaACLPatternType_LITERAL,
-				k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname), value)
-			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, fmt.Sprintf("_confluent-ksql-%s", k.ResourceName), ksengine.KafkaACLPatternType_PREFIXED,
-				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), value)
-			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, fmt.Sprintf("%sksql_processing_log", k.ResourceName), ksengine.KafkaACLPatternType_LITERAL,
-				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), value)
-			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%stransient", k.ResourceName), ksengine.KafkaACLPatternType_PREFIXED,
-				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), value)
+				k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname), multiValue)
+			// Consumer Group access
+			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_GROUP, fmt.Sprintf("_confluent-ksql-%s", clusterId), ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), multiValue)
+			// Processing Log Topic Access
+			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, fmt.Sprintf("%sksql_processing_log", clusterId), ksengine.KafkaACLPatternType_LITERAL,
+				k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), multiValue)
+			// KSQL Cluster Transient Topic Access
+			out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%stransient", clusterId), ksengine.KafkaACLPatternType_PREFIXED,
+				k.Principal, ConfluentRBACOperation("ResourceOwner"), k.Hostname), multiValue)
+			if k.Operation == ksengine.ShepherdOperationType_KSQL_READ {
+				// Actual Topic Read access
+				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfluentRBACOperation("DeveloperRead"), k.Hostname), multiValue)
+			}
+			if k.Operation == ksengine.ShepherdOperationType_KSQL_WRITE {
+				// Actual Topic Read access
+				out.Append(c.constructACLDetailsObject(ksengine.KafkaResourceType_TOPIC, k.ResourceName, ksengine.KafkaACLPatternType_PREFIXED,
+					k.Principal, ConfluentRBACOperation("DeveloperWrite"), k.Hostname), multiValue)
+			}
 		default:
 			logger.Warnf("Conversion from %T type to %T type is not supported yet. The ACL mapping will be added to the Failed list.", k.Operation, c)
 			failed.Append(k, v)
