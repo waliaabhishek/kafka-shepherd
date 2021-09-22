@@ -163,8 +163,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_StreamsDefinitionsToUTMMap
 		// },
 		// 	"Only two attributes are present"},
 		{"./testdata/utm_mapping/streams/definitions_2.yaml", UserTopicMapping{
-			UserTopicMappingKey{Principal: "stri1", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str1"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "stri2", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}, AddlData: make(NVPairs)},
+			UserTopicMappingKey{Principal: "stri1", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str1"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}, AddlData: NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "str1"}},
+			UserTopicMappingKey{Principal: "stri2", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"*"}, AddlData: NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "str2"}},
 			// UserTopicMappingKey{Principal: "", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str3"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}},
 			// UserTopicMappingKey{Principal: "", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str4"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host", "ghi.host"}},
 			// UserTopicMappingKey{Principal: "", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str5"}:      UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"jkl.host"}},
@@ -172,10 +172,10 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_StreamsDefinitionsToUTMMap
 		},
 			"Three attributes are present"},
 		{"./testdata/utm_mapping/streams/definitions_3.yaml", UserTopicMapping{
-			UserTopicMappingKey{Principal: "stri1", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str1"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "stri2", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "stri3", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str3"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"ghi.host", "jkl.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "stri4", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str4"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"mno.host", "pqr.host"}, AddlData: make(NVPairs)},
+			UserTopicMappingKey{Principal: "stri1", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str1"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "str1"}},
+			UserTopicMappingKey{Principal: "stri2", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}, AddlData: NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "str2"}},
+			UserTopicMappingKey{Principal: "stri3", ClientType: ShepherdOperationType_STREAM_READ, GroupID: "str3"}:  UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"ghi.host", "jkl.host"}, AddlData: NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "str3"}},
+			UserTopicMappingKey{Principal: "stri4", ClientType: ShepherdOperationType_STREAM_WRITE, GroupID: "str4"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"mno.host", "pqr.host"}, AddlData: NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "str4"}},
 		},
 			"All attributes are present"},
 	}

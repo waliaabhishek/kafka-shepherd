@@ -116,19 +116,45 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
 				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1127", ShepherdOperationType_SOURCE_CONNECTOR, "pqr.host"): NVPairs{KafkaResourceType_CLUSTER.GetACLResourceString(): "kafka-cluster", KafkaResourceType_CONNECT_CLUSTER.GetACLResourceString(): "connect-cluster", KafkaResourceType_CONNECTOR.GetACLResourceString(): "1127"},
 			},
 			"Connector ACL Mismatch"},
+		{"./testdata/utm_mapping/acl/shepherd/definitions_4.yaml",
+			&ACLMapping{
+				// Streams
+				// User:1131
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1131", ShepherdOperationType_STREAM_READ, "*"): NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "1131"},
+				// User:1132
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1132", ShepherdOperationType_STREAM_WRITE, "*"): NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "1132"},
+				// User:1133
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1133", ShepherdOperationType_STREAM_READ, "stu.host"): NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "1133"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1133", ShepherdOperationType_STREAM_READ, "vwx.host"): NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "1133"},
+				// User:1134
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1134", ShepherdOperationType_STREAM_WRITE, "yza.host"): NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "1134"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1134", ShepherdOperationType_STREAM_WRITE, "bcd.host"): NVPairs{KafkaResourceType_GROUP.GetACLResourceString(): "1134"},
+			},
+			"Streams ACL Mismatch"},
+		{"./testdata/utm_mapping/acl/shepherd/definitions_5.yaml",
+			&ACLMapping{
+				// ksql
+				// User:1141
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1141", ShepherdOperationType_KSQL_READ, "*"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1141"},
+				// User:1142
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1142", ShepherdOperationType_KSQL_WRITE, "*"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1142"},
+				// User:1143
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1143", ShepherdOperationType_KSQL_READ, "efg.host"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1143"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1143", ShepherdOperationType_KSQL_READ, "hij.host"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1143"},
+				// User:1144
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1144", ShepherdOperationType_KSQL_WRITE, "klm.host"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1144"},
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1144", ShepherdOperationType_KSQL_WRITE, "nop.host"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1144"},
+			},
+			"Streams ACL Mismatch"},
 	}
 
 	for _, c := range cases {
-		s.runACLUseCase(c.inDefFileName, c.out, c.err)
+		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
+		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+		ConfMaps.utm = UserTopicMapping{}
+		GenerateMappings()
+		result := ConfMaps.utm.getShepherdACLList()
+		// s.EqualValues(c.out, out, c.err)
+		s.True(reflect.DeepEqual(c.out, result), fmt.Sprintf("Expected Value: %v \n\n  Actual Value: %v \n\nFilename: %v\n\nError: %v", c.out, result, c.inDefFileName, c.err))
 	}
-}
-
-func (s *StackSuite) runACLUseCase(in string, out *ACLMapping, err string) {
-	os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", in)
-	SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
-	ConfMaps.utm = UserTopicMapping{}
-	GenerateMappings()
-	result := ConfMaps.utm.getShepherdACLList()
-	// s.EqualValues(c.out, out, c.err)
-	s.True(reflect.DeepEqual(out, result), fmt.Sprintf("Expected Value: %v \n\n  Actual Value: %v \n\nFilename: %v\n\nError: %v", out, result, in, err))
 }

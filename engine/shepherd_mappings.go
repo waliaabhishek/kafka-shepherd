@@ -111,6 +111,7 @@ func (c ClientDefinition) addClientToUTM(topic string) {
 	}
 	for _, v := range c.Streams {
 		addlData := make(NVPairs)
+		addlData[KafkaResourceType_GROUP.GetACLResourceString()] = v.Group
 		// if v.getTypeValue() == ShepherdOperationType_STREAM_READ {
 		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER, v.Group, topic, v.Hostnames)
 		// } else {

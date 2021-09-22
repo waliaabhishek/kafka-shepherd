@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"strings"
-
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
 )
 
@@ -48,11 +46,13 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 				// ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
 				// 	i[0], varType, i[3])] = value.AddlData
 			case ShepherdOperationType_STREAM_READ:
+				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdOperationType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
-					i[0], varType, i[3])] = nil
+					i[0], varType, i[3])] = value.AddlData
 			case ShepherdOperationType_STREAM_WRITE:
+				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdOperationType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
-					i[0], varType, i[3])] = nil
+					i[0], varType, i[3])] = value.AddlData
 			case ShepherdOperationType_KSQL_READ:
 				// TODO: Implement KSQL Permission sets
 				// Added only the TOPIC Resource type and the KSQL Service ID should be available in the NVPairs
@@ -76,15 +76,15 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 	return &ret
 }
 
-func (utm *UserTopicMapping) PrintUTM() {
-	for k1, v1 := range *utm {
-		logger.Infow("User Topic Mapping Details",
-			"User ID", k1.Principal,
-			"Client Type", k1.ClientType,
-			"Group ID", k1.GroupID,
-			"Topic List", strings.Join(v1.TopicList, ", "))
-	}
-}
+// func (utm *UserTopicMapping) PrintUTM() {
+// 	for k1, v1 := range *utm {
+// 		logger.Infow("User Topic Mapping Details",
+// 			"User ID", k1.Principal,
+// 			"Client Type", k1.ClientType,
+// 			"Group ID", k1.GroupID,
+// 			"Topic List", strings.Join(v1.TopicList, ", "))
+// 	}
+// }
 
 func conditionalACLMapper(inputACLs *ACLMapping, findIn *ACLMapping, presenceCheck bool) *ACLMapping {
 	ret := make(ACLMapping)
@@ -131,13 +131,13 @@ func conditionalACLMapper(inputACLs *ACLMapping, findIn *ACLMapping, presenceChe
 /////////////////////// Topic Config Mapping Managers /////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (tcm *TopicConfigMapping) PrintTCM() {
-	for k, v := range *tcm {
-		logger.Infow("Topic Config Mapping Details",
-			"Topic Name", k,
-			"Topic Properties", v)
-	}
-}
+// func (tcm *TopicConfigMapping) PrintTCM() {
+// 	for k, v := range *tcm {
+// 		logger.Infow("Topic Config Mapping Details",
+// 			"Topic Name", k,
+// 			"Topic Properties", v)
+// 	}
+// }
 
 func ListTopicsInConfig(forceRefresh bool) []string {
 	return ksmisc.GetStringSliceFromMapSet(Shepherd.GetTopicList(forceRefresh))
