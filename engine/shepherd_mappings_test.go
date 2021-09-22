@@ -61,12 +61,7 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ProducerDefinitionsToUTMMa
 	}
 
 	for _, c := range cases {
-		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
-		ConfMaps.utm = UserTopicMapping{}
-		GenerateMappings()
-		// s.EqualValues(c.out, ConfMaps.utm, fmt.Sprintf("File Name Reference: %v ; Error: %v", c.inDefFileName, c.err))
-		s.True(reflect.DeepEqual(c.out, ConfMaps.utm), fmt.Sprintf("File Name Reference: %v ; Error: %v", c.inDefFileName, c.err))
+		s.testUTMMapping(c.inDefFileName, c.out, c.err)
 	}
 }
 
@@ -109,11 +104,7 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ConsumerDefinitionsToUTMMa
 	}
 
 	for _, c := range cases {
-		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
-		ConfMaps.utm = UserTopicMapping{}
-		GenerateMappings()
-		s.EqualValues(c.out, ConfMaps.utm, c.err)
+		s.testUTMMapping(c.inDefFileName, c.out, c.err)
 	}
 }
 
@@ -156,11 +147,7 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ConnectorDefinitionsToUTMM
 	}
 
 	for _, c := range cases {
-		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
-		ConfMaps.utm = UserTopicMapping{}
-		GenerateMappings()
-		s.EqualValues(c.out, ConfMaps.utm, c.err)
+		s.testUTMMapping(c.inDefFileName, c.out, c.err)
 	}
 }
 
@@ -194,11 +181,7 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_StreamsDefinitionsToUTMMap
 	}
 
 	for _, c := range cases {
-		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
-		ConfMaps.utm = UserTopicMapping{}
-		GenerateMappings()
-		s.EqualValues(c.out, ConfMaps.utm, c.err)
+		s.testUTMMapping(c.inDefFileName, c.out, c.err)
 	}
 }
 
@@ -240,10 +223,15 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_KSQLDefinitionsToUTMMappin
 	}
 
 	for _, c := range cases {
-		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
-		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
-		ConfMaps.utm = UserTopicMapping{}
-		GenerateMappings()
-		s.EqualValues(c.out, ConfMaps.utm, c.err)
+		s.testUTMMapping(c.inDefFileName, c.out, c.err)
 	}
+}
+
+func (s *StackSuite) testUTMMapping(in string, expected UserTopicMapping, err string) {
+	os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", in)
+	SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
+	ConfMaps.utm = UserTopicMapping{}
+	GenerateMappings()
+	// s.EqualValues(expected, ConfMaps.utm, fmt.Sprintf("Input File Name: %v\n\nError: %v", in, err))
+	s.True(reflect.DeepEqual(expected, ConfMaps.utm), fmt.Sprintf("File Name Reference: %v\n\nExpected Value: %v\n\nActual Value:   %v\n\nError: %v", in, expected, ConfMaps.utm, err))
 }
