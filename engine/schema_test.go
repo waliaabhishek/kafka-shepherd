@@ -10,7 +10,7 @@ func (s *StackSuite) TestStackSuite_YAMLFileParsing() {
 	os.Setenv("SHEPHERD_CLIENTCERT_PEM", "clientCert1")
 	os.Setenv("SHEPHERD_CLIENTKEY_KEY", "password2")
 	os.Setenv("SHEPHERD_CLIENTKEY_KEYPASS", "password1")
-	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", ""))
+	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", ""), true)
 	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
 	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
 

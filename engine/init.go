@@ -51,7 +51,7 @@ func init() {
 	// runMode = assertRunMode(runString)
 
 	// Parse Shepherd Internal Configurations from the YAML file.
-	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile))
+	SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", configFile), true)
 	logger.Debug("Shepherd Config File parse Result: ", SpdCore.Configs)
 
 	// Parse Shepherd Blueprints from the YAML file.
@@ -143,7 +143,7 @@ func (shp *ShepherdDefinition) ParseShepherDefinitions(configFilePath string, ov
 	}
 
 	if overwriteExisting || shp == nil {
-		shp = &ShepherdDefinition{}
+		shp.DefinitionRoot = DefinitionRoot{}
 	}
 
 	if err := yaml.Unmarshal(temp, shp); err != nil {
@@ -158,14 +158,14 @@ func (scf *ShepherdDefinition) validateShepherdDefinitions() {
 	return
 }
 
-func (shp *ShepherdConfig) ParseShepherdConfig(configFilePath string) {
+func (shp *ShepherdConfig) ParseShepherdConfig(configFilePath string, overwriteExisting bool) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
 		logger.Fatal("Cannot read the filepath provided in SHEPHERD_CONFIG_FILELOCATION variable. Please Correct. Error Received", err)
 	}
 
-	if shp == nil {
-		shp = &ShepherdConfig{}
+	if shp == nil || overwriteExisting {
+		shp.ConfigRoot = ConfigRoot{}
 	}
 
 	if err := yaml.Unmarshal(temp, shp); err != nil {
