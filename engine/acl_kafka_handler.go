@@ -92,72 +92,84 @@ func (c KafkaACLOperation) GenerateACLMappingStructures(clusterName string, in *
 			temp[k] = v
 		case ShepherdOperationType:
 			switch k.Operation {
-			case ShepherdOperationType_PRODUCER, ShepherdOperationType_STREAM_WRITE:
+			case ShepherdOperationType_PRODUCER:
 				// Enable Write to Topic
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
-				// Enable Describe on Transactional ID
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
 			case ShepherdOperationType_TRANSACTIONAL_PRODUCER:
-				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL,
-					// KafkaACLPatternType_UNKNOWN,
-					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName,
-					KafkaACLPatternType_LITERAL,
-					// KafkaACLPatternType_UNKNOWN,
-					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
-				// Enable Idempotent Writes with Transaction ID
+				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, k.ResourceName, KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
 			case ShepherdOperationType_PRODUCER_IDEMPOTENCE:
 				// Repeat of above for the corner case where the customer wants idempotence but not the transactional behavior
-				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, k.ResourceName,
-					KafkaACLPatternType_LITERAL,
-					// KafkaACLPatternType_UNKNOWN,
-					k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
-			case ShepherdOperationType_CONSUMER, ShepherdOperationType_STREAM_READ:
-				// Enable Topic Read
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-				// Enable topic Describe
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
-			case ShepherdOperationType_CONSUMER_GROUP:
-				// Enable Consumer Group Functionalities
-				temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName,
-					KafkaACLPatternType_LITERAL,
-					// KafkaACLPatternType_UNKNOWN,
-					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-			case ShepherdOperationType_SOURCE_CONNECTOR:
-				// Enable Topic Write
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
-				// if determinePatternType(k.ResourceName) == KafkaACLPatternType_LITERAL {
-				//  TODO : I am still debating if a connector should be allowed to create a topic or not.
-				// Personally i don't think topic creation should be allowed/tolerated at all via code bases
-				// so that they are centrally managed in a toolkit like this
-				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
-				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, k.ResourceName, KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_IDEMPOTENTWRITE, k.Hostname)] = nil
+			case ShepherdOperationType_CONSUMER:
+				if k.ResourceType == KafkaResourceType_TOPIC {
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				}
+				if k.ResourceType == KafkaResourceType_GROUP {
+					temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName, KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+				}
+			// case ShepherdOperationType_CONSUMER_GROUP:
+			case ShepherdOperationType_STREAM_READ:
+				if k.ResourceType == KafkaResourceType_TOPIC {
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+					if gName := v.(NVPairs)[KafkaResourceType_GROUP.GetACLResourceString()]; gName != "" {
+						temp[constructACLDetailsObject(KafkaResourceType_GROUP, gName, KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+					}
+				}
+				// if k.ResourceType == KafkaResourceType_GROUP {
+				// 	temp[constructACLDetailsObject(KafkaResourceType_GROUP, k.ResourceName, KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
 				// }
+			case ShepherdOperationType_STREAM_WRITE:
+				// Enable Write to Topic
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				if gName := v.(NVPairs)[KafkaResourceType_GROUP.GetACLResourceString()]; gName != "" {
+					temp[constructACLDetailsObject(KafkaResourceType_GROUP, gName, KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+				}
+			case ShepherdOperationType_SOURCE_CONNECTOR:
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				if cName := v.(NVPairs)[KafkaResourceType_CONNECTOR.GetACLResourceString()]; cName != "" {
+					temp[constructACLDetailsObject(KafkaResourceType_GROUP, fmt.Sprintf("connect-%s", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+				}
 			case ShepherdOperationType_SINK_CONNECTOR:
-				// Enable Topic Read
-				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName),
-					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-				// Enable the connector to use consumer groups if they would want to
-				temp[constructACLDetailsObject(KafkaResourceType_GROUP, v.(NVPairs)[KafkaResourceType_GROUP.GetACLResourceString()],
-					KafkaACLPatternType_LITERAL,
-					// KafkaACLPatternType_UNKNOWN,
-					k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
-				//  TODO : I am still debating if a Sink connector should be allowed to create a topic or not.
-				// Personally I don't think topic creation should be allowed/tolerated at all via code bases
-				// so that they are centrally managed in a toolkit like this
-				// If topic name is literal then enable create on that topic name as well
-				// temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, v.(NVPairs)[KafkaResourceType_CLUSTER.String()], KafkaACLPatternType_LITERAL,
-				// 	k.Principal, KafkaACLOperation_CREATE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, determinePatternType(k.ResourceName), k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				if cName := v.(NVPairs)[KafkaResourceType_CONNECTOR.GetACLResourceString()]; cName != "" {
+					temp[constructACLDetailsObject(KafkaResourceType_GROUP, fmt.Sprintf("connect-%s", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+				}
 			//  TODO: Implement use case for KSQL
-			// case ShepherdOperationType_KSQL.String():
+			case ShepherdOperationType_KSQL_READ:
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, k.PatternType, k.Principal, KafkaACLOperation_READ, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, k.PatternType, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				if cName := v.(NVPairs)[KafkaResourceType_KSQL_CLUSTER.GetACLResourceString()]; cName != "" {
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%s", cName), KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_ALL, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_GROUP, fmt.Sprintf("_confluent-ksql-%s", cName), KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_ALL, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("%sksql_processing_log", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_ALL, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%s_command_topic", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%s_command_topic", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, fmt.Sprintf("ksql-%s", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				}
+				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, "kafka-cluster", KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBECONFIGS, k.Hostname)] = nil
+			case ShepherdOperationType_KSQL_WRITE:
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, k.PatternType, k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+				temp[constructACLDetailsObject(KafkaResourceType_TOPIC, k.ResourceName, k.PatternType, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				if cName := v.(NVPairs)[KafkaResourceType_KSQL_CLUSTER.GetACLResourceString()]; cName != "" {
+					// temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("ksql-%s", cName), KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%s", cName), KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_ALL, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_GROUP, fmt.Sprintf("_confluent-ksql-%s", cName), KafkaACLPatternType_PREFIXED, k.Principal, KafkaACLOperation_ALL, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("%sksql_processing_log", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_ALL, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%s_command_topic", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_WRITE, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TOPIC, fmt.Sprintf("_confluent-ksql-%s_command_topic", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+					temp[constructACLDetailsObject(KafkaResourceType_TRANSACTIONALID, fmt.Sprintf("ksql-%s", cName), KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBE, k.Hostname)] = nil
+				}
+				temp[constructACLDetailsObject(KafkaResourceType_CLUSTER, "kafka-cluster", KafkaACLPatternType_LITERAL, k.Principal, KafkaACLOperation_DESCRIBECONFIGS, k.Hostname)] = nil
 			default:
 				// temp[k] = nil
-				logger.Warnw(" Could not generate Kafka ACL Mappings for the provided ACL Map. Sending back to the failure channel.",
+				logger.Warnw(" Could not generate Kafka ACL Mappings for the provided ACL Map. Marking as failed.",
 					"Principal", k.Principal,
 					"Resource Type", k.ResourceType.GetACLResourceString(),
 					"Resource Value", k.ResourceName,

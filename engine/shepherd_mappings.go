@@ -87,9 +87,9 @@ func (c ClientDefinition) addClientToUTM(topic string) {
 	for _, v := range c.Consumers {
 		addlData := make(NVPairs)
 		ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER, v.Group, topic, v.Hostnames, addlData)
-		if v.Group != "" {
-			ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER_GROUP, v.Group, topic, v.Hostnames, addlData)
-		}
+		// if v.Group != "" {
+		// 	ConfMaps.utm.addToUserTopicMapping(v.Principal, ShepherdOperationType_CONSUMER_GROUP, v.Group, topic, v.Hostnames, addlData)
+		// }
 	}
 	for _, v := range c.Producers {
 		addlData := make(NVPairs)

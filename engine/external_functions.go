@@ -31,9 +31,13 @@ func (utm *UserTopicMapping) getShepherdACLList() *ACLMapping {
 			case ShepherdOperationType_CONSUMER:
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
 					i[0], varType, i[3])] = nil
-			case ShepherdOperationType_CONSUMER_GROUP:
-				ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
-					i[0], varType, i[3])] = nil
+				if i[1] != "" {
+					ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], KafkaACLPatternType_LITERAL,
+						i[0], varType, i[3])] = nil
+				}
+			// case ShepherdOperationType_CONSUMER_GROUP:
+			// 	ret[constructACLDetailsObject(KafkaResourceType_GROUP, i[1], determinePatternType(i[4]),
+			// 		i[0], varType, i[3])] = nil
 			case ShepherdOperationType_SOURCE_CONNECTOR:
 				value := ConfMaps.utm[UserTopicMappingKey{Principal: i[0], ClientType: varType.(ShepherdOperationType), GroupID: i[1]}]
 				ret[constructACLDetailsObject(KafkaResourceType_TOPIC, i[4], determinePatternType(i[4]),
