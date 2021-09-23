@@ -235,3 +235,64 @@ func (s *StackSuite) testUTMMapping(in string, expected UserTopicMapping, err st
 	// s.EqualValues(expected, ConfMaps.utm, fmt.Sprintf("Input File Name: %v\n\nError: %v", in, err))
 	s.True(reflect.DeepEqual(expected, ConfMaps.utm), fmt.Sprintf("File Name Reference: %v\n\nExpected Value: %v\n\nActual Value:   %v\n\nError: %v", in, expected, ConfMaps.utm, err))
 }
+
+func (s *StackSuite) TestStackSuite_Init_CCMMappingTests() {
+	cases := []struct {
+		inFileName string
+		out        ClusterConfigMapping
+		err        string
+	}{
+		{"./testdata/cluster_config/shepherd_0.yaml",
+			ClusterConfigMapping{ClusterConfigMappingKey{Name: "dev_plaintext", IsEnabled: true}: ClusterConfigMappingValue{
+				IsActive: false, ClientID: "test1", IsACLManagementEnabled: false, TopicManager: "sarama", ACLManager: "kafka_acl",
+				BootstrapServers: []string{"localhost:9093"}, ClusterSecurityProtocol: ClusterSecurityProtocol_PLAINTEXT, ClusterDetails: NVPairs{},
+				ClusterSASLMechanism: ClusterSASLMechanism_UNKNOWN, Configs: NVPairs{"security.protocol": "PLAINTEXT"},
+			}},
+			"PLAINTEXT Cluster Connectivity Failed"},
+		// {"./testdata/cluster_config/shepherd_1.yaml",
+		// 	ClusterConfigMapping{ClusterConfigMappingKey{Name: "test_ssl_1WaySSL", IsEnabled: true}: ClusterConfigMappingValue{
+		// 		IsActive: false, ClientID: "test2", IsACLManagementEnabled: true, TopicManager: "sarama", ACLManager: "kafka_acl",
+		// 		BootstrapServers: []string{"localhost:9093"}, ClusterSecurityProtocol: ClusterSecurityProtocol_SSL, ClusterDetails: NVPairs{},
+		// 		ClusterSASLMechanism: ClusterSASLMechanism_UNKNOWN, Configs: NVPairs{"security.protocol": "SSL"},
+		// 	}},
+		// "SSL 1 Way Cluster Connectivity Failed"},
+		{"./testdata/cluster_config/shepherd_2.yaml",
+			ClusterConfigMapping{ClusterConfigMappingKey{Name: "test2_sasl_plaintext", IsEnabled: true}: ClusterConfigMappingValue{
+				IsActive: false, ClientID: "test3", IsACLManagementEnabled: true, TopicManager: "sarama", ACLManager: "kafka_acl",
+				BootstrapServers: []string{"localhost:9093"}, ClusterSecurityProtocol: ClusterSecurityProtocol_SASL_PLAINTEXT, ClusterDetails: NVPairs{},
+				ClusterSASLMechanism: ClusterSASLMechanism_PLAIN, Configs: NVPairs{"security.protocol": "SASL_PLAINTEXT", "sasl.mechanism": "PLAIN", "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin-secret\""},
+			}},
+			"SASL_PLAINTEXT Cluster Connectivity Failed"},
+		{"./testdata/cluster_config/shepherd_3.yaml",
+			ClusterConfigMapping{ClusterConfigMappingKey{Name: "test3_sasl_plaintext_scram", IsEnabled: true}: ClusterConfigMappingValue{
+				IsActive: false, ClientID: "test4", IsACLManagementEnabled: true, TopicManager: "sarama", ACLManager: "kafka_acl",
+				BootstrapServers: []string{"localhost:9093", "localhost:9094"}, ClusterSecurityProtocol: ClusterSecurityProtocol_SASL_PLAINTEXT, ClusterDetails: NVPairs{},
+				ClusterSASLMechanism: ClusterSASLMechanism_SCRAM_SHA_256, Configs: NVPairs{"security.protocol": "SASL_PLAINTEXT", "sasl.mechanism": "SCRAM-SHA-256", "sasl.jaas.config": "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"kafka\" password=\"kafka-pass\""},
+			}},
+			"SASL_SCRAM-256 Cluster Connectivity Failed"},
+		{"./testdata/cluster_config/shepherd_4.yaml",
+			ClusterConfigMapping{ClusterConfigMappingKey{Name: "test3_sasl_plaintext_scram_512", IsEnabled: true}: ClusterConfigMappingValue{
+				IsActive: false, ClientID: "test4", IsACLManagementEnabled: true, TopicManager: "sarama", ACLManager: "kafka_acl",
+				BootstrapServers: []string{"localhost:9093", "localhost:9094"}, ClusterSecurityProtocol: ClusterSecurityProtocol_SASL_PLAINTEXT, ClusterDetails: NVPairs{},
+				ClusterSASLMechanism: ClusterSASLMechanism_SCRAM_SHA_512, Configs: NVPairs{"security.protocol": "SASL_PLAINTEXT", "sasl.mechanism": "SCRAM-SHA-512", "sasl.jaas.config": "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"kafka\" password=\"kafka-pass\""},
+			}},
+			"SASL_SCRAM-512 Cluster Connectivity Failed"},
+		{"./testdata/cluster_config/shepherd_5.yaml",
+			ClusterConfigMapping{ClusterConfigMappingKey{Name: "test4_confluent_rbac", IsEnabled: true}: ClusterConfigMappingValue{
+				IsActive: false, ClientID: "test5", IsACLManagementEnabled: true, TopicManager: "sarama", ACLManager: "confluent_mds",
+				BootstrapServers: []string{"localhost:9093", "localhost:9094"}, ClusterSecurityProtocol: ClusterSecurityProtocol_SASL_PLAINTEXT, ClusterDetails: NVPairs{},
+				ClusterSASLMechanism: ClusterSASLMechanism_PLAIN, Configs: NVPairs{"security.protocol": "SASL_PLAINTEXT", "sasl.mechanism": "PLAIN", "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"alice\" password=\"alice-secret\"",
+					"erp.url": "http://0.0.0.0:8090", "mds.url": "http://0.0.0.0:8090", "ksql.url": "http://0.0.0.0:8083", "mds.username": "alice", "mds.password": "alice-secret", "connect-cluster": "connect-cluster", "schema-registry-cluster": "schema-registry"},
+			}},
+			"Confluent RBAC Cluster Connectivity Failed"},
+	}
+
+	for _, c := range cases {
+		os.Setenv("SHEPHERD_CONFIG_FILE_LOCATION", c.inFileName)
+		SpdCore.Configs.ParseShepherdConfig(getEnvVarsWithDefaults("SHEPHERD_CONFIG_FILE_LOCATION", ""), true)
+		ConfMaps.CCM = ClusterConfigMapping{}
+		GenerateMappings()
+		// s.EqualValues(expected, ConfMaps.utm, fmt.Sprintf("Input File Name: %v\n\nError: %v", in, err))
+		s.True(reflect.DeepEqual(c.out, ConfMaps.CCM), fmt.Sprintf("File Name Reference: %v\n\nExpected Value: %v\n\nActual Value:   %v\n\nError: %v", c.inFileName, c.out, ConfMaps.CCM, c.err))
+	}
+}

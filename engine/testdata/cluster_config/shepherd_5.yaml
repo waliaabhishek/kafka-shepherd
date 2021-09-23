@@ -1,0 +1,29 @@
+---
+configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: true
+  clusters:
+    - name: test4_confluent_rbac
+      isEnabled: true
+      bootstrapServers:
+        - localhost:9093
+        - localhost:9094
+      aclManager: "confluent_mds"
+      clientId: "test5"
+      configOverrides:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: PLAIN
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="alice" password="alice-secret"'
+        - erp.url: "http://0.0.0.0:8090"
+        - mds.url: "http://0.0.0.0:8090"
+        - ksql.url: "http://0.0.0.0:8083"
+        - mds.username: "alice"
+        - mds.password: "alice-secret"
+        # Kafka Cluster ID is not required if the erp.url is provided. The code will get that value from the ERP.
+        # - kafka-cluster: "asjkdfglsdkgfdjakds"
+        # KSQL Cluster ID is not required if the ksql.url is provided. The code will feed that value from the KSQL REST Layer at runtime.
+        # - ksql-cluster: "ksql-cluster"
+        - connect-cluster: "connect-cluster"
+        - schema-registry-cluster: "schema-registry"

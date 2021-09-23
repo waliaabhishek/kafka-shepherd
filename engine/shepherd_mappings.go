@@ -266,15 +266,16 @@ func (sc *ShepherdCore) addDataToClusterConfigMapping(ccm *ClusterConfigMapping)
 		if cluster.IsEnabled {
 			sp, sc, am := cluster.understandClusterTopology()
 			value := ClusterConfigMappingValue{
-				ClientID:                cluster.ClientID,
-				Configs:                 cluster.Configs[0],
-				ClusterDetails:          cluster.ClusterDetails[0],
-				ClusterSecurityProtocol: sp,
-				ClusterSASLMechanism:    sc,
 				IsActive:                false,
+				ClientID:                cluster.ClientID,
 				IsACLManagementEnabled:  am,
 				TopicManager:            cluster.TopicManager,
 				ACLManager:              cluster.ACLManager,
+				BootstrapServers:        cluster.BootstrapServers,
+				ClusterSecurityProtocol: sp,
+				ClusterSASLMechanism:    sc,
+				Configs:                 cluster.Configs[0],
+				ClusterDetails:          cluster.ClusterDetails[0],
 			}
 			(*ccm)[ClusterConfigMappingKey{IsEnabled: cluster.IsEnabled, Name: cluster.Name}] = value
 		}

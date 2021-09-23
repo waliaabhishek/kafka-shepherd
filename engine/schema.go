@@ -528,12 +528,13 @@ type ClusterConfigMappingKey struct {
 
 type ClusterConfigMappingValue struct {
 	IsActive                bool
-	IsACLManagementEnabled  bool
-	ClusterSecurityProtocol ClusterSecurityProtocol
-	ClusterSASLMechanism    ClusterSASLMechanism
 	ClientID                string
-	Configs                 NVPairs
-	ClusterDetails          NVPairs
+	IsACLManagementEnabled  bool
 	TopicManager            string
 	ACLManager              string
+	BootstrapServers        []string
+	ClusterSecurityProtocol ClusterSecurityProtocol
+	ClusterSASLMechanism    ClusterSASLMechanism
+	Configs                 NVPairs
+	ClusterDetails          NVPairs
 }

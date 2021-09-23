@@ -1,0 +1,19 @@
+---
+configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: true
+  clusters:
+    - name: test3_sasl_plaintext_scram
+      isEnabled: true
+      bootstrapServers:
+        - localhost:9093
+        # - kafka:9093
+        - localhost:9094
+      aclManager: "kafka_acl"
+      clientId: "test4"
+      configOverrides:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: SCRAM-SHA-256
+        - sasl.jaas.config: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="kafka-pass"'
