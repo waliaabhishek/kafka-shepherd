@@ -91,7 +91,7 @@ func (c ShepherdOperationType) GenerateACLMappingStructures(clusterName string, 
 	for k, v := range *in {
 		switch k.Operation.(type) {
 		case ShepherdOperationType:
-			temp[k] = nil
+			temp[k] = v
 		case KafkaACLOperation:
 			switch k.Operation {
 			case KafkaACLOperation_READ:
