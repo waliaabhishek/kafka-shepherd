@@ -22,3 +22,8 @@ type StackSuite struct {
 func TestStackSuite(t *testing.T) {
 	suite.Run(t, new(StackSuite))
 }
+
+func (s *StackSuite) SetupTest() {
+	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
+	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
+}

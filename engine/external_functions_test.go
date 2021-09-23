@@ -42,8 +42,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListTopicsInConfig() {
 	}
 }
 
-func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
-	cases := []struct {
+var (
+	aclMappingCases = []struct {
 		inDefFileName string
 		out           *ACLMapping
 		err           string
@@ -87,13 +87,13 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
 				// User:1111
 				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1111", ShepherdOperationType_CONSUMER, "*"): nil,
 				// User:1112
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1112", ShepherdOperationType_CONSUMER, "*"):     nil,
-				constructACLDetailsObject(KafkaResourceType_GROUP, "1112", KafkaACLPatternType_LITERAL, "User:1112", ShepherdOperationType_CONSUMER_GROUP, "*"): nil,
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1112", ShepherdOperationType_CONSUMER, "*"): nil,
+				constructACLDetailsObject(KafkaResourceType_GROUP, "1112", KafkaACLPatternType_LITERAL, "User:1112", ShepherdOperationType_CONSUMER, "*"):   nil,
 				// User:1113
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER, "ghi.host"):     nil,
-				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER, "jkl.host"):     nil,
-				constructACLDetailsObject(KafkaResourceType_GROUP, "1113", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER_GROUP, "ghi.host"): nil,
-				constructACLDetailsObject(KafkaResourceType_GROUP, "1113", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER_GROUP, "jkl.host"): nil,
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER, "ghi.host"): nil,
+				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER, "jkl.host"): nil,
+				constructACLDetailsObject(KafkaResourceType_GROUP, "1113", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER, "ghi.host"):   nil,
+				constructACLDetailsObject(KafkaResourceType_GROUP, "1113", KafkaACLPatternType_LITERAL, "User:1113", ShepherdOperationType_CONSUMER, "jkl.host"):   nil,
 			},
 			"Consumer ACL Mismatch"},
 		{"./testdata/utm_mapping/acl/shepherd/definitions_3.yaml",
@@ -145,10 +145,12 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
 				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1144", ShepherdOperationType_KSQL_WRITE, "klm.host"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1144"},
 				constructACLDetailsObject(KafkaResourceType_TOPIC, "test.1", KafkaACLPatternType_LITERAL, "User:1144", ShepherdOperationType_KSQL_WRITE, "nop.host"): NVPairs{KafkaResourceType_KSQL_CLUSTER.GetACLResourceString(): "1144"},
 			},
-			"Streams ACL Mismatch"},
+			"KSQL ACL Mismatch"},
 	}
+)
 
-	for _, c := range cases {
+func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
+	for _, c := range aclMappingCases {
 		os.Setenv("SHEPHERD_DEFINITIONS_FILE_LOCATION", c.inDefFileName)
 		SpdCore.Definitions = *SpdCore.Definitions.ParseShepherDefinitions(getEnvVarsWithDefaults("SHEPHERD_DEFINITIONS_FILE_LOCATION", ""), true)
 		ConfMaps.utm = UserTopicMapping{}
@@ -156,5 +158,8 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ListACLsInConfig() {
 		result := ConfMaps.utm.getShepherdACLList()
 		// s.EqualValues(c.out, out, c.err)
 		s.True(reflect.DeepEqual(c.out, result), fmt.Sprintf("Expected Value: %v \n\n  Actual Value: %v \n\nFilename: %v\n\nError: %v", c.out, result, c.inDefFileName, c.err))
+
+		result2 := ShepherdOperationType_EMPTY.GenerateACLMappingStructures("", result)
+		s.True(reflect.DeepEqual(c.out, result2), fmt.Sprintf("Expected Value: %v \n\n  Actual Value: %v \n\nFilename: %v\n\nError: Failed while invoking GenerateACLMappingStructures with error %v", c.out, result, c.inDefFileName, c.err))
 	}
 }

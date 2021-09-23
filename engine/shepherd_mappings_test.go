@@ -6,11 +6,6 @@ import (
 	"reflect"
 )
 
-func (s *StackSuite) SetupTest() {
-	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
-	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
-}
-
 func (s *StackSuite) TestStackSuite_ExternalFunctions_ProducerDefinitionsToUTMMapping() {
 	cases := []struct {
 		inDefFileName string
@@ -92,14 +87,16 @@ func (s *StackSuite) TestStackSuite_ExternalFunctions_ConsumerDefinitionsToUTMMa
 		// 	UserTopicMappingKey{Principal: "", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}}},
 		// 	"Only group name & hostnames present"},
 		{"./testdata/utm_mapping/consumers/definitions_7.yaml", UserTopicMapping{
-			UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER, GroupID: "cg1"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)}},
+			UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
+			// UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)}
+		},
 			"All 3 attributes present"},
 		{"./testdata/utm_mapping/consumers/definitions_8.yaml", UserTopicMapping{
-			UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER, GroupID: "cg1"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "ci2", ClientType: ShepherdOperationType_CONSUMER, GroupID: "cg2"}:       UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}, AddlData: make(NVPairs)},
-			UserTopicMappingKey{Principal: "ci2", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}, AddlData: make(NVPairs)}},
+			UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
+			// UserTopicMappingKey{Principal: "ci1", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg1"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"abc.host"}, AddlData: make(NVPairs)},
+			UserTopicMappingKey{Principal: "ci2", ClientType: ShepherdOperationType_CONSUMER, GroupID: "cg2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}, AddlData: make(NVPairs)},
+			// UserTopicMappingKey{Principal: "ci2", ClientType: ShepherdOperationType_CONSUMER_GROUP, GroupID: "cg2"}: UserTopicMappingValue{TopicList: []string{"test.1", "test.2"}, Hostnames: []string{"def.host"}, AddlData: make(NVPairs)}
+		},
 			"Multiple consumers present"},
 	}
 
