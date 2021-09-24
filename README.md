@@ -1,4 +1,4 @@
-<img src="https://github.com/waliaabhishek/kafka-shepherd/workflows/Build%20&%20Unit%20Tests/badge.svg" class="image mod-full-width" /> <img src="https://img.shields.io/github/v/release/waliaabhishek/kafka-shepherd?sort=semver" class="image mod-full-width" />
+<img src="https://github.com/waliaabhishek/kafka-shepherd/workflows/Build%20&%20Unit%20Tests/badge.svg" class="image mod-full-width" /> <img src="https://img.shields.io/github/v/release/waliaabhishek/kafka-shepherd?sort=semver" class="image mod-full-width" /> <img src="https://goreportcard.com/badge/github.com/waliaabhishek/kafka-shepherd" class="image mod-full-width" /> 
 
 # Kafka Shepherd
 
