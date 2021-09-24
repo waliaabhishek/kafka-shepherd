@@ -85,7 +85,7 @@ func (c *ConfluentMDSConnection) InitiateAdminConnection(cConfig ksengine.Shephe
 
 			url, err := url.Parse(cConfig.Configs[0]["erp.url"])
 			if err != nil {
-				logger.Fatalw("Cannot parse the URL. Please check the URLL and try again.",
+				logger.Fatalw("Cannot parse the URL. Please check the URL and try again.",
 					"URL", cConfig.Configs[0]["erp.url"])
 			}
 			client2.SetHostURL(url.String())
@@ -107,10 +107,10 @@ func (c *ConfluentMDSConnection) InitiateAdminConnection(cConfig ksengine.Shephe
 					"Error", err)
 			}
 			var cluster_id string
-			if !altResp {
-				cluster_id = r["data"].(map[string]interface{})["cluster_id"].(string)
-			} else {
+			if altResp {
 				cluster_id = r["id"].(string)
+			} else {
+				cluster_id = r["data"].(map[string]interface{})["cluster_id"].(string)
 			}
 			logger.Debugw("Extracted the Cluster ID successfully. ERP Connection Succeeded.",
 				"Cluster Name", cConfig.Name,
