@@ -3,6 +3,7 @@ package engine
 import (
 	"flag"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	ksmisc "github.com/waliaabhishek/kafka-shepherd/misc"
@@ -44,9 +45,11 @@ var (
 
 // func InitializeShepherdCore(enableDebug bool, enableConsoleLogs bool, shepherdConfigFilePath string,
 // 	shepherdBlueprintsFilePath string, shepherdDefinitionsFilePath string, runString string) {
-func init() {
+func Init() {
 	// Initialize Logger
-	ResolveFlags()
+	if !flag.Parsed() {
+		ResolveFlags()
+	}
 	logger = ksmisc.GetLogger(enableDebug, enableStructuredLogs)
 	// runMode = assertRunMode(runString)
 
@@ -79,9 +82,7 @@ func ResolveFlags() {
 	flag.StringVar(&blueprintsFile, "blueprintsPath", "./configs/blueprints.yaml", "Absolute file Path for Shepherd Blueprints file. Please note that this might still be overwritten by the SHEPHERD_BLUEPRINTS_FILE_LOCATION for additional flexibility.")
 	flag.StringVar(&definitionsFile, "definitionsPath", "./configs/definitions_dev.yaml", "Absolute file Path for Shepherd Definitions file. Please note that this might still be overwritten by the SHEPHERD_DEFINITIONS_FILE_LOCATION for additional flexibility.")
 	runMode = assertRunMode(flag.String("runmode", "SINGLE_CLUSTER", "Changes the mode in which the tool is operating. Options are SINGLE_CLUSTER, MULTI_CLUSTER, MIGRATION, CREATE_CONFIGS_FROM_EXISTING_CLUSTER"))
-	if !flag.Parsed() {
-		flag.Parse()
-	}
+	flag.Parse()
 }
 
 func GetConfigMaps() (sc *ConfigurationMaps) {
@@ -115,7 +116,9 @@ func assertRunMode(mode *string) RunMode {
 func (shp *ShepherdBlueprint) ParseShepherBlueprints(configFilePath string) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
+		pwd, _ := os.Getwd()
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_BLUEPRINTS_FILE_LOCATION variable. Please Correct.",
+			"Current Working Directory", pwd,
 			"Error Received", err)
 	}
 
@@ -138,7 +141,9 @@ func (scf *ShepherdBlueprint) validateShepherdBlueprints() {
 func (shp *ShepherdDefinition) ParseShepherDefinitions(configFilePath string, overwriteExisting bool) *ShepherdDefinition {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
+		pwd, _ := os.Getwd()
 		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_DEFINITIONS_FILE_LOCATION variable. Please Correct.",
+			"Current Working Directory", pwd,
 			"Error Received", err)
 	}
 
@@ -161,7 +166,10 @@ func (scf *ShepherdDefinition) validateShepherdDefinitions() {
 func (shp *ShepherdConfig) ParseShepherdConfig(configFilePath string, overwriteExisting bool) {
 	temp, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		logger.Fatal("Cannot read the filepath provided in SHEPHERD_CONFIG_FILELOCATION variable. Please Correct. Error Received", err)
+		pwd, _ := os.Getwd()
+		logger.Fatalw("Cannot read the filepath provided in SHEPHERD_CONFIG_FILELOCATION variable.",
+			"Current Working Directory", pwd,
+			"Error Received", err)
 	}
 
 	if shp == nil || overwriteExisting {
