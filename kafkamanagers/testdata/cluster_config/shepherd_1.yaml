@@ -1,0 +1,21 @@
+---
+configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: true
+  clusters:
+    - name: test_ssl_1WaySSL
+      isEnabled: true
+      bootstrapServers:
+        - localhost:9093
+      clientId: "test2"
+      tlsDetails:
+        enable2WaySSL: false
+        trustedCerts:
+          - "env::SHEPHERD_TRUSTCERT_1_PEM"
+        clientCert: "env::SHEPHERD_CLIENTCERT_PEM"
+        privateKey: "env::SHEPHERD_CLIENTKEY_KEY"
+        privateKeyPass: "env::SHEPHERD_CLIENTKEY_KEYPASS"
+      configOverrides:
+        - security.protocol: SSL

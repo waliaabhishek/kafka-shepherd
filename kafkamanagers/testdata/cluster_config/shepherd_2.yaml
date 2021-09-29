@@ -1,0 +1,17 @@
+---
+configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: true
+  clusters:
+    - name: test2_sasl_plaintext
+      isEnabled: true
+      bootstrapServers:
+        - localhost:9093
+      aclManager: "kafka_acl"
+      clientId: "test3"
+      configOverrides:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: PLAIN
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'

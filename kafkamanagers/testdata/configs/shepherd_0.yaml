@@ -1,0 +1,73 @@
+---
+configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: true
+  clusters:
+    - name: dev_plaintext
+      isEnabled: true
+      aclManager: "kafka_acl"
+      bootstrapServers:
+        - localhost:9093
+      clientId: "abhishektest1"
+      configOverrides:
+        - security.protocol: "PLAINTEXT"
+    # - name: test_ssl_1WaySSL
+    #   isEnabled: false
+    #   bootstrapServers:
+    #     - localhost:9093
+    #   clientId: "abhishektest2"
+    #   tlsDetails:
+    #     enable2WaySSL: false
+    #     trustedCerts:
+    #       - "env::SHEPHERD_TRUSTCERT_1_PEM"
+    #     clientCert: "env::SHEPHERD_CLIENTCERT_PEM"
+    #     privateKey: "env::SHEPHERD_CLIENTKEY_KEY"
+    #     privateKeyPass: "env::SHEPHERD_CLIENTKEY_KEYPASS"
+    # configOverrides:
+    #   - security.protocol: SSL
+    - name: test2_sasl_plaintext
+      isEnabled: false
+      bootstrapServers:
+        - localhost:9093
+      aclManager: "kafka_acl"
+      clientId: "abhishektest3"
+      configOverrides:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: PLAIN
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret"'
+    - name: test3_sasl_plaintext_scram
+      isEnabled: false
+      bootstrapServers:
+        - localhost:9093
+        # - kafka:9093
+        - localhost:9094
+      aclManager: "kafka_acl"
+      clientId: "abhishektest4"
+      configOverrides:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: SCRAM-SHA-256
+        - sasl.jaas.config: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka" password="kafka-pass"'
+    - name: test4_confluent_rbac
+      isEnabled: false
+      bootstrapServers:
+        - localhost:9093
+        - localhost:9094
+      aclManager: "confluent_mds"
+      clientId: "abhishektest3"
+      configOverrides:
+        - security.protocol: SASL_PLAINTEXT
+        - sasl.mechanism: PLAIN
+        - sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="alice" password="alice-secret"'
+        - erp.url: "http://0.0.0.0:8090"
+        - mds.url: "http://0.0.0.0:8090"
+        - ksql.url: "http://0.0.0.0:8083"
+        - mds.username: "alice"
+        - mds.password: "alice-secret"
+        # Kafka Cluster ID is not required if the erp.url is provided. The code will get that value from the ERP.
+        # - kafka-cluster: "asjkdfglsdkgfdjakds"
+        # KSQL Cluster ID is not required if the ksql.url is provided. The code will feed that value from the KSQL REST Layer at runtime.
+        # - ksql-cluster: "ksql-cluster"
+        - connect-cluster: "connect-cluster"
+        - schema-registry-cluster: "schema-registry"

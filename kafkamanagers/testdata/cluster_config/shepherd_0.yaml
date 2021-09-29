@@ -1,0 +1,15 @@
+---
+configs:
+  core:
+    separatorToken: "."
+    deleteUnknownTopics: false
+    deleteUnknownACLs: true
+  clusters:
+    - name: dev_plaintext
+      isEnabled: true
+      aclManager: "kafka_acl"
+      bootstrapServers:
+        - localhost:9093
+      clientId: "test1"
+      configOverrides:
+        - security.protocol: "PLAINTEXT"

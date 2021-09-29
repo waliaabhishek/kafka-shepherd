@@ -7,9 +7,11 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/onsi/ginkgo v1.16.1 // indirect
+	github.com/onsi/gomega v1.11.0 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.7.0
+	github.com/testcontainers/testcontainers-go v0.11.1
 	github.com/xdg/scram v1.0.3
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
