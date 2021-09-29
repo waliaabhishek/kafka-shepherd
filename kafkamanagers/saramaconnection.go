@@ -23,7 +23,7 @@ var (
 	SHA256 scram.HashGeneratorFcn = sha256.New
 	SHA512 scram.HashGeneratorFcn = sha512.New
 	term                          = make(chan os.Signal)
-	logger                        = ksengine.Shepherd.GetLogger()
+	logger *ksengine.ShepherdLogger
 )
 
 type SaramaConnection struct {
@@ -32,6 +32,7 @@ type SaramaConnection struct {
 }
 
 func (c *SaramaConnection) InitiateAdminConnection(cConfig ksengine.ShepherdCluster) {
+	logger = ksengine.Shepherd.GetLogger()
 	if c.SCA == nil {
 		c.validateInputDetails(cConfig)
 		conf := c.understandClusterTopology(&cConfig)
