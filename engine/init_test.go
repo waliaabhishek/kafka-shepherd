@@ -24,6 +24,7 @@ func TestStackSuite(t *testing.T) {
 }
 
 func (s *StackSuite) SetupTest() {
+	Init()
 	os.Setenv("SHEPHERD_BLUEPRINTS_FILE_LOCATION", "./testdata/blueprints_0.yaml")
 	SpdCore.Blueprints.ParseShepherBlueprints(getEnvVarsWithDefaults("SHEPHERD_BLUEPRINTS_FILE_LOCATION", ""))
 }
